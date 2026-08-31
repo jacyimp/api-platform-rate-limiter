@@ -14,15 +14,13 @@
         }
     },
     "scripts": {
-        "audit": "composer audit",
         "cs": "phpcs",
         "cs:fix": "phpcbf",
         "analyse": "phpstan analyse",
         "test": "phpunit",
         "test:behaviour": "behat",
-        "validate": "composer validate --strict",
         "check": [
-            "@validate",
+            "@composer validate --strict",
             "@cs",
             "@analyse",
             "@test",
@@ -35,7 +33,8 @@
         }
     ],
     "require": {
-        "php": "^8.2"
+        "php": "^8.2",
+        "api-platform/metadata": "^3.4 || ^4.0"
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "^4.0.4",
