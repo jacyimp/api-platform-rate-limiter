@@ -1,10 +1,9 @@
 # API Platform Rate Limiter
 
-Extensible rate limiting for API Platform applications.
+Operation-specific and shared rate limits for API Platform applications.
 
-This package provides operation-specific and shared rate limits for API Platform while keeping identity resolution and bypass rules extensible.
-
-> Early development. Public APIs may still change before the first stable release.
+> This package is in early development. Its public API may change before the
+> first stable release.
 
 ## Requirements
 
@@ -14,9 +13,8 @@ This package provides operation-specific and shared rate limits for API Platform
 
 ## Installation
 
-The package is not yet available on Packagist.
-
-For development installs directly from GitHub:
+The package is not yet available on Packagist. Install the development version
+from GitHub:
 
 ```bash
 composer config repositories.api-platform-rate-limiter vcs https://github.com/jacyimp/api-platform-rate-limiter.git
@@ -37,9 +35,11 @@ return [
 ];
 ```
 
-## Operation-specific limits
+No other configuration is required for operation-specific limits.
 
-Rate-limit metadata is attached to API Platform operations through `extraProperties`.
+## Limit an operation
+
+Add a `RateLimit` to the operation's `extraProperties`:
 
 ```php
 use ApiPlatform\Metadata\ApiResource;
@@ -63,14 +63,12 @@ final class Product
 }
 ```
 
-The limit above applies independently to that operation.
-
+This allows each resolved identity 100 requests per minute for this operation.
 The default policy is `sliding_window`.
 
-A fixed window can be selected explicitly:
+To use a fixed window instead:
 
 ```php
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
 new RateLimit(
@@ -80,48 +78,24 @@ new RateLimit(
 );
 ```
 
-## Intervals
-
-Use human-readable interval strings for the common case:
-
-```php
-new RateLimit(
-    limit: 100,
-    interval: '1 minute',
-);
-```
-
-### Advanced interval forms
-
-For programmatic interval construction, a PHP `DateInterval` is also accepted:
+Human-readable interval strings are recommended. `DateInterval` and the
+package's `Interval` value object are also supported:
 
 ```php
 use DateInterval;
-
-new RateLimit(
-    limit: 100,
-    interval: new DateInterval('PT1M'),
-);
-```
-
-Or use the package interval value object:
-
-```php
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
-new RateLimit(
-    limit: 100,
-    interval: new Interval(
-        minutes: 1,
-    ),
-);
+new RateLimit(limit: 100, interval: new DateInterval('PT1M'));
+new RateLimit(limit: 100, interval: new Interval(minutes: 1));
 ```
 
-## Shared limits
+Intervals must be at least one second. Months, years, negative values, and
+fractional seconds are not supported.
 
-Shared buckets are useful when several operations should consume the same rate-limit quota.
+## Share a limit across operations
 
-Configure them centrally:
+A shared bucket lets several operations consume the same quota. Define the
+bucket in Symfony configuration:
 
 ```yaml
 # config/packages/api_platform_rate_limiter.yaml
@@ -132,84 +106,51 @@ api_platform_rate_limiter:
             limit: 1000
             interval: '1 minute'
             policy: sliding_window
-
-        expensive:
-            limit: 20
-            interval: '1 hour'
-            policy: fixed_window
 ```
 
-Reference a shared bucket from an API Platform operation:
+Then reference it from each operation that should share the quota:
 
 ```php
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit(
-                    'catalog',
-                ),
-            ],
-        ),
+new Get(
+    extraProperties: [
+        SharedRateLimit::class => new SharedRateLimit('catalog'),
     ],
-)]
-final class Product
-{
-}
+);
 ```
 
-Every request using the `catalog` bucket consumes from the same quota for the resolved identity.
+The `policy` setting is optional and defaults to `sliding_window`. Supported
+values are `sliding_window` and `fixed_window`.
 
-## Combining limits
+## Combine limits
 
-An operation may have both an operation-specific limit and a shared limit:
+An operation can have both its own limit and a shared limit:
 
 ```php
-use ApiPlatform\Metadata\Get;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
-
 new Get(
     extraProperties: [
         RateLimit::class => new RateLimit(
             limit: 20,
             interval: '1 minute',
         ),
-        SharedRateLimit::class => new SharedRateLimit(
-            'catalog',
-        ),
+        SharedRateLimit::class => new SharedRateLimit('catalog'),
     ],
 );
 ```
 
-The request must satisfy every applicable limit. Limits are consumed sequentially
-in metadata order (`RateLimit` before `SharedRateLimit`). If an earlier limit is
-consumed and a later limit rejects the request, the earlier consumption is not
-rolled back.
+The request must satisfy both limits. The operation limit is consumed first,
+followed by the shared limit. A successful consumption is not rolled back if a
+later limit rejects the request.
 
 ## Identity resolution
 
-The default Symfony identity resolver uses:
+By default, limits apply per authenticated Symfony user. When no authenticated
+user is available, they apply per client IP. Client IPs are obtained through
+Symfony's trusted-proxy handling.
 
-1. the authenticated Symfony user's identifier, when available;
-2. otherwise the client's IP address.
-
-The generated identities are namespaced internally:
-
-```text
-user:user@example.com
-ip:192.0.2.1
-```
-
-Client IP resolution uses Symfony's trusted-proxy handling.
-
-### Custom identity resolver
-
-Implement:
+To use another identity, implement `IdentityResolverInterface` and alias it in
+the application container:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
@@ -223,8 +164,6 @@ final class ApiKeyIdentityResolver implements IdentityResolverInterface
 }
 ```
 
-Then alias it in your application container:
-
 ```yaml
 # config/services.yaml
 
@@ -233,77 +172,45 @@ services:
         alias: App\RateLimit\ApiKeyIdentityResolver
 ```
 
-## Bypassing rate limits
+## Bypass rules
 
-Applications can provide custom bypass rules.
-
-For example, trusted internal traffic, verified crawlers, or another application-specific condition can decide not to consume a limit.
+Implement `RateLimitBypassInterface` for requests that should not consume any
+limit:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+
 final class TrustedRequestBypass implements RateLimitBypassInterface
 {
     public function shouldBypass(): bool
     {
-        // Application-specific verification.
-
         return false;
     }
 }
 ```
 
-Implementations discovered through Symfony autoconfiguration are automatically collected by the package.
+Symfony autoconfiguration discovers bypass implementations automatically. A
+request bypasses rate limiting when any implementation returns `true`.
 
-The package itself deliberately contains no crawler-detection or crawler-verification logic.
+## Responses and storage
 
-## Rate-limit responses
+When a limit is exceeded, the package returns `429 Too Many Requests` with
+`Retry-After`, `RateLimit-Limit`, and `RateLimit-Remaining` headers.
 
-When a limit is exceeded, the package throws a `429 Too Many Requests` HTTP exception.
-
-The response includes:
-
-```text
-Retry-After
-RateLimit-Limit
-RateLimit-Remaining
-```
-
-## Storage
-
-The Symfony integration stores limiter state through Symfony's cache system.
-
-By default, it uses the application's `cache.app` pool.
-
-For production systems with multiple application instances, configure `cache.app` with shared storage such as Redis rather than per-node filesystem storage.
+Limiter state is stored in Symfony's `cache.app` pool. In a multi-instance
+deployment, configure that pool to use shared storage such as Redis.
 
 ## Development
 
-Run all checks:
+Run the test suite and code-quality checks:
 
 ```bash
 composer check
-```
-
-Run individual checks:
-
-```bash
-composer cs
-composer analyse
-composer test
-composer test:behaviour
-```
-
-Run dependency security checks:
-
-```bash
 composer audit
 ```
 
-## Status
-
-The core rate-limiting flow is implemented and covered by unit and Symfony kernel integration tests.
-
-The package has not yet reached its first stable release.
+Individual checks are available through `composer cs`, `composer analyse`,
+`composer test`, and `composer test:behaviour`.
 
 ## License
 
