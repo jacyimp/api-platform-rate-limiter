@@ -14,12 +14,15 @@
         }
     },
     "scripts": {
+        "audit": "composer audit",
         "cs": "phpcs",
         "cs:fix": "phpcbf",
         "analyse": "phpstan analyse",
         "test": "phpunit",
         "test:behaviour": "behat",
+        "validate": "composer validate --strict",
         "check": [
+            "@validate",
             "@cs",
             "@analyse",
             "@test",
