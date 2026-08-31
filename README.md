@@ -85,7 +85,7 @@ new RateLimit(
 Operation-specific limits accept:
 
 ```php
-new OperationRateLimit(
+new RateLimit(
     limit: 100,
     interval: '1 minute',
 );
@@ -94,7 +94,7 @@ new OperationRateLimit(
 A PHP `DateInterval`:
 
 ```php
-new OperationRateLimit(
+new RateLimit(
     limit: 100,
     interval: new DateInterval('PT1M'),
 );
@@ -105,7 +105,7 @@ Or the package interval value object:
 ```php
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
-new OperationRateLimit(
+new RateLimit(
     limit: 100,
     interval: new Interval(
         minutes: 1,
