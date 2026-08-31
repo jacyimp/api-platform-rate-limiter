@@ -35,7 +35,9 @@
     "require": {
         "php": "^8.2",
         "api-platform/metadata": "^3.4 || ^4.0",
-        "symfony/rate-limiter": "^6.4 || ^7.0 || ^8.0"
+        "symfony/rate-limiter": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+        "symfony/security-core": "^6.4 || ^7.0 || ^8.0"
     },
     "require-dev": {
         "squizlabs/php_codesniffer": "^4.0.4",
