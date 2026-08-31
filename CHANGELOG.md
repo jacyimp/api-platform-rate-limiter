@@ -15,6 +15,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- A replaceable `RateLimitRejectionHandlerInterface` for customizing exception
+  handling when a request exceeds its limit.
 - Per-limit identity resolvers and positive `when` conditions for operation and
   shared limits.
 - Autoconfiguration and explicit service tags for selectable per-limit

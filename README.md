@@ -256,6 +256,32 @@ implementation returns `true`. With `autoconfigure: false`, use the
 When a limit is exceeded, the package returns `429 Too Many Requests` with
 `Retry-After`, `RateLimit-Limit`, and `RateLimit-Remaining` headers.
 
+To customize rejection behavior, implement `RateLimitRejectionHandlerInterface`
+and alias the contract to your service. The handler receives a public
+`RateLimitRejection` value with the limit, remaining requests, and retry time,
+and must throw an exception:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
+
+final class ApiRateLimitRejectionHandler implements RateLimitRejectionHandlerInterface
+{
+    public function reject(RateLimitRejection $rejection): never
+    {
+        throw new DomainException('API quota exceeded.');
+    }
+}
+```
+
+```yaml
+# config/services.yaml
+
+services:
+    JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface:
+        alias: App\RateLimit\ApiRateLimitRejectionHandler
+```
+
 Limiter state is stored in Symfony's `cache.app` pool. In a multi-instance
 deployment, configure that pool to use shared storage such as Redis.
 

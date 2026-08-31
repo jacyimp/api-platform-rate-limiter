@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Operation;
-use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 /**
  * @internal
@@ -19,6 +19,7 @@ final readonly class ApiPlatformRateLimitListener
     public function __construct(
         private RateLimitResolver $rateLimitResolver,
         private RateLimitEnforcer $rateLimitEnforcer,
+        private RateLimitRejectionHandlerInterface $rejectionHandler,
     ) {
     }
 
@@ -52,22 +53,12 @@ final readonly class ApiPlatformRateLimitListener
             return;
         }
 
-        throw new TooManyRequestsHttpException(
-            retryAfter: $rejected
-                ->result
-                ->retryAfter
-                ->setTimezone(new DateTimeZone('GMT'))
-                ->format('D, d M Y H:i:s \G\M\T'),
-            message: 'Rate limit exceeded.',
-            headers: [
-                'RateLimit-Limit' => (string) $rejected
-                    ->rateLimit
-                    ->definition
-                    ->limit,
-                'RateLimit-Remaining' => (string) $rejected
-                    ->result
-                    ->remaining,
-            ],
+        $this->rejectionHandler->reject(
+            new RateLimitRejection(
+                limit: $rejected->rateLimit->definition->limit,
+                remaining: $rejected->result->remaining,
+                retryAfter: $rejected->result->retryAfter,
+            ),
         );
     }
 }

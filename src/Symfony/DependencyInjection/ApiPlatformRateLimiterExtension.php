@@ -11,6 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
@@ -22,6 +23,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -184,11 +186,19 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(RateLimitBypassInterface::class),
             ]);
 
+        $container->register(SymfonyRateLimitRejectionHandler::class);
+
+        $container->setAlias(
+            RateLimitRejectionHandlerInterface::class,
+            SymfonyRateLimitRejectionHandler::class,
+        );
+
         $container
             ->register(ApiPlatformRateLimitListener::class)
             ->setArguments([
                 new Reference(RateLimitResolver::class),
                 new Reference(RateLimitEnforcer::class),
+                new Reference(RateLimitRejectionHandlerInterface::class),
             ])
             ->addTag(
                 'kernel.event_listener',

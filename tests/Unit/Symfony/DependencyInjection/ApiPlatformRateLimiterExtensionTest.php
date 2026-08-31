@@ -11,6 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
@@ -21,6 +22,7 @@ use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLi
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -46,6 +48,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
                 RateLimitResolver::class,
                 CacheStorage::class,
                 SymfonyRateLimiter::class,
+                SymfonyRateLimitRejectionHandler::class,
                 SymfonyIdentityResolver::class,
                 RateLimitBypassChecker::class,
                 RateLimitStrategyRegistry::class,
@@ -86,6 +89,13 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             RateLimitBypassChecker::class,
             (string) $container->getAlias(
                 RateLimitBypassInterface::class,
+            ),
+        );
+
+        self::assertSame(
+            SymfonyRateLimitRejectionHandler::class,
+            (string) $container->getAlias(
+                RateLimitRejectionHandlerInterface::class,
             ),
         );
 

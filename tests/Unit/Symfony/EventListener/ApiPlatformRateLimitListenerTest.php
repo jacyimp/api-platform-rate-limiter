@@ -12,6 +12,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
@@ -20,6 +21,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -211,6 +213,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
 
     private function listener(
         RateLimiterInterface $rateLimiter,
+        ?RateLimitRejectionHandlerInterface $rejectionHandler = null,
     ): ApiPlatformRateLimitListener {
         $identityResolver = self::createStub(
             IdentityResolverInterface::class,
@@ -241,6 +244,8 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
                 identityResolver: $identityResolver,
                 bypass: $bypass,
             ),
+            rejectionHandler: $rejectionHandler
+                ?? new SymfonyRateLimitRejectionHandler(),
         );
     }
 
