@@ -40,6 +40,11 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- First-class Laravel 11-13 + API Platform integration with package discovery,
+  operation middleware, Laravel identity and rejection adapters, publishable
+  configuration, isolated cache storage, and Laravel event dispatching.
+- A small framework-neutral configuration factory for turning plain framework
+  configuration into the existing metadata model.
 - `Identity`, `CompositeIdentity`, and `FirstAvailableIdentity` expressions,
   including nested composition and collision-safe composite encoding.
 - `Condition`, `AllOf`, `AnyOf`, and `Not` expressions for composing nested

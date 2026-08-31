@@ -8,7 +8,7 @@ Operation-specific and shared rate limits for API Platform applications.
 
 - PHP 8.2+
 - API Platform 3.4 or 4.x
-- Symfony 6.4, 7.x or 8.x
+- Symfony 6.4, 7.x or 8.x, or Laravel 11.x, 12.x or 13.x
 
 ## Installation
 
@@ -23,6 +23,11 @@ To install the current development branch instead:
 ```bash
 composer require jacyimp/api-platform-rate-limiter:dev-main
 ```
+
+The metadata API and all rate-limit features are shared by both integrations.
+Only framework bootstrap and configuration differ.
+
+### Symfony + API Platform
 
 Register the bundle:
 
@@ -39,6 +44,63 @@ return [
 ```
 
 No other configuration is required for operation-specific limits.
+
+### Laravel + API Platform
+
+```bash
+composer require api-platform/laravel jacyimp/api-platform-rate-limiter
+```
+
+Laravel package discovery registers `LaravelServiceProvider`. It adds the
+package middleware to API Platform's default operation middleware, after API
+Platform has populated `_api_operation`. Requests without an API Platform
+`Operation` are ignored; operation metadata is never reconstructed from a
+Laravel route.
+
+Publish configuration when advanced features are needed:
+
+```bash
+php artisan vendor:publish --tag=api-platform-rate-limiter-config
+```
+
+```php
+// config/api-platform-rate-limiter.php
+
+return [
+    'globals' => [
+        'burst' => ['limit' => 100, 'interval' => '1 minute'],
+    ],
+    'buckets' => [
+        'catalog' => ['limit' => 1000, 'interval' => '1 minute'],
+    ],
+    'storage' => [
+        'store' => 'rate_limits', // A store from config/cache.php.
+        'service' => null, // Or a Symfony StorageInterface service ID.
+    ],
+    'providers' => [App\RateLimit\SubscriptionProvider::class],
+    'bypasses' => [],
+    'resolvers' => [
+        'identity' => [App\RateLimit\ApiKeyIdentity::class],
+        'condition' => [],
+        'bucket' => [],
+        'limit' => [App\RateLimit\PlanLimit::class],
+        'cost' => [],
+    ],
+];
+```
+
+Laravel has no Symfony-style interface autoconfiguration. List multi-service
+providers, bypasses, and selectable strategies here; each class is resolved
+normally from Laravel's container. The default identity is the authenticated
+user's auth identifier, falling back to Laravel's request IP.
+
+The basic metadata is identical in both frameworks:
+
+```php
+new Get(extraProperties: [
+    RateLimit::class => new RateLimit(limit: 100, interval: '1 minute'),
+]);
+```
 
 ## Limit the entire API
 
@@ -640,7 +702,7 @@ services:
         alias: App\RateLimit\ApiRateLimitRejectionHandler
 ```
 
-Limiter state uses Symfony's `cache.app` pool by default. Select a dedicated
+On Symfony, limiter state uses `cache.app` by default. Select a dedicated
 cache pool when needed:
 
 ```yaml
@@ -658,6 +720,12 @@ api_platform_rate_limiter:
 The service must implement Symfony's `StorageInterface`; the package does not
 replace Symfony's generic interface alias. In a multi-instance
 deployment, configure that pool to use shared storage such as Redis.
+
+On Laravel, `storage.store` selects an isolated named store from
+`config/cache.php`; `null` uses Laravel's default store. The package wraps that
+repository for Symfony RateLimiter and does not replace Laravel's cache
+bindings. `storage.service` may instead name a container service implementing
+Symfony's `StorageInterface`.
 
 ### Counter identity
 
@@ -719,6 +787,9 @@ final class RateLimitMetricsListener
     }
 }
 ```
+
+Laravel listeners subscribe to these same event classes through Laravel's
+event dispatcher; the common PSR-14 event objects are dispatched unchanged.
 
 ## Development
 
