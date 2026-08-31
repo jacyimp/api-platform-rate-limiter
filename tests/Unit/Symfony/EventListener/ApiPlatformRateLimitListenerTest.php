@@ -25,6 +25,7 @@ use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
@@ -243,6 +244,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
                 rateLimiter: $rateLimiter,
                 identityResolver: $identityResolver,
                 bypass: $bypass,
+                eventDispatcher: new EventDispatcher(),
             ),
             rejectionHandler: $rejectionHandler
                 ?? new SymfonyRateLimitRejectionHandler(),

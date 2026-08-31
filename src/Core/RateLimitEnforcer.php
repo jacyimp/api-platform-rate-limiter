@@ -6,6 +6,10 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
+use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
+use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @internal
@@ -16,6 +20,7 @@ final readonly class RateLimitEnforcer
         private RateLimiterInterface $rateLimiter,
         private IdentityResolverInterface $identityResolver,
         private RateLimitBypassInterface $bypass,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -46,9 +51,20 @@ final readonly class RateLimitEnforcer
             $identityResolver = $rateLimit->identityResolver
                 ?? $this->identityResolver;
 
+            $identity = $identityResolver->resolve();
+            $definition = $rateLimit->definition;
+
+            $this->eventDispatcher->dispatch(new RateLimitChecking(
+                bucket: $rateLimit->bucket,
+                identity: $identity,
+                limit: $definition->limit,
+                intervalSeconds: $definition->intervalSeconds,
+                policy: $definition->policy,
+            ));
+
             $result = $this->rateLimiter->consume(
                 rateLimit: $rateLimit,
-                identity: $identityResolver->resolve(),
+                identity: $identity,
             );
 
             $consumptions[] = new RateLimitConsumption(
@@ -57,8 +73,28 @@ final readonly class RateLimitEnforcer
             );
 
             if (!$result->accepted) {
+                $this->eventDispatcher->dispatch(new RateLimitRejected(
+                    bucket: $rateLimit->bucket,
+                    identity: $identity,
+                    limit: $definition->limit,
+                    intervalSeconds: $definition->intervalSeconds,
+                    policy: $definition->policy,
+                    remaining: $result->remaining,
+                    retryAfter: $result->retryAfter,
+                ));
+
                 break;
             }
+
+            $this->eventDispatcher->dispatch(new RateLimitConsumed(
+                bucket: $rateLimit->bucket,
+                identity: $identity,
+                limit: $definition->limit,
+                intervalSeconds: $definition->intervalSeconds,
+                policy: $definition->policy,
+                remaining: $result->remaining,
+                retryAfter: $result->retryAfter,
+            ));
         }
 
         return new RateLimitEnforcementResult($consumptions);

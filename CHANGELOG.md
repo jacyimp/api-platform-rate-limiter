@@ -15,6 +15,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Immutable PSR-14 `RateLimitChecking`, `RateLimitConsumed`, and
+  `RateLimitRejected` lifecycle events.
 - A replaceable `RateLimitRejectionHandlerInterface` for customizing exception
   handling when a request exceeds its limit.
 - Per-limit identity resolvers and positive `when` conditions for operation and

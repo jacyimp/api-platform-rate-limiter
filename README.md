@@ -285,6 +285,36 @@ services:
 Limiter state is stored in Symfony's `cache.app` pool. In a multi-instance
 deployment, configure that pool to use shared storage such as Redis.
 
+## Lifecycle events
+
+The package dispatches three immutable PSR-14 events for logging, metrics,
+tracing, and auditing:
+
+- `RateLimitChecking` immediately before a limit is consumed;
+- `RateLimitConsumed` after a request is accepted by a limit;
+- `RateLimitRejected` after a request is rejected by a limit.
+
+All three expose the bucket, resolved identity, configured limit, interval in
+seconds, and policy. The consumed and rejected events also expose the remaining
+requests and retry time. Events are observational and cannot change enforcement
+behavior.
+
+Subscribe with Symfony's normal event listener support:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+
+final class RateLimitMetricsListener
+{
+    #[AsEventListener]
+    public function onRejected(RateLimitRejected $event): void
+    {
+        // Record $event->bucket, $event->identity, and $event->retryAfter.
+    }
+}
+```
+
 ## Development
 
 Run the test suite and code-quality checks:

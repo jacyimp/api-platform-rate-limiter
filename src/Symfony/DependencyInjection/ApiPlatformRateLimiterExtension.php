@@ -184,6 +184,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(RateLimiterInterface::class),
                 new Reference(IdentityResolverInterface::class),
                 new Reference(RateLimitBypassInterface::class),
+                new Reference('event_dispatcher'),
             ]);
 
         $container->register(SymfonyRateLimitRejectionHandler::class);
