@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 final class RateLimitResolverTest extends TestCase
 {
     #[Test]
-    public function itResolvesOperationRateLimit(): void
+    public function itResolvesRateLimit(): void
     {
         $resolver = $this->resolver();
 
@@ -124,7 +124,7 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsEmptyOperationKeyForOperationRateLimit(): void
+    public function itRejectsEmptyOperationKeyForRateLimit(): void
     {
         $operation = new Get(
             extraProperties: [

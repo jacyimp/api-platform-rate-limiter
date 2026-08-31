@@ -6,9 +6,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
-use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
-use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -22,7 +19,7 @@ final class RateLimitBypassCheckerTest extends TestCase
         $checker = new RateLimitBypassChecker([]);
 
         self::assertFalse(
-            $checker->shouldBypass($this->rateLimit()),
+            $checker->shouldBypass(),
         );
     }
 
@@ -41,7 +38,7 @@ final class RateLimitBypassCheckerTest extends TestCase
         ]);
 
         self::assertFalse(
-            $checker->shouldBypass($this->rateLimit()),
+            $checker->shouldBypass(),
         );
     }
 
@@ -68,7 +65,7 @@ final class RateLimitBypassCheckerTest extends TestCase
         ]);
 
         self::assertTrue(
-            $checker->shouldBypass($this->rateLimit()),
+            $checker->shouldBypass(),
         );
     }
 
@@ -96,19 +93,7 @@ final class RateLimitBypassCheckerTest extends TestCase
         ]);
 
         self::assertTrue(
-            $checker->shouldBypass($this->rateLimit()),
-        );
-    }
-
-    private function rateLimit(): ResolvedRateLimit
-    {
-        return new ResolvedRateLimit(
-            bucket: 'operation:product_get',
-            definition: new RateLimitDefinition(
-                limit: 100,
-                intervalSeconds: 60,
-                policy: RateLimitPolicy::SLIDING_WINDOW,
-            ),
+            $checker->shouldBypass(),
         );
     }
 }

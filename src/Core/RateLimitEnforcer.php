@@ -6,8 +6,10 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitEnforcer
 {
     public function __construct(
@@ -23,7 +25,7 @@ final readonly class RateLimitEnforcer
     public function enforce(
         array $rateLimits,
     ): RateLimitEnforcementResult {
-        if ($rateLimits === []) {
+        if ($rateLimits === [] || $this->bypass->shouldBypass()) {
             return new RateLimitEnforcementResult([]);
         }
 
@@ -32,10 +34,6 @@ final readonly class RateLimitEnforcer
         $consumptions = [];
 
         foreach ($rateLimits as $rateLimit) {
-            if ($this->bypass->shouldBypass($rateLimit)) {
-                continue;
-            }
-
             $result = $this->rateLimiter->consume(
                 rateLimit: $rateLimit,
                 identity: $identity,

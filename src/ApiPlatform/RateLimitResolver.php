@@ -13,6 +13,9 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitResolver
 {
     public function __construct(

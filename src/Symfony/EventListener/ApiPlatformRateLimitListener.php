@@ -11,6 +11,9 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
+/**
+ * @internal
+ */
 final readonly class ApiPlatformRateLimitListener
 {
     public function __construct(

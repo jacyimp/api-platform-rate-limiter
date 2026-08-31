@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
 use InvalidArgumentException;
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
+/**
+ * @internal
+ */
 final readonly class SymfonyRateLimiter implements RateLimiterInterface
 {
     public function __construct(

@@ -8,6 +8,9 @@ use DateInterval;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
+/**
+ * @internal
+ */
 final class IntervalNormalizer
 {
     public function normalize(

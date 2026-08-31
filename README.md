@@ -82,7 +82,7 @@ new RateLimit(
 
 ## Intervals
 
-Operation-specific limits accept:
+Use human-readable interval strings for the common case:
 
 ```php
 new RateLimit(
@@ -91,16 +91,20 @@ new RateLimit(
 );
 ```
 
-A PHP `DateInterval`:
+### Advanced interval forms
+
+For programmatic interval construction, a PHP `DateInterval` is also accepted:
 
 ```php
+use DateInterval;
+
 new RateLimit(
     limit: 100,
     interval: new DateInterval('PT1M'),
 );
 ```
 
-Or the package interval value object:
+Or use the package interval value object:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
@@ -182,7 +186,10 @@ new Get(
 );
 ```
 
-The request must satisfy every applicable limit.
+The request must satisfy every applicable limit. Limits are consumed sequentially
+in metadata order (`RateLimit` before `SharedRateLimit`). If an earlier limit is
+consumed and a later limit rejects the request, the earlier consumption is not
+rolled back.
 
 ## Identity resolution
 
@@ -234,13 +241,10 @@ For example, trusted internal traffic, verified crawlers, or another application
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-
 final class TrustedRequestBypass implements RateLimitBypassInterface
 {
-    public function shouldBypass(
-        ResolvedRateLimit $rateLimit,
-    ): bool {
+    public function shouldBypass(): bool
+    {
         // Application-specific verification.
 
         return false;

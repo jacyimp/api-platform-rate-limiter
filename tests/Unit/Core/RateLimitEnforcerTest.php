@@ -7,9 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 use DateTimeImmutable;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -75,17 +75,18 @@ final class RateLimitEnforcerTest extends TestCase
     {
         $rateLimit = $this->rateLimit();
 
-        $identityResolver = self::createStub(
+        $identityResolver = self::createMock(
             IdentityResolverInterface::class,
         );
         $identityResolver
-            ->method('resolve')
-            ->willReturn('user:123');
+            ->expects(self::never())
+            ->method('resolve');
 
-        $bypass = self::createStub(
+        $bypass = self::createMock(
             RateLimitBypassInterface::class,
         );
         $bypass
+            ->expects(self::once())
             ->method('shouldBypass')
             ->willReturn(true);
 
@@ -183,6 +184,65 @@ final class RateLimitEnforcerTest extends TestCase
                 ->enforce([$first, $second])
                 ->isAccepted(),
         );
+    }
+
+    #[Test]
+    public function itDoesNotRollBackEarlierConsumptionWhenLaterLimitRejects(): void
+    {
+        $first = $this->rateLimit('operation:product_get');
+        $second = $this->rateLimit('shared:catalog');
+
+        $identityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $identityResolver
+            ->method('resolve')
+            ->willReturn('user:123');
+
+        $bypass = self::createMock(
+            RateLimitBypassInterface::class,
+        );
+        $bypass
+            ->expects(self::once())
+            ->method('shouldBypass')
+            ->willReturn(false);
+
+        $consumed = [];
+        $rateLimiter = self::createStub(
+            RateLimiterInterface::class,
+        );
+        $rateLimiter
+            ->method('consume')
+            ->willReturnCallback(
+                static function (
+                    ResolvedRateLimit $rateLimit,
+                ) use (
+                    &$consumed,
+                    $second
+                ): RateLimitResult {
+                    $consumed[] = $rateLimit;
+
+                    return new RateLimitResult(
+                        accepted: $rateLimit !== $second,
+                        remaining: $rateLimit === $second ? 0 : 9,
+                        retryAfter: new DateTimeImmutable('+1 minute'),
+                    );
+                },
+            );
+
+        $enforcer = new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $bypass,
+        );
+
+        $result = $enforcer->enforce([$first, $second]);
+
+        self::assertFalse($result->isAccepted());
+        self::assertSame([$first, $second], $consumed);
+        self::assertCount(2, $result->consumptions);
+        self::assertTrue($result->consumptions[0]->result->accepted);
+        self::assertFalse($result->consumptions[1]->result->accepted);
     }
 
     private function rateLimit(

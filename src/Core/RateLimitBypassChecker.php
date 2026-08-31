@@ -6,6 +6,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitBypassChecker implements RateLimitBypassInterface
 {
     /**
@@ -16,11 +19,10 @@ final readonly class RateLimitBypassChecker implements RateLimitBypassInterface
     ) {
     }
 
-    public function shouldBypass(
-        ResolvedRateLimit $rateLimit,
-    ): bool {
+    public function shouldBypass(): bool
+    {
         foreach ($this->bypasses as $bypass) {
-            if ($bypass->shouldBypass($rateLimit)) {
+            if ($bypass->shouldBypass()) {
                 return true;
             }
         }

@@ -7,6 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitResult
 {
     public function __construct(

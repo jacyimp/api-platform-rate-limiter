@@ -31,7 +31,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
     }
 
     #[Test]
-    public function itEnforcesOperationRateLimitThroughSymfonyKernel(): void
+    public function itEnforcesRateLimitThroughSymfonyKernel(): void
     {
         $operation = new Get(
             name: 'limited_get',

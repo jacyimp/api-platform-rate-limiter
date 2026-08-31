@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace JacyImp\ApiPlatformRateLimiter\Contract;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
-use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-
+/**
+ * @internal
+ */
 interface RateLimiterInterface
 {
     public function consume(

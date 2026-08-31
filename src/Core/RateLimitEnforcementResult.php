@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitEnforcementResult
 {
     /**

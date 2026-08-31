@@ -9,6 +9,9 @@ use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
+/**
+ * @internal
+ */
 final class RateLimitMetadataExtractor
 {
     /**
@@ -21,9 +24,9 @@ final class RateLimitMetadataExtractor
         $rateLimits = [];
 
         if (isset($extraProperties[RateLimit::class])) {
-            $operationRateLimit = $extraProperties[RateLimit::class];
+            $rateLimit = $extraProperties[RateLimit::class];
 
-            if (!$operationRateLimit instanceof RateLimit) {
+            if (!$rateLimit instanceof RateLimit) {
                 throw new InvalidArgumentException(
                     sprintf(
                         'Extra property "%s" must be an instance of %s.',
@@ -33,7 +36,7 @@ final class RateLimitMetadataExtractor
                 );
             }
 
-            $rateLimits[] = $operationRateLimit;
+            $rateLimits[] = $rateLimit;
         }
 
         if (isset($extraProperties[SharedRateLimit::class])) {

@@ -24,7 +24,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
-    public function itExtractsOperationRateLimit(): void
+    public function itExtractsRateLimit(): void
     {
         $rateLimit = new RateLimit(
             limit: 100,
@@ -63,7 +63,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
     #[Test]
     public function itExtractsBothRateLimits(): void
     {
-        $operationRateLimit = new RateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
         );
@@ -72,13 +72,13 @@ final class RateLimitMetadataExtractorTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => $operationRateLimit,
+                RateLimit::class => $rateLimit,
                 SharedRateLimit::class => $sharedRateLimit,
             ],
         );
 
         self::assertSame(
-            [$operationRateLimit, $sharedRateLimit],
+            [$rateLimit, $sharedRateLimit],
             $this->extractor->extract($operation),
         );
     }
@@ -93,7 +93,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsInvalidOperationRateLimitMetadata(): void
+    public function itRejectsInvalidRateLimitMetadata(): void
     {
         $operation = new Get(
             extraProperties: [

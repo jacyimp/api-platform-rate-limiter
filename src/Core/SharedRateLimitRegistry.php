@@ -6,6 +6,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use InvalidArgumentException;
 
+/**
+ * @internal
+ */
 final readonly class SharedRateLimitRegistry
 {
     /**

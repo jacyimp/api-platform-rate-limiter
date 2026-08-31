@@ -7,6 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
+/**
+ * @internal
+ */
 final readonly class RateLimitDefinition
 {
     public function __construct(
