@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
@@ -27,7 +27,7 @@ final readonly class RateLimitStrategyRegistry
     /** @var array<string, LimitResolverInterface> */
     private array $limitResolvers;
 
-    /** @var array<string, DynamicCostResolverInterface> */
+    /** @var array<string, CostResolverInterface> */
     private array $costResolvers;
 
     /**
@@ -35,7 +35,7 @@ final readonly class RateLimitStrategyRegistry
      * @param iterable<RateLimitConditionInterface> $conditions
      * @param iterable<BucketResolverInterface> $bucketResolvers
      * @param iterable<LimitResolverInterface> $limitResolvers
-     * @param iterable<DynamicCostResolverInterface> $costResolvers
+     * @param iterable<CostResolverInterface> $costResolvers
      */
     public function __construct(
         iterable $identityResolvers,
@@ -51,14 +51,14 @@ final readonly class RateLimitStrategyRegistry
         $this->costResolvers = $this->index($costResolvers);
     }
 
-    public function costResolver(string $serviceId): DynamicCostResolverInterface
+    public function costResolver(string $serviceId): CostResolverInterface
     {
         return $this->costResolvers[$serviceId]
             ?? throw new InvalidRateLimitException(sprintf(
                 'Cost resolver service "%s" is not registered. '
                 . 'Ensure it implements %s and is autoconfigured or tagged.',
                 $serviceId,
-                DynamicCostResolverInterface::class,
+                CostResolverInterface::class,
             ));
     }
 

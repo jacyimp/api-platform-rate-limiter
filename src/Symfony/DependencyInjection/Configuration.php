@@ -11,215 +11,34 @@ use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-/**
- * @internal
- */
+/** @internal */
 final class Configuration implements ConfigurationInterface
 {
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder(
-            'api_platform_rate_limiter',
-        );
-
-        $rootNode = $this->requireArrayNode(
-            $treeBuilder->getRootNode(),
-        );
-
+        $treeBuilder = new TreeBuilder('api_platform_rate_limiter');
+        $rootNode = $this->requireArrayNode($treeBuilder->getRootNode());
         $rootChildren = $rootNode->children();
 
-        $globalsNode = $rootChildren
-            ->arrayNode('globals');
-
-        $globalsNode
-            ->defaultValue([])
-            ->useAttributeAsKey('name');
-
+        $globalsNode = $rootChildren->arrayNode('globals');
+        $globalsNode->defaultValue([])->useAttributeAsKey('name');
         $globalNode = $globalsNode->arrayPrototype();
+        $this->configureRateLimit($globalNode, false);
         $globalNode
             ->validate()
-            ->ifTrue(static function (array $value): bool {
-                $hasLimit = $value['limit'] !== null;
-                $hasLimitResolver = $value['limit_resolver'] !== null;
-                $hasBucket = $value['bucket'] !== null;
-                $hasBucketResolver = $value['bucket_resolver'] !== null;
-
-                return $hasLimit === $hasLimitResolver
-                    || (($hasLimit || $hasLimitResolver) !== ($value['interval'] !== null))
-                    || ($hasLimit === false && $hasLimitResolver === false
-                        && $hasBucket === false && $hasBucketResolver === false)
-                    || ($hasBucket && $hasBucketResolver)
-                    || ($value['cost_resolver'] !== null && $value['cost'] !== 1)
-                    || ($value['identity'] !== null
-                        && $value['identity_resolver'] !== null);
-            })
+            ->ifTrue(static fn (array $value): bool => ($value['limit'] === null)
+                !== ($value['interval'] === null)
+                || ($value['limit'] === null && $value['bucket'] === null))
             ->thenInvalid(
-                'A global must configure exactly one of limit/limit_resolver with interval, '
-                . 'or a bucket/bucket_resolver for shared lookup; dynamic and static '
-                . 'variants of the same option cannot be combined.',
-            );
-        $globalChildren = $globalNode->children();
-
-        $globalChildren
-            ->integerNode('limit')
-            ->defaultNull()
-            ->min(1);
-
-        foreach (['limit_resolver', 'bucket', 'bucket_resolver', 'cost_resolver'] as $option) {
-            $globalChildren
-                ->scalarNode($option)
-                ->cannotBeEmpty()
-                ->defaultNull();
-        }
-
-        $globalChildren
-            ->integerNode('cost')
-            ->min(1)
-            ->defaultValue(1);
-
-        $globalIntervalNode = $globalChildren
-            ->scalarNode('interval');
-
-        $globalIntervalNode
-            ->defaultNull()
-            ->cannotBeEmpty();
-
-        $globalIntervalNode
-            ->validate()
-            ->ifTrue(
-                static fn (mixed $value): bool => !is_string(
-                    $value,
-                ),
-            )
-            ->thenInvalid(
-                'Global rate limit interval must be a string.',
+                'A global must configure limit with interval, or bucket for shared lookup.',
             );
 
-        $globalChildren
-            ->enumNode('policy')
-            ->values([
-                RateLimitPolicy::FIXED_WINDOW->value,
-                RateLimitPolicy::SLIDING_WINDOW->value,
-            ])
-            ->defaultValue(
-                RateLimitPolicy::SLIDING_WINDOW->value,
-            );
+        $bucketsNode = $rootChildren->arrayNode('buckets');
+        $bucketsNode->defaultValue([])->useAttributeAsKey('name');
+        $bucketNode = $bucketsNode->arrayPrototype();
+        $this->configureRateLimit($bucketNode, true);
 
-        foreach (['identity_resolver'] as $serviceOption) {
-            $serviceNode = $globalChildren
-                ->scalarNode($serviceOption)
-                ->cannotBeEmpty()
-                ->defaultNull();
-
-            $serviceNode
-                ->validate()
-                ->ifTrue(
-                    static fn (mixed $value): bool => $value !== null
-                        && !is_string($value),
-                )
-                ->thenInvalid(
-                    sprintf('%s must be a service ID string.', $serviceOption),
-                );
-        }
-
-        $globalChildren->variableNode('identity')->defaultNull();
-        $globalChildren->variableNode('when')->defaultNull();
-
-        $sharedBucketsNode = $rootChildren
-            ->arrayNode('buckets');
-
-        $sharedBucketsNode
-            ->defaultValue([])
-            ->useAttributeAsKey('name');
-
-        $bucketNode = $sharedBucketsNode->arrayPrototype();
-        $bucketNode
-            ->validate()
-            ->ifTrue(static function (array $value): bool {
-                $hasLimit = $value['limit'] !== null;
-                $hasLimitResolver = $value['limit_resolver'] !== null;
-
-                return $hasLimit === $hasLimitResolver
-                    || ($value['cost_resolver'] !== null && $value['cost'] !== 1)
-                    || ($value['identity'] !== null
-                        && $value['identity_resolver'] !== null);
-            })
-            ->thenInvalid(
-                'A bucket must configure exactly one of limit/limit_resolver; dynamic and '
-                . 'static variants of the same option cannot be combined.',
-            );
-        $bucketChildren = $bucketNode->children();
-
-        $bucketChildren
-            ->integerNode('limit')
-            ->defaultNull()
-            ->min(1);
-
-        foreach (['limit_resolver', 'cost_resolver'] as $option) {
-            $bucketChildren
-                ->scalarNode($option)
-                ->cannotBeEmpty()
-                ->defaultNull();
-        }
-
-        $bucketChildren
-            ->integerNode('cost')
-            ->min(1)
-            ->defaultValue(1);
-
-        $intervalNode = $bucketChildren
-            ->scalarNode('interval');
-
-        $intervalNode
-            ->isRequired()
-            ->cannotBeEmpty();
-
-        $intervalNode
-            ->validate()
-            ->ifTrue(
-                static fn (mixed $value): bool => !is_string(
-                    $value,
-                ),
-            )
-            ->thenInvalid(
-                'Shared rate limit interval must be a string.',
-            );
-
-        $bucketChildren
-            ->enumNode('policy')
-            ->values([
-                RateLimitPolicy::FIXED_WINDOW->value,
-                RateLimitPolicy::SLIDING_WINDOW->value,
-            ])
-            ->defaultValue(
-                RateLimitPolicy::SLIDING_WINDOW->value,
-            );
-
-        foreach (['identity_resolver'] as $serviceOption) {
-            $serviceNode = $bucketChildren
-                ->scalarNode($serviceOption)
-                ->cannotBeEmpty()
-                ->defaultNull();
-
-            $serviceNode
-                ->validate()
-                ->ifTrue(
-                    static fn (mixed $value): bool => $value !== null
-                        && !is_string($value),
-                )
-                ->thenInvalid(
-                    sprintf('%s must be a service ID string.', $serviceOption),
-                );
-        }
-
-        $bucketChildren->variableNode('identity')->defaultNull();
-        $bucketChildren->variableNode('when')->defaultNull();
-
-        $rootChildren
-            ->scalarNode('storage')
-            ->cannotBeEmpty()
-            ->defaultNull();
-
+        $rootChildren->scalarNode('storage')->cannotBeEmpty()->defaultNull();
         $rootChildren
             ->scalarNode('cache_pool')
             ->cannotBeEmpty()
@@ -228,13 +47,86 @@ final class Configuration implements ConfigurationInterface
         return $treeBuilder;
     }
 
-    private function requireArrayNode(
-        NodeDefinition $node,
-    ): ArrayNodeDefinition {
+    private function configureRateLimit(ArrayNodeDefinition $node, bool $requireDefinition): void
+    {
+        $children = $node->children();
+
+        $limit = $children->variableNode('limit');
+        $limit->defaultNull();
+        $limit
+            ->validate()
+            ->ifTrue(static fn (mixed $value): bool => $value !== null
+                && !self::isPositiveIntegerOrResolver($value))
+            ->thenInvalid('limit must be a positive integer or a resolver mapping.');
+
+        $interval = $children->scalarNode('interval');
+        $requireDefinition ? $interval->isRequired() : $interval->defaultNull();
+        $interval
+            ->cannotBeEmpty()
+            ->validate()
+            ->ifTrue(static fn (mixed $value): bool => $value !== null && !is_string($value))
+            ->thenInvalid('interval must be a string.');
+
+        $children
+            ->enumNode('policy')
+            ->values([
+                RateLimitPolicy::FIXED_WINDOW->value,
+                RateLimitPolicy::SLIDING_WINDOW->value,
+            ])
+            ->defaultValue(RateLimitPolicy::SLIDING_WINDOW->value);
+
+        $children->variableNode('identity')->defaultNull();
+        $children->variableNode('when')->defaultNull();
+
+        if (!$requireDefinition) {
+            $bucket = $children->variableNode('bucket');
+            $bucket->defaultNull();
+            $bucket
+                ->validate()
+                ->ifTrue(static fn (mixed $value): bool => $value !== null
+                    && !self::isNonEmptyStringOrResolver($value))
+                ->thenInvalid('bucket must be a non-empty string or a resolver mapping.');
+        }
+
+        $cost = $children->variableNode('cost');
+        $cost->defaultValue(1);
+        $cost
+            ->validate()
+            ->ifTrue(static fn (mixed $value): bool => !self::isPositiveIntegerOrResolver($value))
+            ->thenInvalid('cost must be a positive integer or a resolver mapping.');
+
+        if (!$requireDefinition) {
+            return;
+        }
+
+        $node
+            ->validate()
+            ->ifTrue(static fn (array $value): bool => $value['limit'] === null)
+            ->thenInvalid('A bucket must configure limit.');
+    }
+
+    private static function isPositiveIntegerOrResolver(mixed $value): bool
+    {
+        return (is_int($value) && $value > 0) || self::isResolver($value);
+    }
+
+    private static function isNonEmptyStringOrResolver(mixed $value): bool
+    {
+        return (is_string($value) && trim($value) !== '') || self::isResolver($value);
+    }
+
+    private static function isResolver(mixed $value): bool
+    {
+        return is_array($value)
+            && array_keys($value) === ['resolver']
+            && is_string($value['resolver'])
+            && trim($value['resolver']) !== '';
+    }
+
+    private function requireArrayNode(NodeDefinition $node): ArrayNodeDefinition
+    {
         if (!$node instanceof ArrayNodeDefinition) {
-            throw new LogicException(
-                'Rate limiter configuration root must be an array node.',
-            );
+            throw new LogicException('Rate limiter configuration root must be an array node.');
         }
 
         return $node;

@@ -8,7 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
@@ -157,9 +157,9 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         (new ApiPlatformRateLimiterExtension())->load([[
             'buckets' => [
                 'api' => [
-                    'limit_resolver' => 'app.limit_resolver',
+                    'limit' => ['resolver' => 'app.limit_resolver'],
                     'interval' => '1 minute',
-                    'cost_resolver' => 'app.cost_resolver',
+                    'cost' => ['resolver' => 'app.cost_resolver'],
                     'identity' => [
                         'first_available' => ['app.api_key', 'app.user'],
                     ],
@@ -247,7 +247,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             ),
         );
         self::assertTrue(
-            $autoconfiguration[DynamicCostResolverInterface::class]->hasTag(
+            $autoconfiguration[CostResolverInterface::class]->hasTag(
                 ApiPlatformRateLimiterExtension::COST_RESOLVER_TAG,
             ),
         );

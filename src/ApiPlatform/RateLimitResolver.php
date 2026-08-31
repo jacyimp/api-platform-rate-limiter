@@ -210,6 +210,12 @@ final readonly class RateLimitResolver
         }
 
         if (is_string($identity)) {
+            if (trim($identity) === '') {
+                throw new InvalidRateLimitException(
+                    'Identity resolver service ID cannot be empty.',
+                );
+            }
+
             $identity = new Identity($identity);
         }
 

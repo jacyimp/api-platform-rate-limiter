@@ -60,7 +60,7 @@ api_platform_rate_limiter:
 
 Each quota is shared across all operations for its resolved identity and is
 enforced independently. Its bucket is named `global:<name>` (`global:burst`
-and `global:daily` above). The optional `policy`, `identity_resolver`, `when`,
+and `global:daily` above). The optional `policy`, `identity`, `when`,
 and `cost` settings have the same meaning as their `RateLimit` counterparts.
 The policy defaults to `sliding_window`.
 
@@ -71,11 +71,14 @@ limits. Resolver service IDs can therefore provide request-dependent values:
 api_platform_rate_limiter:
     globals:
         api:
-            limit_resolver: App\RateLimit\PlanLimitResolver
+            limit:
+                resolver: App\RateLimit\PlanLimitResolver
             interval: '1 minute'
-            bucket_resolver: App\RateLimit\PlanBucketResolver
-            cost_resolver: App\RateLimit\RequestCostResolver
-            identity_resolver: App\RateLimit\ApiKeyIdentityResolver
+            bucket:
+                resolver: App\RateLimit\PlanBucketResolver
+            cost:
+                resolver: App\RateLimit\RequestCostResolver
+            identity: App\RateLimit\ApiKeyIdentityResolver
             when: App\RateLimit\ApiRequestCondition
 ```
 
@@ -430,7 +433,7 @@ api_platform_rate_limiter:
         otp:
             limit: 5
             interval: '1 minute'
-            identity_resolver: App\RateLimit\ApiKeyIdentityResolver
+            identity: App\RateLimit\ApiKeyIdentityResolver
             when: App\RateLimit\InternalRequestCondition
 ```
 
@@ -446,7 +449,7 @@ autoconfiguration is enabled:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
@@ -468,7 +471,7 @@ final class PlanLimitResolver implements LimitResolverInterface
     }
 }
 
-final class RequestCostResolver implements DynamicCostResolverInterface
+final class RequestCostResolver implements CostResolverInterface
 {
     public function resolve(): int
     {

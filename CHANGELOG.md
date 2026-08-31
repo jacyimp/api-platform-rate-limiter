@@ -8,6 +8,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Renamed `DynamicCostResolverInterface` to `CostResolverInterface`, matching
+  `BucketResolverInterface` and `LimitResolverInterface`.
+- Reordered advanced `RateLimit` constructor options to `bucket`, `cost`,
+  `identity`, `when`, and `policy` after the common `limit`/`interval` pair.
+- Replaced YAML `limit_resolver`, `bucket_resolver`, and `cost_resolver` options
+  with resolver mappings under `limit`, `bucket`, and `cost`; replaced
+  `identity_resolver` with `identity`.
 - Routed named globals through the same declaration-resolution pipeline as
   operation and resource limits, including dynamic values, identities,
   conditions, costs, buckets, and compatible shared-definition lookup.
@@ -33,7 +40,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Declarative `BypassRateLimit` resource and operation metadata, with optional
   resolved-bucket matching and conditions.
 - Weighted token consumption through the per-limit `cost` option, including
-  dynamic costs resolved by `DynamicCostResolverInterface` services.
+  dynamic costs resolved by `CostResolverInterface` services.
 - Dynamic bucket and limit metadata through `DynamicBucket`, `DynamicLimit`,
   `BucketResolverInterface`, and `LimitResolverInterface`.
 - Optional global rate-limit configuration shared by every API Platform

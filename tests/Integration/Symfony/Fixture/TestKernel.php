@@ -59,7 +59,7 @@ final class TestKernel extends Kernel
                 'conditional_shared' => [
                     'limit' => 1,
                     'interval' => '1 minute',
-                    'identity_resolver' => FixedIdentityResolver::class,
+                    'identity' => FixedIdentityResolver::class,
                     'when' => 'test.never_apply',
                 ],
                 'weighted_shared' => [

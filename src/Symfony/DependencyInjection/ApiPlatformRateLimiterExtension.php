@@ -8,7 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
@@ -73,28 +73,21 @@ final class ApiPlatformRateLimiterExtension extends Extension
         /**
          * @var array{
          *     globals: array<string, array{
-         *         limit: int|null,
-         *         limit_resolver: string|null,
+         *         limit: mixed,
          *         interval: string|null,
          *         policy: string,
-         *         identity_resolver: string|null,
          *         identity: mixed,
          *         when: mixed,
-         *         bucket: string|null,
-         *         bucket_resolver: string|null,
-         *         cost: int,
-         *         cost_resolver: string|null
+         *         bucket: mixed,
+         *         cost: mixed
          *     }>,
          *     buckets: array<string, array{
-         *         limit: int|null,
-         *         limit_resolver: string|null,
+         *         limit: mixed,
          *         interval: string,
          *         policy: string,
-         *         identity_resolver: string|null,
          *         identity: mixed,
          *         when: mixed,
-         *         cost: int,
-         *         cost_resolver: string|null
+         *         cost: mixed
          *     }>,
          *     storage: string|null,
          *     cache_pool: string
@@ -112,7 +105,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
             ->registerForAutoconfiguration(BucketResolverInterface::class)
             ->addTag(self::BUCKET_RESOLVER_TAG);
         $container
-            ->registerForAutoconfiguration(DynamicCostResolverInterface::class)
+            ->registerForAutoconfiguration(CostResolverInterface::class)
             ->addTag(self::COST_RESOLVER_TAG);
         $container
             ->registerForAutoconfiguration(RateLimitBypassInterface::class)
@@ -272,15 +265,12 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
     /**
      * @param array<string, array{
-     *     limit: int|null,
-     *     limit_resolver: string|null,
+     *     limit: mixed,
      *     interval: string,
      *     policy: string,
-     *     identity_resolver: string|null,
      *     identity: mixed,
      *     when: mixed,
-     *     cost: int,
-     *     cost_resolver: string|null
+     *     cost: mixed
      * }> $rateLimits
      *
      * @return array<string, Definition>
@@ -298,17 +288,13 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
     /**
      * @param array<string, array{
-     *     limit: int|null,
-     *     limit_resolver: string|null,
+     *     limit: mixed,
      *     interval: string|null,
      *     policy: string,
-     *     identity_resolver: string|null,
      *     identity: mixed,
      *     when: mixed,
-     *     bucket: string|null,
-     *     bucket_resolver: string|null,
-     *     cost: int,
-     *     cost_resolver: string|null
+     *     bucket: mixed,
+     *     cost: mixed
      * }> $rateLimits
      *
      * @return array<string, Definition>
@@ -318,26 +304,22 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $definitions = [];
 
         foreach ($rateLimits as $name => $rateLimit) {
-            $limit = $rateLimit['limit_resolver'] === null
-                ? $rateLimit['limit']
-                : new Definition(DynamicLimit::class, [$rateLimit['limit_resolver']]);
-            $bucket = $rateLimit['bucket_resolver'] === null
-                ? $rateLimit['bucket']
-                : new Definition(DynamicBucket::class, [$rateLimit['bucket_resolver']]);
-            $cost = $rateLimit['cost_resolver'] === null
-                ? $rateLimit['cost']
-                : new Definition(DynamicCost::class, [$rateLimit['cost_resolver']]);
+            $limit = $this->dynamicValue($rateLimit['limit'], DynamicLimit::class);
+            $bucket = $this->dynamicValue($rateLimit['bucket'], DynamicBucket::class);
+            $cost = $this->dynamicValue($rateLimit['cost'], DynamicCost::class);
 
             $definitions[$name] = new Definition(RateLimit::class, [
                 $limit,
                 $rateLimit['interval'],
-                RateLimitPolicy::from($rateLimit['policy']),
-                $this->globalIdentity($rateLimit),
+                $bucket,
+                $cost,
+                $rateLimit['identity'] === null
+                    ? null
+                    : $this->identityExpression($rateLimit['identity']),
                 $rateLimit['when'] === null
                     ? null
                     : $this->conditionExpression($rateLimit['when']),
-                $bucket,
-                $cost,
+                RateLimitPolicy::from($rateLimit['policy']),
             ]);
         }
 
@@ -346,51 +328,44 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
     /**
      * @param array{
-     *     limit: int|null,
-     *     limit_resolver: string|null,
+     *     limit: mixed,
      *     interval: string,
      *     policy: string,
-     *     identity_resolver: string|null,
      *     identity: mixed,
      *     when: mixed,
-     *     cost: int,
-     *     cost_resolver: string|null
+     *     cost: mixed
      * } $rateLimit
      */
     private function rateLimitDeclaration(array $rateLimit): Definition
     {
-        $limit = $rateLimit['limit_resolver'] === null
-            ? $rateLimit['limit']
-            : new Definition(DynamicLimit::class, [$rateLimit['limit_resolver']]);
-        $cost = $rateLimit['cost_resolver'] === null
-            ? $rateLimit['cost']
-            : new Definition(DynamicCost::class, [$rateLimit['cost_resolver']]);
+        $limit = $this->dynamicValue($rateLimit['limit'], DynamicLimit::class);
+        $cost = $this->dynamicValue($rateLimit['cost'], DynamicCost::class);
 
         return new Definition(RateLimit::class, [
             $limit,
             $rateLimit['interval'],
-            RateLimitPolicy::from($rateLimit['policy']),
-            $this->globalIdentity($rateLimit),
+            null,
+            $cost,
+            $rateLimit['identity'] === null
+                ? null
+                : $this->identityExpression($rateLimit['identity']),
             $rateLimit['when'] === null
                 ? null
                 : $this->conditionExpression($rateLimit['when']),
-            null,
-            $cost,
+            RateLimitPolicy::from($rateLimit['policy']),
         ]);
     }
 
     /**
-     * @param array{identity: mixed, identity_resolver: string|null} $rateLimit
+     * @param class-string<DynamicBucket|DynamicCost|DynamicLimit> $metadataClass
      */
-    private function globalIdentity(array $rateLimit): ?Definition
+    private function dynamicValue(mixed $value, string $metadataClass): mixed
     {
-        if ($rateLimit['identity'] !== null) {
-            return $this->identityExpression($rateLimit['identity']);
+        if (!is_array($value)) {
+            return $value;
         }
 
-        return $rateLimit['identity_resolver'] === null
-            ? null
-            : new Definition(Identity::class, [$rateLimit['identity_resolver']]);
+        return new Definition($metadataClass, [$value['resolver']]);
     }
 
     private function identityExpression(mixed $value): Definition

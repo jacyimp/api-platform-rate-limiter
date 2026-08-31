@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 final readonly class Condition implements RateLimitCondition
 {
+    /** @param string $service Symfony service ID or condition class-string */
     public function __construct(public string $service)
     {
         if (trim($service) === '') {

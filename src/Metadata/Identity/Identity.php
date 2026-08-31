@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 final readonly class Identity implements IdentityExpression
 {
+    /** @param string $resolver Symfony service ID or resolver class-string */
     public function __construct(public string $resolver)
     {
         if (trim($resolver) === '') {

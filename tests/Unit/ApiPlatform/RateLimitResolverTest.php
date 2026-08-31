@@ -9,7 +9,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
@@ -176,7 +176,7 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itResolvesStaticAndDynamicCosts(): void
     {
-        $costResolver = new class implements DynamicCostResolverInterface {
+        $costResolver = new class implements CostResolverInterface {
             public function resolve(): int
             {
                 return 4;
@@ -204,7 +204,7 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itRejectsInvalidResolvedDynamicCost(): void
     {
-        $costResolver = new class implements DynamicCostResolverInterface {
+        $costResolver = new class implements CostResolverInterface {
             public function resolve(): int
             {
                 return 0;
@@ -585,7 +585,7 @@ final class RateLimitResolverTest extends TestCase
                 return 42;
             }
         };
-        $costResolver = new class implements DynamicCostResolverInterface {
+        $costResolver = new class implements CostResolverInterface {
             public function resolve(): int
             {
                 return 3;
@@ -662,7 +662,11 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itUsesSharedDefinitionsForGlobalsWithoutSkippingResolution(): void
     {
-        $definition = new RateLimit(20, '1 minute', RateLimitPolicy::FIXED_WINDOW);
+        $definition = new RateLimit(
+            limit: 20,
+            interval: '1 minute',
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        );
 
         $resolved = $this->resolver(
             shared: ['customers' => $definition],
@@ -853,7 +857,7 @@ final class RateLimitResolverTest extends TestCase
      * @param array<string, RateLimit> $globals
      * @param list<BucketResolverInterface> $bucketResolvers
      * @param list<LimitResolverInterface> $limitResolvers
-     * @param list<DynamicCostResolverInterface> $costResolvers
+     * @param list<CostResolverInterface> $costResolvers
      */
     private function resolver(
         array $shared = [],
@@ -884,9 +888,9 @@ final class RateLimitResolverTest extends TestCase
                     $definition instanceof RateLimit
                         ? $definition
                         : new RateLimit(
-                            $definition->limit,
-                            sprintf('%d seconds', $definition->intervalSeconds),
-                            $definition->policy,
+                            limit: $definition->limit,
+                            interval: sprintf('%d seconds', $definition->intervalSeconds),
+                            policy: $definition->policy,
                         ),
                 $shared,
             )),

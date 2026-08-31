@@ -14,11 +14,11 @@ final readonly class RateLimit
     public function __construct(
         public int|DynamicLimit|null $limit = null,
         public string|DateInterval|Interval|null $interval = null,
-        public RateLimitPolicy $policy = RateLimitPolicy::SLIDING_WINDOW,
-        public ?IdentityExpression $identity = null,
-        public ?RateLimitCondition $when = null,
         public string|DynamicBucket|null $bucket = null,
         public int|DynamicCost $cost = 1,
+        public ?IdentityExpression $identity = null,
+        public ?RateLimitCondition $when = null,
+        public RateLimitPolicy $policy = RateLimitPolicy::SLIDING_WINDOW,
     ) {
         if (is_int($limit) && $limit < 1) {
             throw new InvalidRateLimitException(

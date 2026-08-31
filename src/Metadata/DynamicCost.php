@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 final readonly class DynamicCost
 {
+    /** @param non-empty-string|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> $resolver */
     public function __construct(public string $resolver)
     {
         if (trim($resolver) === '') {
