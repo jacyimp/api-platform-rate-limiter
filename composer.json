@@ -38,14 +38,14 @@
         "php": "^8.2"
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "4.0.4",
-        "slevomat/coding-standard": "8.31",
-        "phpstan/phpstan": "2.2",
-        "phpstan/phpstan-phpunit": "2.0",
-        "phpstan/phpstan-strict-rules": "2.0",
-        "phpstan/phpstan-deprecation-rules": "2.0",
-        "phpunit/phpunit": "11.5.50",
-        "behat/behat": "3.32"
+        "squizlabs/php_codesniffer": "^4.0.4",
+        "slevomat/coding-standard": "^8.31",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpunit/phpunit": "^11.5.50",
+        "behat/behat": "^3.32"
     },
     "config": {
         "allow-plugins": {
