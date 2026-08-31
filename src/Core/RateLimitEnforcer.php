@@ -29,7 +29,7 @@ final readonly class RateLimitEnforcer
 
         $identity = $this->identityResolver->resolve();
 
-        $results = [];
+        $consumptions = [];
 
         foreach ($rateLimits as $rateLimit) {
             if ($this->bypass->shouldBypass($rateLimit)) {
@@ -41,13 +41,16 @@ final readonly class RateLimitEnforcer
                 identity: $identity,
             );
 
-            $results[] = $result;
+            $consumptions[] = new RateLimitConsumption(
+                rateLimit: $rateLimit,
+                result: $result,
+            );
 
             if (!$result->accepted) {
                 break;
             }
         }
 
-        return new RateLimitEnforcementResult($results);
+        return new RateLimitEnforcementResult($consumptions);
     }
 }

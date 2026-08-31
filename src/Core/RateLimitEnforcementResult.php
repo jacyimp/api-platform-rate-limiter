@@ -7,29 +7,23 @@ namespace Jacyimp\ApiPlatformRateLimiter\Core;
 final readonly class RateLimitEnforcementResult
 {
     /**
-     * @param list<RateLimitResult> $results
+     * @param list<RateLimitConsumption> $consumptions
      */
     public function __construct(
-        public array $results,
+        public array $consumptions,
     ) {
     }
 
     public function isAccepted(): bool
     {
-        foreach ($this->results as $result) {
-            if (!$result->accepted) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->rejectedConsumption() === null;
     }
 
-    public function rejectedResult(): ?RateLimitResult
+    public function rejectedConsumption(): ?RateLimitConsumption
     {
-        foreach ($this->results as $result) {
-            if (!$result->accepted) {
-                return $result;
+        foreach ($this->consumptions as $consumption) {
+            if (!$consumption->result->accepted) {
+                return $consumption;
             }
         }
 
