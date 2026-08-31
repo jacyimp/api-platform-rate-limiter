@@ -13,9 +13,6 @@ Operation-specific and shared rate limits for API Platform applications.
 
 ## Installation
 
-The package is not yet available on Packagist. Install the development version
-from GitHub:
-
 ```bash
 composer require jacyimp/api-platform-rate-limiter
 ```
