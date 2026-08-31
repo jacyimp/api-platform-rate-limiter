@@ -11,14 +11,17 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
@@ -26,7 +29,7 @@ use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 final class ApiPlatformRateLimiterExtension extends Extension
 {
-    public const BYPASS_TAG = 'JacyImp.api_platform_rate_limiter.bypass';
+    public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
 
     /**
      * @param array<array-key, mixed> $configs
@@ -35,6 +38,20 @@ final class ApiPlatformRateLimiterExtension extends Extension
         array $configs,
         ContainerBuilder $container,
     ): void {
+        /**
+         * @var array{
+         *     shared_buckets: array<string, array{
+         *         limit: int,
+         *         interval: string,
+         *         policy: string
+         *     }>
+         * } $config
+         */
+        $config = $this->processConfiguration(
+            new Configuration(),
+            $configs,
+        );
+
         $container
             ->registerForAutoconfiguration(
                 RateLimitBypassInterface::class,
@@ -54,7 +71,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 SharedRateLimitRegistry::class,
             )
             ->setArguments([
-                [],
+                $this->sharedRateLimitDefinitions(
+                    $config['shared_buckets'],
+                ),
             ]);
 
         $container
@@ -169,5 +188,39 @@ final class ApiPlatformRateLimiterExtension extends Extension
                     'priority' => 6,
                 ],
             );
+    }
+
+    /**
+     * @param array<string, array{
+     *     limit: int,
+     *     interval: string,
+     *     policy: string
+     * }> $buckets
+     *
+     * @return array<string, Definition>
+     */
+    private function sharedRateLimitDefinitions(
+        array $buckets,
+    ): array {
+        $intervalNormalizer = new IntervalNormalizer();
+
+        $definitions = [];
+
+        foreach ($buckets as $name => $bucket) {
+            $definitions[$name] = new Definition(
+                RateLimitDefinition::class,
+                [
+                    $bucket['limit'],
+                    $intervalNormalizer->normalize(
+                        $bucket['interval'],
+                    ),
+                    RateLimitPolicy::from(
+                        $bucket['policy'],
+                    ),
+                ],
+            );
+        }
+
+        return $definitions;
     }
 }
