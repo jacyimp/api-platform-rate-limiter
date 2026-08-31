@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -23,6 +24,7 @@ final readonly class RateLimitResolver
         private RateLimitProviderCollection $providerCollection,
         private IntervalNormalizer $intervalNormalizer,
         private SharedRateLimitRegistry $sharedRateLimitRegistry,
+        private RateLimitStrategyRegistry $strategyRegistry,
     ) {
     }
 
@@ -86,20 +88,38 @@ final readonly class RateLimitResolver
                 ),
                 policy: $rateLimit->policy,
             ),
+            identityResolver: $rateLimit->identityResolver === null
+                ? null
+                : $this->strategyRegistry->identityResolver(
+                    $rateLimit->identityResolver,
+                ),
+            condition: $rateLimit->when === null
+                ? null
+                : $this->strategyRegistry->condition($rateLimit->when),
         );
     }
 
     private function resolveShared(
         SharedRateLimit $rateLimit,
     ): ResolvedRateLimit {
+        $definition = $this->sharedRateLimitRegistry->get(
+            $rateLimit->bucket,
+        );
+
         return new ResolvedRateLimit(
             bucket: sprintf(
                 'shared:%s',
                 $rateLimit->bucket,
             ),
-            definition: $this->sharedRateLimitRegistry->get(
-                $rateLimit->bucket,
-            ),
+            definition: $definition,
+            identityResolver: $definition->identityResolver === null
+                ? null
+                : $this->strategyRegistry->identityResolver(
+                    $definition->identityResolver,
+                ),
+            condition: $definition->when === null
+                ? null
+                : $this->strategyRegistry->condition($definition->when),
         );
     }
 }

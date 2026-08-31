@@ -74,6 +74,50 @@ final class RateLimitTest extends TestCase
     }
 
     #[Test]
+    public function itAcceptsPerLimitServiceIds(): void
+    {
+        $rateLimit = new RateLimit(
+            limit: 100,
+            interval: '1 minute',
+            identityResolver: 'app.identity_resolver',
+            when: 'app.condition',
+        );
+
+        self::assertSame('app.identity_resolver', $rateLimit->identityResolver);
+        self::assertSame('app.condition', $rateLimit->when);
+    }
+
+    #[Test]
+    public function itRejectsEmptyIdentityResolverServiceId(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Identity resolver service ID cannot be empty.',
+        );
+
+        new RateLimit(
+            limit: 100,
+            interval: '1 minute',
+            identityResolver: ' ',
+        );
+    }
+
+    #[Test]
+    public function itRejectsEmptyConditionServiceId(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'Rate limit condition service ID cannot be empty.',
+        );
+
+        new RateLimit(
+            limit: 100,
+            interval: '1 minute',
+            when: '',
+        );
+    }
+
+    #[Test]
     public function itRejectsZeroLimit(): void
     {
         $this->expectException(InvalidArgumentException::class);

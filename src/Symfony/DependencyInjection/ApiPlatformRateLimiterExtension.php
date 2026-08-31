@@ -9,12 +9,14 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
@@ -36,6 +38,10 @@ final class ApiPlatformRateLimiterExtension extends Extension
 {
     public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
 
+    public const CONDITION_TAG = 'jacyimp.api_platform_rate_limiter.condition';
+
+    public const IDENTITY_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.identity_resolver';
+
     public const PROVIDER_TAG = 'jacyimp.api_platform_rate_limiter.provider';
 
     /**
@@ -50,7 +56,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
          *     shared_buckets: array<string, array{
          *         limit: int,
          *         interval: string,
-         *         policy: string
+         *         policy: string,
+         *         identity_resolver: string|null,
+         *         when: string|null
          *     }>
          * } $config
          */
@@ -60,8 +68,16 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
+            ->registerForAutoconfiguration(RateLimitConditionInterface::class)
+            ->addTag(self::CONDITION_TAG);
+
+        $container
             ->registerForAutoconfiguration(RateLimitBypassInterface::class)
             ->addTag(self::BYPASS_TAG);
+
+        $container
+            ->registerForAutoconfiguration(IdentityResolverInterface::class)
+            ->addTag(self::IDENTITY_RESOLVER_TAG);
 
         $container
             ->registerForAutoconfiguration(RateLimitProviderInterface::class)
@@ -78,6 +94,23 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $container->register(IntervalNormalizer::class);
 
         $container
+            ->register(RateLimitStrategyRegistry::class)
+            ->setArguments([
+                new TaggedIteratorArgument(
+                    self::IDENTITY_RESOLVER_TAG,
+                    null,
+                    null,
+                    true,
+                ),
+                new TaggedIteratorArgument(
+                    self::CONDITION_TAG,
+                    null,
+                    null,
+                    true,
+                ),
+            ]);
+
+        $container
             ->register(SharedRateLimitRegistry::class)
             ->setArguments([
                 $this->sharedRateLimitDefinitions(
@@ -92,6 +125,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(RateLimitProviderCollection::class),
                 new Reference(IntervalNormalizer::class),
                 new Reference(SharedRateLimitRegistry::class),
+                new Reference(RateLimitStrategyRegistry::class),
             ]);
 
         $container
@@ -170,7 +204,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
      * @param array<string, array{
      *     limit: int,
      *     interval: string,
-     *     policy: string
+     *     policy: string,
+     *     identity_resolver: string|null,
+     *     when: string|null
      * }> $buckets
      *
      * @return array<string, Definition>
@@ -193,6 +229,8 @@ final class ApiPlatformRateLimiterExtension extends Extension
                     RateLimitPolicy::from(
                         $bucket['policy'],
                     ),
+                    $bucket['identity_resolver'],
+                    $bucket['when'],
                 ],
             );
         }

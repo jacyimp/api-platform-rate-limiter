@@ -25,18 +25,30 @@ final readonly class RateLimitEnforcer
     public function enforce(
         array $rateLimits,
     ): RateLimitEnforcementResult {
-        if ($rateLimits === [] || $this->bypass->shouldBypass()) {
+        if ($rateLimits === []) {
             return new RateLimitEnforcementResult([]);
         }
-
-        $identity = $this->identityResolver->resolve();
 
         $consumptions = [];
 
         foreach ($rateLimits as $rateLimit) {
+            if ($this->bypass->shouldBypass()) {
+                continue;
+            }
+
+            if (
+                $rateLimit->condition !== null
+                && !$rateLimit->condition->shouldApply()
+            ) {
+                continue;
+            }
+
+            $identityResolver = $rateLimit->identityResolver
+                ?? $this->identityResolver;
+
             $result = $this->rateLimiter->consume(
                 rateLimit: $rateLimit,
-                identity: $identity,
+                identity: $identityResolver->resolve(),
             );
 
             $consumptions[] = new RateLimitConsumption(

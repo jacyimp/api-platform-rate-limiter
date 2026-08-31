@@ -9,11 +9,13 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
@@ -46,6 +48,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
                 SymfonyRateLimiter::class,
                 SymfonyIdentityResolver::class,
                 RateLimitBypassChecker::class,
+                RateLimitStrategyRegistry::class,
                 RateLimitEnforcer::class,
                 ApiPlatformRateLimitListener::class,
             ] as $service
@@ -95,7 +98,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
     }
 
     #[Test]
-    public function itAutoconfiguresRateLimitBypasses(): void
+    public function itAutoconfiguresGlobalBypasses(): void
     {
         $container = $this->container();
 
@@ -106,6 +109,38 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertTrue(
             $childDefinition->hasTag(
                 ApiPlatformRateLimiterExtension::BYPASS_TAG,
+            ),
+        );
+    }
+
+    #[Test]
+    public function itAutoconfiguresRateLimitConditions(): void
+    {
+        $container = $this->container();
+
+        $childDefinition = $container
+            ->getAutoconfiguredInstanceof()
+        [RateLimitConditionInterface::class];
+
+        self::assertTrue(
+            $childDefinition->hasTag(
+                ApiPlatformRateLimiterExtension::CONDITION_TAG,
+            ),
+        );
+    }
+
+    #[Test]
+    public function itAutoconfiguresIdentityResolvers(): void
+    {
+        $container = $this->container();
+
+        $childDefinition = $container
+            ->getAutoconfiguredInstanceof()
+        [IdentityResolverInterface::class];
+
+        self::assertTrue(
+            $childDefinition->hasTag(
+                ApiPlatformRateLimiterExtension::IDENTITY_RESOLVER_TAG,
             ),
         );
     }

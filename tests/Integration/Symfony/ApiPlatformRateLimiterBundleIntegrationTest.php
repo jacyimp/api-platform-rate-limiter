@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
@@ -91,6 +92,67 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $this->assertRateLimited($operation);
     }
 
+    #[Test]
+    public function itUsesPerLimitIdentityResolverThroughSymfonyKernel(): void
+    {
+        $operation = new Get(
+            name: 'identity_limited_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 1,
+                    interval: '1 minute',
+                    identityResolver: FixedIdentityResolver::class,
+                ),
+            ],
+        );
+
+        self::assertSame(
+            200,
+            $this->handle($operation, '192.0.2.1')->getStatusCode(),
+        );
+
+        try {
+            $this->handle($operation, '192.0.2.2');
+            self::fail('Expected the shared fixed identity to be limited.');
+        } catch (TooManyRequestsHttpException $exception) {
+            self::assertSame(429, $exception->getStatusCode());
+        }
+    }
+
+    #[Test]
+    public function itAppliesSharedBucketOnlyWhenConditionMatches(): void
+    {
+        $operation = new Get(
+            name: 'conditional_shared_get',
+            extraProperties: [
+                SharedRateLimit::class => new SharedRateLimit(
+                    'conditional_shared',
+                ),
+            ],
+        );
+
+        self::assertSame(200, $this->handle($operation)->getStatusCode());
+        self::assertSame(200, $this->handle($operation)->getStatusCode());
+    }
+
+    #[Test]
+    public function itAppliesOperationLimitOnlyWhenConditionMatches(): void
+    {
+        $operation = new Get(
+            name: 'conditional_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 1,
+                    interval: '1 minute',
+                    when: 'test.never_apply',
+                ),
+            ],
+        );
+
+        self::assertSame(200, $this->handle($operation)->getStatusCode());
+        self::assertSame(200, $this->handle($operation)->getStatusCode());
+    }
+
     private function assertRateLimited(
         Operation $operation,
     ): void {
@@ -125,12 +187,13 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
 
     private function handle(
         Operation $operation,
+        string $clientIp = '192.0.2.1',
     ): Response {
         $request = Request::create(
             uri: '/limited',
             method: 'GET',
             server: [
-                'REMOTE_ADDR' => '192.0.2.1',
+                'REMOTE_ADDR' => $clientIp,
             ],
         );
 

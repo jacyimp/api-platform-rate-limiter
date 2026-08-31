@@ -175,25 +175,81 @@ services:
         alias: App\RateLimit\ApiKeyIdentityResolver
 ```
 
-## Bypass rules
-
-Implement `RateLimitBypassInterface` for requests that should not consume any
-limit:
+Override the identity for one operation with `identityResolver`:
 
 ```php
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-
-final class TrustedRequestBypass implements RateLimitBypassInterface
-{
-    public function shouldBypass(): bool
-    {
-        return false;
-    }
-}
+new RateLimit(
+    limit: 5,
+    interval: '1 minute',
+    identityResolver: ApiKeyIdentityResolver::class,
+);
 ```
 
-Symfony autoconfiguration discovers bypass implementations automatically. A
-request bypasses rate limiting when any implementation returns `true`.
+Other limits still use the global resolver.
+
+## Conditional limits
+
+Use `when` to apply a limit conditionally:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+
+final readonly class InternalRequestCondition implements RateLimitConditionInterface
+{
+    public function __construct(private RequestStack $requestStack)
+    {
+    }
+
+    public function shouldApply(): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return $request?->headers->has('X-Internal') ?? false;
+    }
+}
+
+new RateLimit(
+    limit: 5,
+    interval: '1 minute',
+    when: InternalRequestCondition::class,
+);
+```
+
+`true` applies the limit; `false` skips it. Without `when`, the limit always
+applies.
+
+Shared buckets support both options:
+
+```yaml
+api_platform_rate_limiter:
+    shared_buckets:
+        otp:
+            limit: 5
+            interval: '1 minute'
+            identity_resolver: App\RateLimit\ApiKeyIdentityResolver
+            when: App\RateLimit\InternalRequestCondition
+```
+
+Symfony autoconfiguration registers both service types. If autoconfiguration is
+disabled, add the tags manually:
+
+```yaml
+services:
+    App\RateLimit\ApiKeyIdentityResolver:
+        tags: ['jacyimp.api_platform_rate_limiter.identity_resolver']
+
+    App\RateLimit\InternalRequestCondition:
+        tags: ['jacyimp.api_platform_rate_limiter.condition']
+```
+
+## Bypass rules
+
+Global bypasses remain available for requests that should not consume any
+limit. Implement `RateLimitBypassInterface`; Symfony autoconfiguration discovers
+implementations automatically, and a request bypasses rate limiting when any
+implementation returns `true`. With `autoconfigure: false`, use the
+`jacyimp.api_platform_rate_limiter.bypass` tag.
 
 ## Responses and storage
 

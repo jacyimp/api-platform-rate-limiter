@@ -47,6 +47,12 @@ final class TestKernel extends Kernel
                         'interval' => '1 minute',
                         'policy' => 'sliding_window',
                     ],
+                    'conditional_shared' => [
+                        'limit' => 1,
+                        'interval' => '1 minute',
+                        'identity_resolver' => FixedIdentityResolver::class,
+                        'when' => 'test.never_apply',
+                    ],
                 ],
             ],
         );
@@ -61,6 +67,16 @@ final class TestKernel extends Kernel
             ->set(ManualRateLimitProvider::class)
             ->tag(
                 ApiPlatformRateLimiterExtension::PROVIDER_TAG,
+            );
+
+        $services
+            ->set(FixedIdentityResolver::class)
+            ->autoconfigure();
+
+        $services
+            ->set('test.never_apply', NeverApplyCondition::class)
+            ->tag(
+                ApiPlatformRateLimiterExtension::CONDITION_TAG,
             );
     }
 

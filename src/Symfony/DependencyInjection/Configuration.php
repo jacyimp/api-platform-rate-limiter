@@ -70,6 +70,23 @@ final class Configuration implements ConfigurationInterface
                 RateLimitPolicy::SLIDING_WINDOW->value,
             );
 
+        foreach (['identity_resolver', 'when'] as $serviceOption) {
+            $serviceNode = $bucketChildren
+                ->scalarNode($serviceOption)
+                ->cannotBeEmpty()
+                ->defaultNull();
+
+            $serviceNode
+                ->validate()
+                ->ifTrue(
+                    static fn (mixed $value): bool => $value !== null
+                        && !is_string($value),
+                )
+                ->thenInvalid(
+                    sprintf('%s must be a service ID string.', $serviceOption),
+                );
+        }
+
         return $treeBuilder;
     }
 

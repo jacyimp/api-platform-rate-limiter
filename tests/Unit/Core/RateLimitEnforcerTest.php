@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 use DateTimeImmutable;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
@@ -109,6 +110,123 @@ final class RateLimitEnforcerTest extends TestCase
     }
 
     #[Test]
+    public function itUsesStrategiesConfiguredForEachLimit(): void
+    {
+        $globalIdentityResolver = self::createMock(
+            IdentityResolverInterface::class,
+        );
+        $globalIdentityResolver->expects(self::never())->method('resolve');
+
+        $globalBypass = self::createMock(RateLimitBypassInterface::class);
+        $globalBypass
+            ->expects(self::exactly(2))
+            ->method('shouldBypass')
+            ->willReturn(false);
+
+        $firstIdentityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $firstIdentityResolver->method('resolve')->willReturn('phone:1');
+
+        $secondIdentityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $secondIdentityResolver->method('resolve')->willReturn('api-key:2');
+
+        $firstCondition = self::createStub(
+            RateLimitConditionInterface::class,
+        );
+        $firstCondition->method('shouldApply')->willReturn(true);
+
+        $secondCondition = self::createStub(
+            RateLimitConditionInterface::class,
+        );
+        $secondCondition->method('shouldApply')->willReturn(true);
+
+        $first = $this->rateLimit(
+            bucket: 'operation:otp_post',
+            identityResolver: $firstIdentityResolver,
+            condition: $firstCondition,
+        );
+        $second = $this->rateLimit(
+            bucket: 'shared:api',
+            identityResolver: $secondIdentityResolver,
+            condition: $secondCondition,
+        );
+
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter
+            ->expects(self::exactly(2))
+            ->method('consume')
+            ->willReturnCallback(
+                static function (
+                    ResolvedRateLimit $rateLimit,
+                    string $identity,
+                ) use ($first): RateLimitResult {
+                    self::assertSame(
+                        $rateLimit === $first ? 'phone:1' : 'api-key:2',
+                        $identity,
+                    );
+
+                    return new RateLimitResult(
+                        accepted: true,
+                        remaining: 1,
+                        retryAfter: new DateTimeImmutable('+1 minute'),
+                    );
+                },
+            );
+
+        $enforcer = new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $globalIdentityResolver,
+            bypass: $globalBypass,
+        );
+
+        self::assertTrue($enforcer->enforce([$first, $second])->isAccepted());
+    }
+
+    #[Test]
+    public function itSkipsOnlyTheLimitWhoseConditionDoesNotApply(): void
+    {
+        $identityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $identityResolver->method('resolve')->willReturn('user:123');
+
+        $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('shouldApply')->willReturn(false);
+
+        $first = $this->rateLimit(condition: $condition);
+        $second = $this->rateLimit('shared:catalog');
+
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter
+            ->expects(self::once())
+            ->method('consume')
+            ->with($second, 'user:123', 1)
+            ->willReturn(new RateLimitResult(
+                accepted: true,
+                remaining: 9,
+                retryAfter: new DateTimeImmutable('+1 minute'),
+            ));
+
+        $globalBypass = self::createStub(RateLimitBypassInterface::class);
+        $globalBypass->method('shouldBypass')->willReturn(false);
+
+        $enforcer = new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $globalBypass,
+        );
+
+        $result = $enforcer->enforce([$first, $second]);
+
+        self::assertTrue($result->isAccepted());
+        self::assertCount(1, $result->consumptions);
+        self::assertSame($second, $result->consumptions[0]->rateLimit);
+    }
+
+    #[Test]
     public function itDoesNotResolveIdentityWithoutRateLimits(): void
     {
         $identityResolver = self::createMock(
@@ -203,7 +321,7 @@ final class RateLimitEnforcerTest extends TestCase
             RateLimitBypassInterface::class,
         );
         $bypass
-            ->expects(self::once())
+            ->expects(self::exactly(2))
             ->method('shouldBypass')
             ->willReturn(false);
 
@@ -247,6 +365,8 @@ final class RateLimitEnforcerTest extends TestCase
 
     private function rateLimit(
         string $bucket = 'operation:product_get',
+        ?IdentityResolverInterface $identityResolver = null,
+        ?RateLimitConditionInterface $condition = null,
     ): ResolvedRateLimit {
         return new ResolvedRateLimit(
             bucket: $bucket,
@@ -255,6 +375,8 @@ final class RateLimitEnforcerTest extends TestCase
                 intervalSeconds: 60,
                 policy: RateLimitPolicy::SLIDING_WINDOW,
             ),
+            identityResolver: $identityResolver,
+            condition: $condition,
         );
     }
 }

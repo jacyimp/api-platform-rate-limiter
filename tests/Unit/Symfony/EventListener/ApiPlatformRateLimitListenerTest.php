@@ -16,6 +16,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
@@ -233,6 +234,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
                 providerCollection: new RateLimitProviderCollection([]),
                 intervalNormalizer: new IntervalNormalizer(),
                 sharedRateLimitRegistry: new SharedRateLimitRegistry([]),
+                strategyRegistry: new RateLimitStrategyRegistry([], []),
             ),
             rateLimitEnforcer: new RateLimitEnforcer(
                 rateLimiter: $rateLimiter,

@@ -16,6 +16,8 @@ final readonly class RateLimitDefinition
         public int $limit,
         public int $intervalSeconds,
         public RateLimitPolicy $policy,
+        public ?string $identityResolver = null,
+        public ?string $when = null,
     ) {
         if ($limit < 1) {
             throw new InvalidArgumentException(

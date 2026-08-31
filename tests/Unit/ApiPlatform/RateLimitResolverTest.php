@@ -9,9 +9,12 @@ use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -176,6 +179,68 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itResolvesOperationSpecificStrategies(): void
+    {
+        $identityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $condition = self::createStub(RateLimitConditionInterface::class);
+
+        $resolver = $this->resolver(
+            identityResolvers: [$identityResolver],
+            conditions: [$condition],
+        );
+
+        $resolved = $resolver->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 5,
+                    interval: '1 minute',
+                    identityResolver: $identityResolver::class,
+                    when: $condition::class,
+                ),
+            ]),
+            operationKey: 'otp_post',
+        );
+
+        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame($condition, $resolved[0]->condition);
+    }
+
+    #[Test]
+    public function itResolvesSharedLimitStrategies(): void
+    {
+        $identityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $condition = self::createStub(RateLimitConditionInterface::class);
+
+        $definition = new RateLimitDefinition(
+            limit: 5,
+            intervalSeconds: 60,
+            policy: RateLimitPolicy::SLIDING_WINDOW,
+            identityResolver: $identityResolver::class,
+            when: $condition::class,
+        );
+
+        $resolver = $this->resolver(
+            shared: ['otp' => $definition],
+            identityResolvers: [$identityResolver],
+            conditions: [$condition],
+        );
+
+        $resolved = $resolver->resolve(
+            operation: new Get(extraProperties: [
+                SharedRateLimit::class => new SharedRateLimit('otp'),
+            ]),
+            operationKey: 'otp_post',
+        );
+
+        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame($condition, $resolved[0]->condition);
+    }
+
+    #[Test]
     public function itResolvesMetadataBeforeProviderRateLimits(): void
     {
         $provider = self::createStub(
@@ -269,10 +334,14 @@ final class RateLimitResolverTest extends TestCase
     /**
      * @param array<string, RateLimitDefinition> $shared
      * @param list<RateLimitProviderInterface> $providers
+     * @param list<IdentityResolverInterface> $identityResolvers
+     * @param list<RateLimitConditionInterface> $conditions
      */
     private function resolver(
         array $shared = [],
         array $providers = [],
+        array $identityResolvers = [],
+        array $conditions = [],
     ): RateLimitResolver {
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
@@ -282,6 +351,10 @@ final class RateLimitResolverTest extends TestCase
             intervalNormalizer: new IntervalNormalizer(),
             sharedRateLimitRegistry: new SharedRateLimitRegistry(
                 $shared,
+            ),
+            strategyRegistry: new RateLimitStrategyRegistry(
+                $identityResolvers,
+                $conditions,
             ),
         );
     }

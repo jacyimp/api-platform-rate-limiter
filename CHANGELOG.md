@@ -13,6 +13,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Moved `RateLimiterInterface` into `Core` and marked implementation types as internal.
 - Documented sequential combined-limit consumption without rollback.
 
+### Added
+
+- Per-limit identity resolvers and positive `when` conditions for operation and
+  shared limits.
+- Autoconfiguration and explicit service tags for selectable per-limit
+  strategies.
+
 ## [0.1.0] - 2026-08-31
 
 ### Added
