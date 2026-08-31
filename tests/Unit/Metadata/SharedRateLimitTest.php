@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 final class SharedRateLimitTest extends TestCase
 {
     #[Test]
-    public function storesBucketName(): void
+    public function itStoresBucketName(): void
     {
         $rateLimit = new SharedRateLimit('catalog');
 
@@ -22,7 +22,7 @@ final class SharedRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function rejectsEmptyBucket(): void
+    public function itRejectsEmptyBucket(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
@@ -33,7 +33,7 @@ final class SharedRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function rejectsWhitespaceOnlyBucket(): void
+    public function itRejectsWhitespaceOnlyBucket(): void
     {
         $this->expectException(InvalidArgumentException::class);
 

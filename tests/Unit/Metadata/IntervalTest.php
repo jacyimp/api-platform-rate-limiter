@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 final class IntervalTest extends TestCase
 {
     #[Test]
-    public function storesIntervalComponents(): void
+    public function itStoresIntervalComponents(): void
     {
         $interval = new Interval(
             days: 1,
@@ -31,7 +31,7 @@ final class IntervalTest extends TestCase
     }
 
     #[Test]
-    public function rejectsZeroInterval(): void
+    public function itRejectsZeroInterval(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
@@ -43,7 +43,7 @@ final class IntervalTest extends TestCase
 
     #[Test]
     #[DataProvider('negativeIntervals')]
-    public function rejectsNegativeValues(
+    public function itRejectsNegativeValues(
         int $days,
         int $hours,
         int $minutes,
@@ -62,6 +62,9 @@ final class IntervalTest extends TestCase
         );
     }
 
+    /**
+     * @return iterable<string, array{int, int, int, int}>
+     */
     public static function negativeIntervals(): iterable
     {
         yield 'days' => [-1, 0, 0, 0];

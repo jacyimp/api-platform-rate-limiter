@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 final class OperationRateLimitTest extends TestCase
 {
     #[Test]
-    public function acceptsStringInterval(): void
+    public function itAcceptsStringInterval(): void
     {
         $rateLimit = new OperationRateLimit(
             limit: 100,
@@ -33,7 +33,7 @@ final class OperationRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function acceptsDateInterval(): void
+    public function itAcceptsDateInterval(): void
     {
         $interval = new DateInterval('PT1M');
 
@@ -46,7 +46,7 @@ final class OperationRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function acceptsCustomInterval(): void
+    public function itAcceptsCustomInterval(): void
     {
         $interval = new Interval(minutes: 1);
 
@@ -59,7 +59,7 @@ final class OperationRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function acceptsExplicitPolicy(): void
+    public function itAcceptsExplicitPolicy(): void
     {
         $rateLimit = new OperationRateLimit(
             limit: 100,
@@ -74,7 +74,7 @@ final class OperationRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function rejectsZeroLimit(): void
+    public function itRejectsZeroLimit(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage(
@@ -88,7 +88,7 @@ final class OperationRateLimitTest extends TestCase
     }
 
     #[Test]
-    public function rejectsNegativeLimit(): void
+    public function itRejectsNegativeLimit(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
