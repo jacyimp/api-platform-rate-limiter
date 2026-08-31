@@ -74,7 +74,7 @@ final class TestKernel extends Kernel
         return sprintf(
             '%s/jacyimp-api-platform-rate-limiter/cache/%s',
             sys_get_temp_dir(),
-            $this->environment,
+            $this->getEnvironment(),
         );
     }
 

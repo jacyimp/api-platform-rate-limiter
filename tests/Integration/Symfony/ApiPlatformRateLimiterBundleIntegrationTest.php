@@ -9,6 +9,7 @@ use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
+#[RunTestsInSeparateProcesses]
 final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
 {
     private ?TestKernel $kernel = null;

@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use LogicException;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
+use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -18,31 +19,34 @@ final class Configuration implements ConfigurationInterface
             'api_platform_rate_limiter',
         );
 
-        $rootNode = $treeBuilder->getRootNode();
+        $rootNode = $this->requireArrayNode(
+            $treeBuilder->getRootNode(),
+        );
 
-        // Symfony 6.4 types this as NodeDefinition|ArrayNodeDefinition,
-        // while newer Symfony versions infer ArrayNodeDefinition directly.
-        /** @phpstan-ignore instanceof.alwaysTrue */
-        if (!$rootNode instanceof ArrayNodeDefinition) {
-            throw new LogicException(
-                'Rate limiter configuration root must be an array node.',
-            );
-        }
-
-        $rootNode
+        $sharedBucketsNode = $rootNode
             ->children()
-            ->arrayNode('shared_buckets')
+            ->arrayNode('shared_buckets');
+
+        $sharedBucketsNode
             ->defaultValue([])
-            ->useAttributeAsKey('name')
-            ->arrayPrototype()
-            ->children()
+            ->useAttributeAsKey('name');
+
+        $bucketNode = $sharedBucketsNode->arrayPrototype();
+        $bucketChildren = $bucketNode->children();
+
+        $bucketChildren
             ->integerNode('limit')
             ->isRequired()
-            ->min(1)
-            ->end()
-            ->scalarNode('interval')
+            ->min(1);
+
+        $intervalNode = $bucketChildren
+            ->scalarNode('interval');
+
+        $intervalNode
             ->isRequired()
-            ->cannotBeEmpty()
+            ->cannotBeEmpty();
+
+        $intervalNode
             ->validate()
             ->ifTrue(
                 static fn (mixed $value): bool => !is_string(
@@ -51,9 +55,9 @@ final class Configuration implements ConfigurationInterface
             )
             ->thenInvalid(
                 'Shared rate limit interval must be a string.',
-            )
-            ->end()
-            ->end()
+            );
+
+        $bucketChildren
             ->enumNode('policy')
             ->values([
                 RateLimitPolicy::FIXED_WINDOW->value,
@@ -61,13 +65,20 @@ final class Configuration implements ConfigurationInterface
             ])
             ->defaultValue(
                 RateLimitPolicy::SLIDING_WINDOW->value,
-            )
-            ->end()
-            ->end()
-            ->end()
-            ->end()
-            ->end();
+            );
 
         return $treeBuilder;
+    }
+
+    private function requireArrayNode(
+        NodeDefinition $node,
+    ): ArrayNodeDefinition {
+        if (!$node instanceof ArrayNodeDefinition) {
+            throw new LogicException(
+                'Rate limiter configuration root must be an array node.',
+            );
+        }
+
+        return $node;
     }
 }
