@@ -16,10 +16,13 @@ final class TestKernel extends Kernel
 {
     use MicroKernelTrait;
 
+    /**
+     * @param array<string, array<string, int|string>> $globals
+     */
     public function __construct(
         string $environment,
         bool $debug,
-        private readonly bool $globalRateLimit = false,
+        private readonly array $globals = [],
     ) {
         parent::__construct($environment, $debug);
     }
@@ -66,11 +69,8 @@ final class TestKernel extends Kernel
             ],
         ];
 
-        if ($this->globalRateLimit) {
-            $rateLimiterConfig['global'] = [
-                'limit' => 1,
-                'interval' => '1 minute',
-            ];
+        if ($this->globals !== []) {
+            $rateLimiterConfig['globals'] = $this->globals;
         }
 
         $container->extension(

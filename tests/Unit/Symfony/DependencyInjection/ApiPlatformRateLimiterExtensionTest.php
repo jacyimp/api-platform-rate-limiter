@@ -29,6 +29,7 @@ use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
@@ -262,6 +263,34 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             ],
             $tags,
         );
+    }
+
+    #[Test]
+    public function itRejectsTheRemovedSingularGlobalConfiguration(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new ApiPlatformRateLimiterExtension())->load([
+            'global' => [
+                'limit' => 100,
+                'interval' => '1 minute',
+            ],
+        ], new ContainerBuilder());
+    }
+
+    #[Test]
+    public function itRejectsAnInvalidNamedGlobalConfiguration(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new ApiPlatformRateLimiterExtension())->load([
+            'globals' => [
+                'burst' => [
+                    'limit' => 0,
+                    'interval' => '1 minute',
+                ],
+            ],
+        ], new ContainerBuilder());
     }
 
     private function container(): ContainerBuilder

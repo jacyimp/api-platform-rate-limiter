@@ -22,13 +22,16 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
  */
 final readonly class RateLimitResolver
 {
+    /**
+     * @param array<string, RateLimitDefinition> $globalRateLimits
+     */
     public function __construct(
         private RateLimitMetadataExtractor $metadataExtractor,
         private RateLimitProviderCollection $providerCollection,
         private IntervalNormalizer $intervalNormalizer,
         private SharedRateLimitRegistry $sharedRateLimitRegistry,
         private RateLimitStrategyRegistry $strategyRegistry,
-        private ?RateLimitDefinition $globalRateLimit = null,
+        private array $globalRateLimits = [],
     ) {
     }
 
@@ -58,21 +61,22 @@ final readonly class RateLimitResolver
             ];
         }
 
-        if ($this->globalRateLimit !== null) {
+        foreach ($this->globalRateLimits as $name => $globalRateLimit) {
+            $bucket = sprintf('global:%s', $name);
             $resolved[] = [
-                'bucket' => 'global',
+                'bucket' => $bucket,
                 'rateLimit' => new ResolvedRateLimit(
-                    bucket: 'global',
-                    definition: $this->globalRateLimit,
-                    identityResolver: $this->globalRateLimit->identityResolver === null
+                    bucket: $bucket,
+                    definition: $globalRateLimit,
+                    identityResolver: $globalRateLimit->identityResolver === null
                         ? null
                         : $this->strategyRegistry->identityResolver(
-                            $this->globalRateLimit->identityResolver,
+                            $globalRateLimit->identityResolver,
                         ),
-                    condition: $this->globalRateLimit->when === null
+                    condition: $globalRateLimit->when === null
                         ? null
                         : $this->strategyRegistry->condition(
-                            $this->globalRateLimit->when,
+                            $globalRateLimit->when,
                         ),
                 ),
             ];

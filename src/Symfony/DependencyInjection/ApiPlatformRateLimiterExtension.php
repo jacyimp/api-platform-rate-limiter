@@ -60,13 +60,13 @@ final class ApiPlatformRateLimiterExtension extends Extension
     ): void {
         /**
          * @var array{
-         *     global?: array{
+         *     globals: array<string, array{
          *         limit: int,
          *         interval: string,
          *         policy: string,
          *         identity_resolver: string|null,
          *         when: string|null
-         *     },
+         *     }>,
          *     shared_buckets: array<string, array{
          *         limit: int,
          *         interval: string,
@@ -136,7 +136,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $container
             ->register(SharedRateLimitRegistry::class)
             ->setArguments([
-                $this->sharedRateLimitDefinitions(
+                $this->rateLimitDefinitions(
                     $config['shared_buckets'],
                 ),
             ]);
@@ -149,9 +149,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(IntervalNormalizer::class),
                 new Reference(SharedRateLimitRegistry::class),
                 new Reference(RateLimitStrategyRegistry::class),
-                isset($config['global'])
-                    ? $this->rateLimitDefinition($config['global'])
-                    : null,
+                $this->rateLimitDefinitions($config['globals']),
             ]);
 
         $container
@@ -242,17 +240,16 @@ final class ApiPlatformRateLimiterExtension extends Extension
      *     policy: string,
      *     identity_resolver: string|null,
      *     when: string|null
-     * }> $buckets
+     * }> $rateLimits
      *
      * @return array<string, Definition>
      */
-    private function sharedRateLimitDefinitions(
-        array $buckets,
-    ): array {
+    private function rateLimitDefinitions(array $rateLimits): array
+    {
         $definitions = [];
 
-        foreach ($buckets as $name => $bucket) {
-            $definitions[$name] = $this->rateLimitDefinition($bucket);
+        foreach ($rateLimits as $name => $rateLimit) {
+            $definitions[$name] = $this->rateLimitDefinition($rateLimit);
         }
 
         return $definitions;

@@ -42,20 +42,27 @@ No other configuration is required for operation-specific limits.
 
 ## Limit the entire API
 
-Configure one shared quota for every API Platform operation:
+Configure one or more named quotas for every API Platform operation:
 
 ```yaml
 # config/packages/api_platform_rate_limiter.yaml
 
 api_platform_rate_limiter:
-    global:
-        limit: 1000
-        interval: '1 minute'
+    globals:
+        burst:
+            limit: 100
+            interval: '1 minute'
+
+        daily:
+            limit: 10000
+            interval: '1 day'
 ```
 
-The quota is shared across all operations for each resolved identity. The
-optional `policy`, `identity_resolver`, and `when` settings work the same way as
-they do for shared buckets. The policy defaults to `sliding_window`.
+Each quota is shared across all operations for its resolved identity and is
+enforced independently. Its bucket is named `global:<name>` (`global:burst`
+and `global:daily` above). The optional `policy`, `identity_resolver`, and
+`when` settings work the same way as they do for shared buckets. The policy
+defaults to `sliding_window`.
 
 Global, operation-specific, and named shared limits are combined when more than
 one applies to a request.
@@ -404,7 +411,7 @@ This works uniformly for operation, shared, dynamic, and global buckets:
 
 ```php
 extraProperties: [
-    BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+    BypassRateLimit::class => new BypassRateLimit(bucket: 'global:burst'),
 ]
 ```
 

@@ -28,8 +28,14 @@ final class Configuration implements ConfigurationInterface
 
         $rootChildren = $rootNode->children();
 
-        $globalNode = $rootChildren
-            ->arrayNode('global');
+        $globalsNode = $rootChildren
+            ->arrayNode('globals');
+
+        $globalsNode
+            ->defaultValue([])
+            ->useAttributeAsKey('name');
+
+        $globalNode = $globalsNode->arrayPrototype();
         $globalChildren = $globalNode->children();
 
         $globalChildren

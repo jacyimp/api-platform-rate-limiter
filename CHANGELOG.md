@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Replaced the singular `global` configuration with named `globals`; every
+  configured global is enforced independently using a `global:<name>` bucket.
 - Merged the unreleased `SharedRateLimit` metadata API into `RateLimit` via its
   optional `bucket`; combined metadata now accepts a list of `RateLimit` values.
 - Renamed operation metadata from `OperationRateLimit` to `RateLimit`.

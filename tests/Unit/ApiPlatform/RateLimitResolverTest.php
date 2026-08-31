@@ -17,6 +17,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
+use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
@@ -468,7 +469,7 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
-    public function itResolvesGlobalRateLimitForEveryOperation(): void
+    public function itResolvesOneNamedGlobalRateLimitForEveryOperation(): void
     {
         $global = new RateLimitDefinition(
             limit: 1_000,
@@ -476,24 +477,101 @@ final class RateLimitResolverTest extends TestCase
             policy: RateLimitPolicy::FIXED_WINDOW,
         );
 
-        $resolved = $this->resolver(global: $global)->resolve(
+        $resolved = $this->resolver(globals: ['burst' => $global])->resolve(
             operation: new Get(),
             operationKey: 'product_get',
         );
 
         self::assertCount(1, $resolved);
-        self::assertSame('global', $resolved[0]->bucket);
+        self::assertSame('global:burst', $resolved[0]->bucket);
         self::assertSame($global, $resolved[0]->definition);
+    }
+
+    #[Test]
+    public function itResolvesMultipleGlobalsInConfigurationOrder(): void
+    {
+        $burst = new RateLimitDefinition(100, 60, RateLimitPolicy::SLIDING_WINDOW);
+        $daily = new RateLimitDefinition(10_000, 86_400, RateLimitPolicy::SLIDING_WINDOW);
+
+        $resolved = $this->resolver(globals: [
+            'burst' => $burst,
+            'daily' => $daily,
+        ])->resolve(new Get(), 'product_get');
+
+        self::assertSame(
+            ['global:burst', 'global:daily'],
+            array_map(
+                static fn (ResolvedRateLimit $limit): string => $limit->bucket,
+                $resolved,
+            ),
+        );
+        self::assertSame($burst, $resolved[0]->definition);
+        self::assertSame($daily, $resolved[1]->definition);
+    }
+
+    #[Test]
+    public function itResolvesDifferentIdentitiesAndConditionsForEachGlobal(): void
+    {
+        $burstIdentity = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'burst';
+            }
+        };
+        $dailyIdentity = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'daily';
+            }
+        };
+        $burstCondition = new class implements RateLimitConditionInterface {
+            public function shouldApply(): bool
+            {
+                return true;
+            }
+        };
+        $dailyCondition = new class implements RateLimitConditionInterface {
+            public function shouldApply(): bool
+            {
+                return false;
+            }
+        };
+
+        $resolved = $this->resolver(
+            globals: [
+                'burst' => new RateLimitDefinition(
+                    100,
+                    60,
+                    RateLimitPolicy::SLIDING_WINDOW,
+                    identityResolver: $burstIdentity::class,
+                    when: $burstCondition::class,
+                ),
+                'daily' => new RateLimitDefinition(
+                    10_000,
+                    86_400,
+                    RateLimitPolicy::SLIDING_WINDOW,
+                    identityResolver: $dailyIdentity::class,
+                    when: $dailyCondition::class,
+                ),
+            ],
+            identityResolvers: [$burstIdentity, $dailyIdentity],
+            conditions: [$burstCondition, $dailyCondition],
+        )->resolve(new Get(), 'product_get');
+
+        self::assertSame($burstIdentity, $resolved[0]->identityResolver);
+        self::assertSame($dailyIdentity, $resolved[1]->identityResolver);
+        self::assertSame($burstCondition, $resolved[0]->condition);
+        self::assertSame($dailyCondition, $resolved[1]->condition);
     }
 
     #[Test]
     public function itUnconditionallyBypassesAllResolvedRateLimits(): void
     {
-        $resolved = $this->resolver(global: new RateLimitDefinition(
+        $resolved = $this->resolver(globals: ['burst' => new RateLimitDefinition(
             limit: 1_000,
             intervalSeconds: 3_600,
             policy: RateLimitPolicy::FIXED_WINDOW,
-        ))->resolve(
+        )])->resolve(
             operation: new Get(extraProperties: [
                 RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
                 BypassRateLimit::class => new BypassRateLimit(),
@@ -611,20 +689,28 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
-    public function itBypassesTheGlobalBucketByItsResolvedName(): void
+    public function itBypassesOnlyTheNamedGlobalBucketByItsResolvedName(): void
     {
-        $resolved = $this->resolver(global: new RateLimitDefinition(
-            limit: 1_000,
-            intervalSeconds: 3_600,
-            policy: RateLimitPolicy::FIXED_WINDOW,
-        ))->resolve(
+        $resolved = $this->resolver(globals: [
+            'burst' => new RateLimitDefinition(
+                100,
+                60,
+                RateLimitPolicy::SLIDING_WINDOW,
+            ),
+            'daily' => new RateLimitDefinition(
+                10_000,
+                86_400,
+                RateLimitPolicy::SLIDING_WINDOW,
+            ),
+        ])->resolve(
             operation: new Get(extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'global'),
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'global:burst'),
             ]),
             operationKey: 'product_get',
         );
 
-        self::assertSame([], $resolved);
+        self::assertCount(1, $resolved);
+        self::assertSame('global:daily', $resolved[0]->bucket);
     }
 
     #[Test]
@@ -658,6 +744,7 @@ final class RateLimitResolverTest extends TestCase
      * @param list<RateLimitProviderInterface> $providers
      * @param list<IdentityResolverInterface> $identityResolvers
      * @param list<RateLimitConditionInterface> $conditions
+     * @param array<string, RateLimitDefinition> $globals
      * @param list<BucketResolverInterface> $bucketResolvers
      * @param list<LimitResolverInterface> $limitResolvers
      * @param list<DynamicCostResolverInterface> $costResolvers
@@ -667,7 +754,7 @@ final class RateLimitResolverTest extends TestCase
         array $providers = [],
         array $identityResolvers = [],
         array $conditions = [],
-        ?RateLimitDefinition $global = null,
+        array $globals = [],
         array $bucketResolvers = [],
         array $limitResolvers = [],
         array $costResolvers = [],
@@ -688,7 +775,7 @@ final class RateLimitResolverTest extends TestCase
                 $limitResolvers,
                 $costResolvers,
             ),
-            globalRateLimit: $global,
+            globalRateLimits: $globals,
         );
     }
 }

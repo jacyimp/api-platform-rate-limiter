@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedCostResolver;
@@ -127,7 +128,12 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
                 bin2hex(random_bytes(8)),
             ),
             debug: false,
-            globalRateLimit: true,
+            globals: [
+                'burst' => [
+                    'limit' => 1,
+                    'interval' => '1 minute',
+                ],
+            ],
         );
         $this->kernel->boot();
 
@@ -137,6 +143,36 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         );
 
         $this->assertRateLimited(new Get(name: 'second_get'));
+    }
+
+    #[Test]
+    public function itConsumesGlobalsIndependentlyWhenALaterGlobalRejects(): void
+    {
+        $this->kernel = new TestKernel(
+            environment: sprintf('test%s', bin2hex(random_bytes(8))),
+            debug: false,
+            globals: [
+                'burst' => [
+                    'limit' => 2,
+                    'interval' => '1 minute',
+                ],
+                'daily' => [
+                    'limit' => 1,
+                    'interval' => '1 day',
+                ],
+            ],
+        );
+        $this->kernel->boot();
+
+        self::assertSame(200, $this->handle(new Get(name: 'first_get'))->getStatusCode());
+        $this->assertRateLimited(new Get(name: 'daily_rejects_get'));
+
+        $this->assertRateLimited(new Get(
+            name: 'burst_rejects_get',
+            extraProperties: [
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'global:daily'),
+            ],
+        ));
     }
 
     #[Test]
