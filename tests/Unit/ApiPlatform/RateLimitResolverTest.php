@@ -241,6 +241,43 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itOverridesSharedLimitStrategiesFromMetadata(): void
+    {
+        $identityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
+        $condition = self::createStub(RateLimitConditionInterface::class);
+
+        $resolver = $this->resolver(
+            shared: [
+                'otp' => new RateLimitDefinition(
+                    limit: 5,
+                    intervalSeconds: 60,
+                    policy: RateLimitPolicy::SLIDING_WINDOW,
+                    identityResolver: 'default.identity',
+                    when: 'default.condition',
+                ),
+            ],
+            identityResolvers: [$identityResolver],
+            conditions: [$condition],
+        );
+
+        $resolved = $resolver->resolve(
+            operation: new Get(extraProperties: [
+                SharedRateLimit::class => new SharedRateLimit(
+                    bucket: 'otp',
+                    identityResolver: $identityResolver::class,
+                    when: $condition::class,
+                ),
+            ]),
+            operationKey: 'otp_post',
+        );
+
+        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame($condition, $resolved[0]->condition);
+    }
+
+    #[Test]
     public function itResolvesMetadataBeforeProviderRateLimits(): void
     {
         $provider = self::createStub(

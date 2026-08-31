@@ -22,6 +22,19 @@ final class SharedRateLimitTest extends TestCase
     }
 
     #[Test]
+    public function itStoresStrategies(): void
+    {
+        $rateLimit = new SharedRateLimit(
+            bucket: 'catalog',
+            identityResolver: 'app.identity_resolver',
+            when: 'app.condition',
+        );
+
+        self::assertSame('app.identity_resolver', $rateLimit->identityResolver);
+        self::assertSame('app.condition', $rateLimit->when);
+    }
+
+    #[Test]
     public function itRejectsEmptyBucket(): void
     {
         $this->expectException(InvalidRateLimitException::class);
@@ -38,5 +51,33 @@ final class SharedRateLimitTest extends TestCase
         $this->expectException(InvalidRateLimitException::class);
 
         new SharedRateLimit('   ');
+    }
+
+    #[Test]
+    public function itRejectsEmptyIdentityResolverServiceId(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Identity resolver service ID cannot be empty.',
+        );
+
+        new SharedRateLimit(
+            bucket: 'catalog',
+            identityResolver: ' ',
+        );
+    }
+
+    #[Test]
+    public function itRejectsEmptyConditionServiceId(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Rate limit condition service ID cannot be empty.',
+        );
+
+        new SharedRateLimit(
+            bucket: 'catalog',
+            when: '',
+        );
     }
 }

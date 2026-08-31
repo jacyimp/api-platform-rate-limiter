@@ -216,6 +216,19 @@ new RateLimit(
 );
 ```
 
+The same per-operation overrides are available for a shared bucket:
+
+```php
+new SharedRateLimit(
+    bucket: 'otp',
+    identityResolver: ApiKeyIdentityResolver::class,
+    when: InternalRequestCondition::class,
+);
+```
+
+When omitted, a shared limit uses the strategies configured on its shared
+bucket.
+
 `true` applies the limit; `false` skips it. Without `when`, the limit always
 applies.
 

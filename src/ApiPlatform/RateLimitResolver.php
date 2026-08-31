@@ -105,6 +105,9 @@ final readonly class RateLimitResolver
         $definition = $this->sharedRateLimitRegistry->get(
             $rateLimit->bucket,
         );
+        $identityResolver = $rateLimit->identityResolver
+            ?? $definition->identityResolver;
+        $when = $rateLimit->when ?? $definition->when;
 
         return new ResolvedRateLimit(
             bucket: sprintf(
@@ -112,14 +115,14 @@ final readonly class RateLimitResolver
                 $rateLimit->bucket,
             ),
             definition: $definition,
-            identityResolver: $definition->identityResolver === null
+            identityResolver: $identityResolver === null
                 ? null
                 : $this->strategyRegistry->identityResolver(
-                    $definition->identityResolver,
+                    $identityResolver,
                 ),
-            condition: $definition->when === null
+            condition: $when === null
                 ? null
-                : $this->strategyRegistry->condition($definition->when),
+                : $this->strategyRegistry->condition($when),
         );
     }
 }

@@ -176,5 +176,3 @@ Do not document internal classes as supported extension points.
 9. Make sure the global ratelimit can be excluded operation/resource level
 10. Make sure users can define custom exceptions for their ratelimiting
 11. Make sure users can use different custom caches
-12. Add role(user role) support for buckets so different roles may have different bucket shares. So we may define 2 RateLimits on an operation, one for ROLE_USER and one for ROLE_PAID_USER for instance.
-13. Add identityResolver and whenCondition to SharedLimit too
