@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\Interval;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Metadata;
+namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use DateInterval;
 use InvalidArgumentException;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 
 final readonly class RateLimitBypassChecker implements RateLimitBypassInterface
 {

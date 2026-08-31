@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Symfony;
+namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
-use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
+namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
-use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
-use Jacyimp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
-use Jacyimp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use Jacyimp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
-use Jacyimp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
-use Jacyimp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -26,7 +26,7 @@ use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 final class ApiPlatformRateLimiterExtension extends Extension
 {
-    public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
+    public const BYPASS_TAG = 'JacyImp.api_platform_rate_limiter.bypass';
 
     /**
      * @param array<array-key, mixed> $configs

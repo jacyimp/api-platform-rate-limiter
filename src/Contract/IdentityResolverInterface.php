@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Contract;
+namespace JacyImp\ApiPlatformRateLimiter\Contract;
 
 interface IdentityResolverInterface
 {

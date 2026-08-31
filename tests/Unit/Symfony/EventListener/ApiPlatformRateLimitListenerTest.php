@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Symfony\EventListener;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Get;
 use DateTimeImmutable;
 use DateTimeZone;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
-use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
-use Jacyimp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitResult;
-use Jacyimp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use DateInterval;
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\Interval;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
 final class IntervalNormalizer
 {

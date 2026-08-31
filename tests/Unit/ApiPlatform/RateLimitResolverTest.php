@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\Get;
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
-use Jacyimp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
-use Jacyimp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

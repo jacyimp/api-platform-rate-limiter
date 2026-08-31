@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Symfony\EventListener;
+namespace JacyImp\ApiPlatformRateLimiter\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Operation;
 use DateTimeZone;
-use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 

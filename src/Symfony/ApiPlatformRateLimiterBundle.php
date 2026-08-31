@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Symfony;
+namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 

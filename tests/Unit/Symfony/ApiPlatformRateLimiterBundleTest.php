@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
 
-use Jacyimp\ApiPlatformRateLimiter\Symfony\ApiPlatformRateLimiterBundle;
-use Jacyimp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
+use JacyImp\ApiPlatformRateLimiter\Symfony\ApiPlatformRateLimiterBundle;
+use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 final readonly class RateLimitConsumption
 {

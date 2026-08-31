@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
-use Jacyimp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

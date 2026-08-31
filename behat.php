@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Behat\Config\Config;
 use Behat\Config\Profile;
 use Behat\Config\Suite;
-use Jacyimp\ApiPlatformRateLimiter\Tests\Behaviour\FeatureContext;
+use JacyImp\ApiPlatformRateLimiter\Tests\Behaviour\FeatureContext;
 
 return (new Config())
     ->withProfile(

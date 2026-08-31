@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Behaviour;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Behaviour;
 
 use Behat\Behat\Context\Context;
 

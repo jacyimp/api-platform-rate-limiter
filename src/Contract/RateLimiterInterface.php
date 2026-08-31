@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Contract;
+namespace JacyImp\ApiPlatformRateLimiter\Contract;
 
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitResult;
-use Jacyimp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 
 interface RateLimiterInterface
 {

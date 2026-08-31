@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

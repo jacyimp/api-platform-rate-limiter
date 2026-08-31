@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
 
-use Jacyimp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

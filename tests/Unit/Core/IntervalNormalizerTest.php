@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Core;
 
 use DateInterval;
-use Jacyimp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\Interval;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

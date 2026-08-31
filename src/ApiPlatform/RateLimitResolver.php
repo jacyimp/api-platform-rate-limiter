@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\ApiPlatform;
+namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
-use Jacyimp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
 final readonly class RateLimitResolver
 {

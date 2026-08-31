@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use DateInterval;
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\Interval;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
+use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

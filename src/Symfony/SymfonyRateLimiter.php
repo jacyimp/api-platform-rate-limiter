@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Symfony;
+namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitResult;
-use Jacyimp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\StorageInterface;
 

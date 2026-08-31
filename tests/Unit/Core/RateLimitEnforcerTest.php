@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
 use DateTimeImmutable;
-use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
-use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitResult;
-use Jacyimp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

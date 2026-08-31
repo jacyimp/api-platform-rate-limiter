@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use Jacyimp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimiterInterface;
 
 final readonly class RateLimitEnforcer
 {

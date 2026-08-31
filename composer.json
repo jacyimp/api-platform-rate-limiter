@@ -5,12 +5,12 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Jacyimp\\ApiPlatformRateLimiter\\": "src/"
+            "JacyImp\\ApiPlatformRateLimiter\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Jacyimp\\ApiPlatformRateLimiter\\Tests\\": "tests/"
+            "JacyImp\\ApiPlatformRateLimiter\\Tests\\": "tests/"
         }
     },
     "scripts": {

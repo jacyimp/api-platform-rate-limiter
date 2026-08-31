@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jacyimp\ApiPlatformRateLimiter\Core;
+namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use InvalidArgumentException;
-use Jacyimp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
 final readonly class RateLimitDefinition
 {
