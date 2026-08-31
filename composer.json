@@ -48,10 +48,6 @@
     "require": {
         "php": "^8.2",
         "api-platform/metadata": "^3.4 || ^4.0",
-        "illuminate/cache": "^11.0 || ^12.0 || ^13.0",
-        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
-        "illuminate/http": "^11.0 || ^12.0 || ^13.0",
-        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
         "psr/event-dispatcher": "^1.0",
         "symfony/rate-limiter": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
@@ -61,17 +57,22 @@
         "symfony/config": "^6.4 || ^7.0 || ^8.0"
     },
     "require-dev": {
-        "squizlabs/php_codesniffer": "^4.0.4",
-        "slevomat/coding-standard": "^8.31",
-        "phpstan/phpstan": "^2.2.12",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "phpstan/phpstan-strict-rules": "^2.0",
-        "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpunit/phpunit": "^11.5.50",
-        "behat/behat": "^3.32",
+        "api-platform/laravel": "^4.2 || ^4.3",
+        "laravel/framework": "^11.0 || ^12.0 || ^13.0",
         "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
         "paragonie/random_compat": "^9.99",
-        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0"
+        "phpstan/phpstan": "^2.2.12",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.5.50",
+        "slevomat/coding-standard": "^8.31",
+        "squizlabs/php_codesniffer": "^4.0.4",
+        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+        "behat/behat": "^3.32"
+    },
+    "suggest": {
+        "api-platform/laravel": "Required when using the Laravel integration."
     },
     "extra": {
         "laravel": {
