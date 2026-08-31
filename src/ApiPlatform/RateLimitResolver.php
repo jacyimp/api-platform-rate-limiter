@@ -88,9 +88,7 @@ final readonly class RateLimitResolver
 
         $bypasses = array_values(array_filter(
             $this->metadataExtractor->extractBypasses($operation),
-            fn (BypassRateLimit $bypass): bool => $bypass->when === null
-                || (new RateLimitConditionEvaluator($this->strategyRegistry))
-                    ->matches($bypass->when),
+            fn (BypassRateLimit $bypass): bool => $this->conditionMatches($bypass->when),
         ));
 
         return array_values(array_map(

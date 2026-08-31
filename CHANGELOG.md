@@ -8,6 +8,10 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Kept Illuminate framework packages as development-only dependencies so
+  Symfony consumers are not constrained by Laravel's Symfony component
+  requirements; Laravel applications receive them from their framework/API
+  Platform installation.
 - Formalized persisted counter identity as the collision-safe tuple of final
   bucket, resolved identity, policy, limit, and normalized interval. Dynamic
   definition changes select separate state, while request cost does not.
@@ -40,6 +44,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Cross-framework CI coverage for supported Symfony/API Platform dependency
+  combinations and real `api-platform/laravel` middleware integration across
+  Laravel 11, 12, and 13.
 - First-class Laravel 11-13 + API Platform integration with package discovery,
   operation middleware, Laravel identity and rejection adapters, publishable
   configuration, isolated cache storage, and Laravel event dispatching.

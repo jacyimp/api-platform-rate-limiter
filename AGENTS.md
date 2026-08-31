@@ -8,7 +8,7 @@ This package prioritizes:
 4. Correctness
 5. Extensibility only when justified
 
-Do not add abstractions for hypothetical future needs. Prefer fewer concepts, fewer public types, fewer configuration steps, and conventional Symfony/API Platform behavior.
+Do not add abstractions for hypothetical future needs. Prefer fewer concepts, fewer public types, fewer configuration steps, and conventional Symfony/API Platform or Laravel/API Platform behavior.
 
 ## Compatibility
 
@@ -17,24 +17,27 @@ Support:
 - PHP 8.2+
 - API Platform 3.4 / 4.x
 - Symfony 6.4 / 7.x / 8.x
+- Laravel 11.x / 12.x / 13.x through `api-platform/laravel`
 
-Always consider lowest-supported dependencies, not only the locally installed versions.
+Always consider lowest-supported dependencies and framework combinations, not only the locally installed versions.
 
 ## Public API
 
 Keep the public API intentionally small.
 
-Expected consumer-facing types:
+Expected consumer-facing types include:
 
 - `Metadata\RateLimit`
-- `Metadata\SharedRateLimit`
+- `Metadata\BypassRateLimit`
 - `Metadata\RateLimitPolicy`
 - `Metadata\Interval`
-- `Contract\IdentityResolverInterface`
-- `Contract\RateLimitBypassInterface`
+- identity and condition metadata expressions
+- dynamic value metadata
+- resolver/provider/bypass contracts
 - `Symfony\ApiPlatformRateLimiterBundle`
+- Laravel package auto-discovery through `Laravel\LaravelServiceProvider`
 
-Treat `Core`, API Platform adapters, Symfony listeners, DI classes, storage adapters, resolvers, and orchestration classes as implementation details. Mark them `@internal` where appropriate.
+Treat `Core`, API Platform adapters, framework listeners/middleware, DI/service-provider classes, storage adapters, resolvers, and orchestration classes as implementation details. Mark them `@internal` where appropriate.
 
 Do not leak internal types through public extension interfaces.
 
@@ -49,9 +52,9 @@ Prefer obvious APIs:
 
 Human-readable interval strings are the primary API. `DateInterval` and `Interval` are advanced alternatives.
 
-Inline rate limiting should work with no additional configuration after bundle registration.
+Inline rate limiting should work with no additional configuration after framework registration/package discovery.
 
-Shared buckets may require central configuration.
+Configured buckets may require central configuration.
 
 Do not introduce builders, factories, interfaces, configuration objects, or framework abstractions unless they solve a real current problem.
 
@@ -71,7 +74,7 @@ Identity resolution and bypass checks are enforcement collaborators.
 
 Do not pass API Platform `Operation` objects deep into the core.
 
-Keep Symfony HTTP concerns in the Symfony integration layer.
+Keep framework HTTP/container concerns in the Symfony and Laravel integration layers.
 
 Multiple limits are consumed sequentially. Consumption from an earlier successful limit is not rolled back if a later limit rejects.
 
@@ -86,9 +89,24 @@ Use Symfony trusted-proxy handling. Never manually parse `X-Forwarded-For`.
 
 Security integration must remain optional.
 
-Use `cache.app` for Symfony RateLimiter storage.
+Use `cache.app` for Symfony RateLimiter storage by default and keep package storage isolated from Symfony's generic storage aliases.
 
 Avoid requiring users to manually configure internal services.
+
+## Laravel
+
+Default identity:
+
+1. authenticated user identifier;
+2. otherwise request IP.
+
+Use Laravel's request/proxy handling. Never manually parse forwarded IP headers.
+
+`api-platform/laravel` is the host integration. Keep Illuminate packages out of production requirements so Symfony consumers do not inherit Laravel's Symfony component constraints.
+
+Register package middleware through API Platform's default operation middleware and rely on API Platform to populate `_api_operation`; do not reconstruct operation metadata from Laravel routes.
+
+Keep package cache storage isolated from Laravel's global cache bindings.
 
 ## PHP Style
 
@@ -136,6 +154,8 @@ Test observable behavior rather than internal implementation details.
 
 Kernel integration tests should exercise real Symfony wiring.
 
+Laravel integration tests should use Testbench, and at least one CI path should exercise the real `api-platform/laravel` middleware contract.
+
 Do not weaken tests or disable risky/deprecation detection to make CI pass.
 
 ## Commands
@@ -157,7 +177,7 @@ Then verify current dependencies:
 
 Do not commit `composer.lock`.
 
-CI covers PHP 8.2, 8.3, 8.4, 8.5, plus PHP 8.2 with lowest dependencies.
+CI covers PHP 8.2, 8.3, 8.4, 8.5, lowest dependencies, supported Symfony/API Platform consumer combinations, and Laravel/API Platform integration combinations.
 
 ## Documentation
 
@@ -175,12 +195,10 @@ Solve the requested task and directly affected tests/docs only.
 
 Do not prematurely add:
 
-- weighted costs;
 - atomic multi-limit consumption;
 - distributed locking;
 - crawler verification;
 - remote IP-list fetching;
-- Laravel integration;
 - speculative storage abstractions;
 - unnecessary factories/interfaces.
 

@@ -65,3 +65,97 @@ jobs:
 
       - name: Run checks
         run: composer check
+
+  symfony-consumer-compatibility:
+    name: Symfony ${{ matrix.symfony }} / API Platform ${{ matrix.api_platform }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            symfony: '^6.4'
+            api_platform: '^3.4'
+          - php: '8.2'
+            symfony: '^6.4'
+            api_platform: '^4.0'
+          - php: '8.2'
+            symfony: '^7.0'
+            api_platform: '^4.0'
+          - php: '8.4'
+            symfony: '^8.0'
+            api_platform: '^4.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Verify consumer dependency resolution
+        run: |
+          mkdir consumer
+          cd consumer
+          composer init --name=jacyimp/rate-limiter-compat --no-interaction
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer config repositories.package-under-test path ..
+          composer require --no-interaction --no-progress \
+            'jacyimp/api-platform-rate-limiter:@dev' \
+            'api-platform/metadata:${{ matrix.api_platform }}' \
+            'symfony/framework-bundle:${{ matrix.symfony }}'
+
+  laravel-api-platform:
+    name: Laravel ${{ matrix.laravel }} / API Platform Laravel ${{ matrix.api_platform }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            laravel: '^11.0'
+            api_platform: '^4.2'
+            testbench: '^9.0'
+          - php: '8.2'
+            laravel: '^12.0'
+            api_platform: '^4.2'
+            testbench: '^10.0'
+          - php: '8.3'
+            laravel: '^13.0'
+            api_platform: '^4.3'
+            testbench: '^11.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Select Laravel and API Platform versions
+        run: |
+          composer require --dev --no-update \
+            'api-platform/laravel:${{ matrix.api_platform }}' \
+            'laravel/framework:${{ matrix.laravel }}' \
+            'orchestra/testbench:${{ matrix.testbench }}'
+
+      - name: Install dependencies
+        env:
+          COMPOSER_POLICY_ADVISORIES_BLOCK: 0
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Run checks with real API Platform Laravel
+        run: composer check
