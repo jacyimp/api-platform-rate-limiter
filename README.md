@@ -140,7 +140,7 @@ final class Product
 
 ### Share one quota across operations
 
-Define the shared quota once:
+Configure the bucket once:
 
 ```yaml
 # config/packages/api_platform_rate_limiter.yaml
@@ -152,7 +152,7 @@ api_platform_rate_limiter:
             interval: '1 minute'
 ```
 
-Use that bucket from every operation that should consume the same quota:
+Then reference it from multiple operations:
 
 ```php
 <?php
@@ -213,7 +213,7 @@ final class Product
 }
 ```
 
-Laravel configured bucket:
+Laravel:
 
 ```php
 // config/api-platform-rate-limiter.php
@@ -278,7 +278,7 @@ A resource can still add a tighter local limit:
 )]
 final class Product
 {
-    // The request must satisfy both the global and operation limit.
+    // ...
 }
 ```
 
@@ -314,8 +314,6 @@ final class Product
 
 ### Charge expensive operations more
 
-Configure one shared bucket:
-
 ```yaml
 api_platform_rate_limiter:
     buckets:
@@ -323,8 +321,6 @@ api_platform_rate_limiter:
             limit: 1000
             interval: '1 minute'
 ```
-
-Then make an expensive operation consume more tokens:
 
 ```php
 <?php
@@ -362,8 +358,6 @@ final class Product
 }
 ```
 
-Configured bucket cost and reference cost are multiplied.
-
 ### Use a fixed window
 
 ```php
@@ -397,6 +391,8 @@ The default is `RateLimitPolicy::SLIDING_WINDOW`.
 
 ### Make the limit dynamic
 
+Resolver:
+
 ```php
 <?php
 
@@ -422,7 +418,7 @@ final readonly class PlanLimitResolver implements LimitResolverInterface
 }
 ```
 
-Use it on an API Platform operation:
+API Platform resource:
 
 ```php
 <?php
@@ -451,7 +447,7 @@ final class Product
 }
 ```
 
-Dynamic global limit:
+The same resolver can be used by a global:
 
 ```yaml
 api_platform_rate_limiter:
@@ -462,9 +458,74 @@ api_platform_rate_limiter:
             interval: '1 minute'
 ```
 
-Changing the resolved limit selects a different limiter counter.
-
 ### Make the bucket dynamic
+
+Resolver:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+
+final readonly class TenantBucketResolver implements BucketResolverInterface
+{
+    public function __construct(
+        private TenantContext $tenant,
+    ) {
+    }
+
+    public function resolve(): string
+    {
+        return 'tenant:' . $this->tenant->id();
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\TenantBucketResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    bucket: new DynamicBucket(TenantBucketResolver::class),
+                    limit: 1000,
+                    interval: '1 minute',
+                ),
+            ],
+        ),
+        new Get(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    bucket: new DynamicBucket(TenantBucketResolver::class),
+                    limit: 1000,
+                    interval: '1 minute',
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // Both operations share the resolved tenant bucket.
+}
+```
+
+A dynamic bucket can also choose a configured bucket.
+
+Resolver:
 
 ```php
 <?php
@@ -487,37 +548,7 @@ final readonly class PlanBucketResolver implements BucketResolverInterface
 }
 ```
 
-Use a runtime-selected inline bucket:
-
-```php
-<?php
-
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GetCollection;
-use App\RateLimit\PlanBucketResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-
-#[ApiResource(
-    operations: [
-        new GetCollection(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    bucket: new DynamicBucket(PlanBucketResolver::class),
-                    limit: 1000,
-                    interval: '1 minute',
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Or let the resolver choose a configured bucket:
+Configured buckets:
 
 ```yaml
 api_platform_rate_limiter:
@@ -535,7 +566,17 @@ api_platform_rate_limiter:
             interval: '1 minute'
 ```
 
+API Platform resource:
+
 ```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\PlanBucketResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
 #[ApiResource(
     operations: [
         new GetCollection(
@@ -554,6 +595,8 @@ final class Product
 ```
 
 ### Make request cost dynamic
+
+Resolver:
 
 ```php
 <?php
@@ -578,6 +621,8 @@ final readonly class RequestCostResolver implements CostResolverInterface
     }
 }
 ```
+
+API Platform resource:
 
 ```php
 <?php
@@ -608,7 +653,65 @@ final class Product
 }
 ```
 
-### Apply a limit only when a condition matches
+### Apply a limit conditionally
+
+Condition:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+
+final readonly class AuthenticatedCondition implements RateLimitConditionInterface
+{
+    public function __construct(
+        private TokenStorageInterface $tokenStorage,
+    ) {
+    }
+
+    public function matches(): bool
+    {
+        return $this->tokenStorage->getToken()?->getUser() !== null;
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\AuthenticatedCondition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 100,
+                    interval: '1 minute',
+                    when: new Condition(AuthenticatedCondition::class),
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+### Combine conditions
+
+Second condition:
 
 ```php
 <?php
@@ -635,46 +738,23 @@ final readonly class InternalRequestCondition implements RateLimitConditionInter
 }
 ```
 
+Use both conditions:
+
 ```php
 <?php
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use App\RateLimit\InternalRequestCondition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 100,
-                    interval: '1 minute',
-                    when: new Condition(InternalRequestCondition::class),
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Combine conditions directly in the operation metadata:
-
-```php
+use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\AuthenticatedCondition;
 use App\RateLimit\InternalRequestCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
     operations: [
-        new Get(
+        new GetCollection(
             extraProperties: [
                 RateLimit::class => new RateLimit(
                     limit: 100,
@@ -690,11 +770,11 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 )]
 final class Product
 {
-    // ...
+    // Limited only when authenticated and not internal.
 }
 ```
 
-Configured bucket condition:
+Configured bucket:
 
 ```yaml
 api_platform_rate_limiter:
@@ -705,7 +785,7 @@ api_platform_rate_limiter:
             when: App\RateLimit\AuthenticatedCondition
 ```
 
-Configured global condition:
+Configured global:
 
 ```yaml
 api_platform_rate_limiter:
@@ -721,7 +801,7 @@ api_platform_rate_limiter:
 
 ### Use a custom identity
 
-The default identity is the authenticated user, falling back to client IP.
+Resolver:
 
 ```php
 <?php
@@ -752,7 +832,7 @@ final readonly class ApiKeyIdentityResolver implements IdentityResolverInterface
 }
 ```
 
-Use it for one operation:
+API Platform resource:
 
 ```php
 <?php
@@ -782,14 +862,68 @@ final class Product
 }
 ```
 
-Fallback chain:
+The default identity is the authenticated user, falling back to client IP.
+
+### Use identity fallback
+
+Resolvers:
 
 ```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+final readonly class UserIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private TokenStorageInterface $tokenStorage,
+    ) {
+    }
+
+    public function resolve(): ?string
+    {
+        $user = $this->tokenStorage->getToken()?->getUser();
+
+        return $user instanceof UserInterface
+            ? 'user:' . $user->getUserIdentifier()
+            : null;
+    }
+}
+
+final readonly class IpIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private RequestStack $requestStack,
+    ) {
+    }
+
+    public function resolve(): ?string
+    {
+        $ip = $this->requestStack->getCurrentRequest()?->getClientIp();
+
+        return $ip === null ? null : 'ip:' . $ip;
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\ApiKeyIdentityResolver;
 use App\RateLimit\IpIdentityResolver;
 use App\RateLimit\UserIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
     operations: [
@@ -814,49 +948,7 @@ final class Product
 }
 ```
 
-Composite identity:
-
-```php
-use App\RateLimit\TenantIdentityResolver;
-use App\RateLimit\UserIdentityResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
-
-#[ApiResource(
-    operations: [
-        new GetCollection(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 100,
-                    interval: '1 minute',
-                    identity: new CompositeIdentity([
-                        new Identity(TenantIdentityResolver::class),
-                        new Identity(UserIdentityResolver::class),
-                    ]),
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Replace the Symfony default globally:
-
-```yaml
-# config/services.yaml
-
-services:
-    JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface:
-        alias: App\RateLimit\ApiKeyIdentityResolver
-```
-
-### Bypass rate limiting
-
-Bypass all resolved limits for one operation:
+### Bypass rate limiting on an operation
 
 ```php
 <?php
@@ -882,7 +974,7 @@ final class Product
 }
 ```
 
-Bypass only one shared bucket while keeping other limits active:
+Bypass only one shared bucket:
 
 ```php
 #[ApiResource(
@@ -922,10 +1014,44 @@ final class Product
 }
 ```
 
-Conditional bypass:
+### Bypass conditionally
+
+Condition:
 
 ```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+
+final readonly class InternalRequestCondition implements RateLimitConditionInterface
+{
+    public function __construct(
+        private RequestStack $requestStack,
+    ) {
+    }
+
+    public function matches(): bool
+    {
+        return $this->requestStack
+            ->getCurrentRequest()
+            ?->headers
+            ->has('X-Internal') ?? false;
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
 use App\RateLimit\InternalRequestCondition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 
 #[ApiResource(
@@ -956,20 +1082,19 @@ namespace App\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-final readonly class TrustedCrawlerBypass implements RateLimitBypassInterface
+final readonly class InternalTrafficBypass implements RateLimitBypassInterface
 {
     public function __construct(
         private RequestStack $requestStack,
-        private CrawlerVerifier $crawlerVerifier,
     ) {
     }
 
     public function shouldBypass(): bool
     {
-        $request = $this->requestStack->getCurrentRequest();
-
-        return $request !== null
-            && $this->crawlerVerifier->isVerified($request);
+        return $this->requestStack
+            ->getCurrentRequest()
+            ?->headers
+            ->has('X-Internal') ?? false;
     }
 }
 ```
@@ -980,13 +1105,13 @@ Symfony autoconfigures implementations. Laravel:
 // config/api-platform-rate-limiter.php
 
 'bypasses' => [
-    App\RateLimit\TrustedCrawlerBypass::class,
+    App\RateLimit\InternalTrafficBypass::class,
 ],
 ```
 
 ### Build limits from arbitrary runtime state
 
-The resource can stay free of rate-limit metadata:
+API Platform resource:
 
 ```php
 <?php
@@ -1009,7 +1134,7 @@ final class Product
 }
 ```
 
-A provider can add limits at runtime:
+Provider:
 
 ```php
 <?php
@@ -1054,8 +1179,6 @@ Symfony autoconfigures providers. Laravel:
 ```
 
 ## Intervals
-
-Human-readable strings are usually enough:
 
 ```php
 #[ApiResource(
@@ -1114,14 +1237,12 @@ Intervals must be at least one second. Months, years, negative values, and fract
 
 Default storage uses `cache.app`.
 
-Dedicated cache pool:
-
 ```yaml
 api_platform_rate_limiter:
     cache_pool: cache.rate_limiter
 ```
 
-Custom Symfony RateLimiter storage:
+Or provide a Symfony RateLimiter storage service:
 
 ```yaml
 api_platform_rate_limiter:
@@ -1132,8 +1253,6 @@ The storage service must implement Symfony's `StorageInterface`.
 
 ### Laravel
 
-Use a Laravel cache store:
-
 ```php
 // config/api-platform-rate-limiter.php
 
@@ -1143,7 +1262,7 @@ Use a Laravel cache store:
 ],
 ```
 
-Or a Symfony RateLimiter storage service:
+Or:
 
 ```php
 'storage' => [
@@ -1212,12 +1331,15 @@ Symfony autoconfigures the resolver contracts used above. Laravel lists selectab
 'resolvers' => [
     'identity' => [
         App\RateLimit\ApiKeyIdentityResolver::class,
+        App\RateLimit\UserIdentityResolver::class,
+        App\RateLimit\IpIdentityResolver::class,
     ],
     'condition' => [
         App\RateLimit\AuthenticatedCondition::class,
         App\RateLimit\InternalRequestCondition::class,
     ],
     'bucket' => [
+        App\RateLimit\TenantBucketResolver::class,
         App\RateLimit\PlanBucketResolver::class,
     ],
     'limit' => [
@@ -1237,7 +1359,7 @@ Counter identity is based on:
 bucket + identity + policy + limit + interval
 ```
 
-A changed dynamic limit therefore selects a different counter. `cost` changes consumption, not counter identity.
+A changed dynamic limit selects a different counter. `cost` changes consumption, not counter identity.
 
 ## Lifecycle events
 
