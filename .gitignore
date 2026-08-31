@@ -3,3 +3,4 @@
 .phpunit.cache/
 .idea/
 .vscode/
+.phpcs.cache

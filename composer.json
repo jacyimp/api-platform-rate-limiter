@@ -8,6 +8,24 @@
             "Jacyimp\\ApiPlatformRateLimiter\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Jacyimp\\ApiPlatformRateLimiter\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "cs": "phpcs",
+        "cs:fix": "phpcbf",
+        "analyse": "phpstan analyse",
+        "test": "phpunit",
+        "test:behaviour": "behat",
+        "check": [
+            "@cs",
+            "@analyse",
+            "@test",
+            "@test:behaviour"
+        ]
+    },
     "authors": [
         {
             "name": "Jacy"
