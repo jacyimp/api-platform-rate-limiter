@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
@@ -27,7 +27,7 @@ final class RateLimitMetadataExtractor
             $rateLimit = $extraProperties[RateLimit::class];
 
             if (!$rateLimit instanceof RateLimit) {
-                throw new InvalidArgumentException(
+                throw new InvalidRateLimitMetadataException(
                     sprintf(
                         'Extra property "%s" must be an instance of %s.',
                         RateLimit::class,
@@ -43,7 +43,7 @@ final class RateLimitMetadataExtractor
             $sharedRateLimit = $extraProperties[SharedRateLimit::class];
 
             if (!$sharedRateLimit instanceof SharedRateLimit) {
-                throw new InvalidArgumentException(
+                throw new InvalidRateLimitMetadataException(
                     sprintf(
                         'Extra property "%s" must be an instance of %s.',
                         SharedRateLimit::class,

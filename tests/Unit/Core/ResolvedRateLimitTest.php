@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -42,7 +42,7 @@ final class ResolvedRateLimitTest extends TestCase
             policy: RateLimitPolicy::SLIDING_WINDOW,
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit bucket cannot be empty.',
         );

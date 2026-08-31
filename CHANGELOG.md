@@ -15,6 +15,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- A package-specific exception hierarchy with `RateLimiterExceptionInterface`
+  as its common catch point and specific validation, identity, shared-bucket,
+  metadata, and rate-limit rejection exceptions.
 - Immutable PSR-14 `RateLimitChecking`, `RateLimitConsumed`, and
   `RateLimitRejected` lifecycle events.
 - A replaceable `RateLimitRejectionHandlerInterface` for customizing exception

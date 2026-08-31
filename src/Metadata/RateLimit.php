@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use DateInterval;
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 final readonly class RateLimit
 {
@@ -17,19 +17,19 @@ final readonly class RateLimit
         public ?string $when = null,
     ) {
         if ($limit < 1) {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit must be greater than zero.',
             );
         }
 
         if ($identityResolver !== null && trim($identityResolver) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Identity resolver service ID cannot be empty.',
             );
         }
 
         if ($when !== null && trim($when) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit condition service ID cannot be empty.',
             );
         }

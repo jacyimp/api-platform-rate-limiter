@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\Get;
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
@@ -16,6 +15,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
@@ -318,7 +318,7 @@ final class RateLimitResolverTest extends TestCase
         );
 
         $this->expectException(
-            InvalidArgumentException::class,
+            InvalidRateLimitException::class,
         );
 
         $this->expectExceptionMessage(

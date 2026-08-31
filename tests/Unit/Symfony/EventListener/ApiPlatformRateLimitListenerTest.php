@@ -19,6 +19,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
@@ -28,7 +29,6 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 #[CoversClass(ApiPlatformRateLimitListener::class)]
@@ -143,7 +143,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             self::fail(
                 'Expected rate limit exception to be thrown.',
             );
-        } catch (TooManyRequestsHttpException $exception) {
+        } catch (RateLimitExceededException $exception) {
             self::assertSame(
                 429,
                 $exception->getStatusCode(),

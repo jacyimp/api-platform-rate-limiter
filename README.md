@@ -256,6 +256,21 @@ implementation returns `true`. With `autoconfigure: false`, use the
 When a limit is exceeded, the package returns `429 Too Many Requests` with
 `Retry-After`, `RateLimit-Limit`, and `RateLimit-Remaining` headers.
 
+Package failures implement `RateLimiterExceptionInterface`, so consumers can
+catch the complete exception family or one of its specific exceptions:
+
+- `InvalidRateLimitException`
+- `InvalidIntervalException`
+- `InvalidRateLimitMetadataException`
+- `UndefinedSharedBucketException`
+- `IdentityResolutionException`
+- `RateLimitExceededException`
+
+The validation exceptions remain `InvalidArgumentException` instances,
+identity failures remain `RuntimeException` instances, and
+`RateLimitExceededException` remains a Symfony
+`TooManyRequestsHttpException`.
+
 To customize rejection behavior, implement `RateLimitRejectionHandlerInterface`
 and alias the contract to your service. The handler receives a public
 `RateLimitRejection` value with the limit, remaining requests, and retry time,

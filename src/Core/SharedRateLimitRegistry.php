@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\UndefinedSharedBucketException;
 
 /**
  * @internal
@@ -22,7 +22,7 @@ final readonly class SharedRateLimitRegistry
     public function get(string $bucket): RateLimitDefinition
     {
         return $this->definitions[$bucket]
-            ?? throw new InvalidArgumentException(
+            ?? throw new UndefinedSharedBucketException(
                 sprintf(
                     'Shared rate limit bucket "%s" is not defined.',
                     $bucket,

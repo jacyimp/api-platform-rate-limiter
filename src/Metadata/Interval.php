@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
 
 final readonly class Interval
 {
@@ -20,7 +20,7 @@ final readonly class Interval
             || $minutes < 0
             || $seconds < 0
         ) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Interval values cannot be negative.',
             );
         }
@@ -31,7 +31,7 @@ final readonly class Interval
             && $minutes === 0
             && $seconds === 0
         ) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Interval must be greater than zero.',
             );
         }

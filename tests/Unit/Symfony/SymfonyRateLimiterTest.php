@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -139,7 +139,7 @@ final class SymfonyRateLimiterTest extends TestCase
     #[Test]
     public function itRejectsEmptyIdentity(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit identity cannot be empty.',
         );
@@ -156,7 +156,7 @@ final class SymfonyRateLimiterTest extends TestCase
     #[Test]
     public function itRejectsZeroTokens(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Consumed tokens must be greater than zero.',
         );

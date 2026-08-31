@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony;
 
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
+use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
@@ -15,7 +16,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 #[RunTestsInSeparateProcesses]
@@ -114,7 +114,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         try {
             $this->handle($operation, '192.0.2.2');
             self::fail('Expected the shared fixed identity to be limited.');
-        } catch (TooManyRequestsHttpException $exception) {
+        } catch (RateLimitExceededException $exception) {
             self::assertSame(429, $exception->getStatusCode());
         }
     }
@@ -162,7 +162,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
             self::fail(
                 'Expected request to be rate limited.',
             );
-        } catch (TooManyRequestsHttpException $exception) {
+        } catch (RateLimitExceededException $exception) {
             self::assertSame(
                 429,
                 $exception->getStatusCode(),

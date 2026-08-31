@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use RuntimeException;
+use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -31,7 +31,7 @@ final readonly class SymfonyIdentityResolver implements IdentityResolverInterfac
             $identifier = trim($user->getUserIdentifier());
 
             if ($identifier === '') {
-                throw new RuntimeException(
+                throw new IdentityResolutionException(
                     'Authenticated user identifier cannot be empty.',
                 );
             }
@@ -45,7 +45,7 @@ final readonly class SymfonyIdentityResolver implements IdentityResolverInterfac
         $request = $this->requestStack->getCurrentRequest();
 
         if ($request === null) {
-            throw new RuntimeException(
+            throw new IdentityResolutionException(
                 'Cannot resolve rate limit identity without a current request.',
             );
         }
@@ -53,7 +53,7 @@ final readonly class SymfonyIdentityResolver implements IdentityResolverInterfac
         $ip = $request->getClientIp();
 
         if ($ip === null) {
-            throw new RuntimeException(
+            throw new IdentityResolutionException(
                 'Cannot resolve rate limit identity without a client IP.',
             );
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,7 +33,7 @@ final class IntervalTest extends TestCase
     #[Test]
     public function itRejectsZeroInterval(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidIntervalException::class);
         $this->expectExceptionMessage(
             'Interval must be greater than zero.',
         );
@@ -49,7 +49,7 @@ final class IntervalTest extends TestCase
         int $minutes,
         int $seconds,
     ): void {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidIntervalException::class);
         $this->expectExceptionMessage(
             'Interval values cannot be negative.',
         );

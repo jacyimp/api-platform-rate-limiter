@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use DateInterval;
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -90,7 +90,7 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itRejectsEmptyIdentityResolverServiceId(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Identity resolver service ID cannot be empty.',
         );
@@ -105,7 +105,7 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itRejectsEmptyConditionServiceId(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit condition service ID cannot be empty.',
         );
@@ -120,7 +120,7 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itRejectsZeroLimit(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit must be greater than zero.',
         );
@@ -134,7 +134,7 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itRejectsNegativeLimit(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
 
         new RateLimit(
             limit: -1,

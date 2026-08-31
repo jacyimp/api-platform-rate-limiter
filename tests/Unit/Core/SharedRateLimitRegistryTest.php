@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Exception\UndefinedSharedBucketException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -39,7 +39,7 @@ final class SharedRateLimitRegistryTest extends TestCase
     {
         $registry = new SharedRateLimitRegistry([]);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UndefinedSharedBucketException::class);
         $this->expectExceptionMessage(
             'Shared rate limit bucket "catalog" is not defined.',
         );

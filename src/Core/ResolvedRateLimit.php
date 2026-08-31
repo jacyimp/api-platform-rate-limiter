@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 /**
  * @internal
@@ -20,7 +20,7 @@ final readonly class ResolvedRateLimit
         public ?RateLimitConditionInterface $condition = null,
     ) {
         if (trim($bucket) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit bucket cannot be empty.',
             );
         }

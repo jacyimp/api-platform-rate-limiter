@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -51,7 +51,7 @@ final class RateLimitStrategyRegistryTest extends TestCase
     {
         $registry = new RateLimitStrategyRegistry([], []);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Identity resolver service "app.missing" is not registered.',
         );
@@ -64,7 +64,7 @@ final class RateLimitStrategyRegistryTest extends TestCase
     {
         $registry = new RateLimitStrategyRegistry([], []);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit condition service "app.missing" is not registered.',
         );

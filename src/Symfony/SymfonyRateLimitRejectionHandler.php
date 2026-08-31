@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 
 /**
  * @internal
@@ -16,7 +16,7 @@ final class SymfonyRateLimitRejectionHandler implements RateLimitRejectionHandle
 {
     public function reject(RateLimitRejection $rejection): never
     {
-        throw new TooManyRequestsHttpException(
+        throw new RateLimitExceededException(
             retryAfter: $rejection
                 ->retryAfter
                 ->setTimezone(new DateTimeZone('GMT'))

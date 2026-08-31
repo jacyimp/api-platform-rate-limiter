@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
 
+use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -152,7 +152,7 @@ final class SymfonyIdentityResolverTest extends TestCase
             tokenStorage: $tokenStorage,
         );
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(IdentityResolutionException::class);
         $this->expectExceptionMessage(
             'Cannot resolve rate limit identity without a current request.',
         );
@@ -167,7 +167,7 @@ final class SymfonyIdentityResolverTest extends TestCase
             requestStack: new RequestStack(),
         );
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(IdentityResolutionException::class);
         $this->expectExceptionMessage(
             'Cannot resolve rate limit identity without a current request.',
         );
@@ -200,7 +200,7 @@ final class SymfonyIdentityResolverTest extends TestCase
             tokenStorage: $tokenStorage,
         );
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(IdentityResolutionException::class);
         $this->expectExceptionMessage(
             'Authenticated user identifier cannot be empty.',
         );

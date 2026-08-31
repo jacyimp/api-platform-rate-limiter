@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,7 +24,7 @@ final class SharedRateLimitTest extends TestCase
     #[Test]
     public function itRejectsEmptyBucket(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Shared rate limit bucket cannot be empty.',
         );
@@ -35,7 +35,7 @@ final class SharedRateLimitTest extends TestCase
     #[Test]
     public function itRejectsWhitespaceOnlyBucket(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
 
         new SharedRateLimit('   ');
     }

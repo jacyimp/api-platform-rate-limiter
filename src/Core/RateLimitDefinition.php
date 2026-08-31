@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
 /**
@@ -20,13 +20,13 @@ final readonly class RateLimitDefinition
         public ?string $when = null,
     ) {
         if ($limit < 1) {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit must be greater than zero.',
             );
         }
 
         if ($intervalSeconds < 1) {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit interval must be greater than zero.',
             );
         }

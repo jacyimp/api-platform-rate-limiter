@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use DateInterval;
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
 /**
@@ -26,7 +26,7 @@ final class IntervalNormalizer
     private function fromString(string $interval): int
     {
         if (trim($interval) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Rate limit interval cannot be empty.',
             );
         }
@@ -34,7 +34,7 @@ final class IntervalNormalizer
         $dateInterval = DateInterval::createFromDateString($interval);
 
         if ($dateInterval === false) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 sprintf('Invalid rate limit interval "%s".', $interval),
             );
         }
@@ -53,7 +53,7 @@ final class IntervalNormalizer
     private function fromDateInterval(DateInterval $interval): int
     {
         if ($interval->y !== 0 || $interval->m !== 0) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Rate limit intervals cannot contain months or years.',
             );
         }
@@ -65,13 +65,13 @@ final class IntervalNormalizer
             || $interval->i < 0
             || $interval->s < 0
         ) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Rate limit interval cannot be negative.',
             );
         }
 
         if ($interval->f > 0) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Rate limit interval cannot contain fractional seconds.',
             );
         }
@@ -82,7 +82,7 @@ final class IntervalNormalizer
             + $interval->s;
 
         if ($seconds < 1) {
-            throw new InvalidArgumentException(
+            throw new InvalidIntervalException(
                 'Rate limit interval must be greater than zero.',
             );
         }

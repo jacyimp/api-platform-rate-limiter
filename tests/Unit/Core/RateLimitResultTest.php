@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
 use DateTimeImmutable;
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,7 +49,7 @@ final class RateLimitResultTest extends TestCase
     #[Test]
     public function itRejectsNegativeRemainingTokens(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Remaining tokens cannot be negative.',
         );

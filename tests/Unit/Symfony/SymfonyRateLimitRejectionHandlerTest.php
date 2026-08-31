@@ -7,11 +7,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony;
 use DateTimeImmutable;
 use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
+use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 #[CoversClass(SymfonyRateLimitRejectionHandler::class)]
 final class SymfonyRateLimitRejectionHandlerTest extends TestCase
@@ -29,7 +29,7 @@ final class SymfonyRateLimitRejectionHandlerTest extends TestCase
                     retryAfter: $retryAfter,
                 ),
             );
-        } catch (TooManyRequestsHttpException $exception) {
+        } catch (RateLimitExceededException $exception) {
             self::assertSame(429, $exception->getStatusCode());
             self::assertSame(
                 'Rate limit exceeded.',

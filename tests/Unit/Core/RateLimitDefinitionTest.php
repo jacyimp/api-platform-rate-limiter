@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,7 +34,7 @@ final class RateLimitDefinitionTest extends TestCase
     #[Test]
     public function itRejectsZeroLimit(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit must be greater than zero.',
         );
@@ -49,7 +49,7 @@ final class RateLimitDefinitionTest extends TestCase
     #[Test]
     public function itRejectsNegativeLimit(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
 
         $definition = new RateLimitDefinition(
             limit: -1,
@@ -61,7 +61,7 @@ final class RateLimitDefinitionTest extends TestCase
     #[Test]
     public function itRejectsZeroInterval(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
             'Rate limit interval must be greater than zero.',
         );
@@ -76,7 +76,7 @@ final class RateLimitDefinitionTest extends TestCase
     #[Test]
     public function itRejectsNegativeInterval(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitException::class);
 
         $definition = new RateLimitDefinition(
             limit: 100,

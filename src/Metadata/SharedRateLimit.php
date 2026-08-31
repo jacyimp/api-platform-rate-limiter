@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
-use InvalidArgumentException;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 final readonly class SharedRateLimit
 {
@@ -12,7 +12,7 @@ final readonly class SharedRateLimit
         public string $bucket,
     ) {
         if (trim($bucket) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Shared rate limit bucket cannot be empty.',
             );
         }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\Get;
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -101,7 +101,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
             ],
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitMetadataException::class);
 
         $this->extractor->extract($operation);
     }
@@ -115,7 +115,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
             ],
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidRateLimitMetadataException::class);
 
         $this->extractor->extract($operation);
     }

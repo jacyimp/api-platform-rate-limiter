@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
@@ -27,13 +27,13 @@ final readonly class SymfonyRateLimiter implements RateLimiterInterface
         int $tokens = 1,
     ): RateLimitResult {
         if (trim($identity) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Rate limit identity cannot be empty.',
             );
         }
 
         if ($tokens < 1) {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Consumed tokens must be greater than zero.',
             );
         }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
 /**
  * @internal
@@ -35,7 +35,7 @@ final readonly class RateLimitStrategyRegistry
         string $serviceId,
     ): IdentityResolverInterface {
         return $this->identityResolvers[$serviceId]
-            ?? throw new InvalidArgumentException(sprintf(
+            ?? throw new InvalidRateLimitException(sprintf(
                 'Identity resolver service "%s" is not registered. '
                 . 'Ensure it implements %s and is autoconfigured or tagged.',
                 $serviceId,
@@ -46,7 +46,7 @@ final readonly class RateLimitStrategyRegistry
     public function condition(string $serviceId): RateLimitConditionInterface
     {
         return $this->conditions[$serviceId]
-            ?? throw new InvalidArgumentException(sprintf(
+            ?? throw new InvalidRateLimitException(sprintf(
                 'Rate limit condition service "%s" is not registered. '
                 . 'Ensure it implements %s and is autoconfigured or tagged.',
                 $serviceId,

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
-use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
@@ -71,7 +71,7 @@ final readonly class RateLimitResolver
         string $operationKey,
     ): ResolvedRateLimit {
         if (trim($operationKey) === '') {
-            throw new InvalidArgumentException(
+            throw new InvalidRateLimitException(
                 'Operation key cannot be empty.',
             );
         }
