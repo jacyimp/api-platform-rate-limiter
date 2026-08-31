@@ -388,6 +388,44 @@ With autoconfiguration disabled, use
 
 ## Bypass rules
 
+Use `BypassRateLimit` metadata to declaratively skip limits for a resource or
+operation. With no bucket, it bypasses every resolved limit:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+
+extraProperties: [
+    BypassRateLimit::class => new BypassRateLimit(),
+]
+```
+
+Set `bucket` to bypass only limits whose final resolved bucket name matches.
+This works uniformly for operation, shared, dynamic, and global buckets:
+
+```php
+extraProperties: [
+    BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+]
+```
+
+Use `when` with a `RateLimitConditionInterface` service to make either form
+conditional:
+
+```php
+extraProperties: [
+    BypassRateLimit::class => new BypassRateLimit(
+        bucket: 'catalog',
+        when: InternalRequestCondition::class,
+    ),
+]
+```
+
+Like `RateLimit`, bypass metadata can be a single value or a list, inherits
+from resource metadata, and is overridden by the operation's value for the
+same metadata key. Filtering happens after dynamic values are resolved and
+before enforcement, so bypassed limits consume no tokens and dispatch no
+rate-limit lifecycle events.
+
 Global bypasses remain available for requests that should not consume any
 limit. Implement `RateLimitBypassInterface`; Symfony autoconfiguration discovers
 implementations automatically, and a request bypasses rate limiting when any

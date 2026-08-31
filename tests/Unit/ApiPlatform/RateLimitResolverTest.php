@@ -19,6 +19,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
@@ -483,6 +484,147 @@ final class RateLimitResolverTest extends TestCase
         self::assertCount(1, $resolved);
         self::assertSame('global', $resolved[0]->bucket);
         self::assertSame($global, $resolved[0]->definition);
+    }
+
+    #[Test]
+    public function itUnconditionallyBypassesAllResolvedRateLimits(): void
+    {
+        $resolved = $this->resolver(global: new RateLimitDefinition(
+            limit: 1_000,
+            intervalSeconds: 3_600,
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        ))->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+                BypassRateLimit::class => new BypassRateLimit(),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itConditionallyBypassesAllResolvedRateLimits(): void
+    {
+        $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('shouldApply')->willReturn(true);
+
+        $resolved = $this->resolver(conditions: [$condition])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+                BypassRateLimit::class => new BypassRateLimit(when: $condition::class),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itKeepsLimitsWhenConditionalBypassDoesNotMatch(): void
+    {
+        $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('shouldApply')->willReturn(false);
+
+        $resolved = $this->resolver(conditions: [$condition])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+                BypassRateLimit::class => new BypassRateLimit(when: $condition::class),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+    }
+
+    #[Test]
+    public function itBypassesOnlyTheMatchingResolvedBucket(): void
+    {
+        $resolved = $this->resolver()->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => [
+                    new RateLimit(limit: 10, interval: '1 minute', bucket: 'catalog'),
+                    new RateLimit(limit: 20, interval: '1 minute', bucket: 'checkout'),
+                ],
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+        self::assertSame('shared:checkout', $resolved[0]->bucket);
+    }
+
+    #[Test]
+    public function itKeepsLimitsForANonMatchingBucket(): void
+    {
+        $resolved = $this->resolver()->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+        self::assertSame('operation:product_get', $resolved[0]->bucket);
+    }
+
+    #[Test]
+    public function itBypassesAGeneratedOperationBucketByItsResolvedName(): void
+    {
+        $resolved = $this->resolver()->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'product_get'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itBypassesADynamicallyResolvedBucket(): void
+    {
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return 'catalog';
+            }
+        };
+
+        $resolved = $this->resolver(bucketResolvers: [$bucketResolver])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 10,
+                    interval: '1 minute',
+                    bucket: new DynamicBucket($bucketResolver::class),
+                ),
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itBypassesTheGlobalBucketByItsResolvedName(): void
+    {
+        $resolved = $this->resolver(global: new RateLimitDefinition(
+            limit: 1_000,
+            intervalSeconds: 3_600,
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        ))->resolve(
+            operation: new Get(extraProperties: [
+                BypassRateLimit::class => new BypassRateLimit(bucket: 'global'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame([], $resolved);
     }
 
     #[Test]

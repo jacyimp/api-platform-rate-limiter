@@ -8,8 +8,11 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Resource\Factory\AttributesResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationBypassedResource;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationLimitedResource;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\ResourceBypassedResource;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\ResourceLimitedResource;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -121,6 +124,46 @@ final class RateLimitMetadataExtractorTest extends TestCase
             [],
             $this->extractor->extract(new Get()),
         );
+    }
+
+    #[Test]
+    public function itExtractsBypassesDefinedOnTheResource(): void
+    {
+        $metadata = (new AttributesResourceMetadataCollectionFactory())
+            ->create(ResourceBypassedResource::class);
+
+        self::assertEquals(
+            [new BypassRateLimit(bucket: 'resource')],
+            $this->extractor->extractBypasses(
+                $metadata->getOperation('resource_bypassed_get'),
+            ),
+        );
+    }
+
+    #[Test]
+    public function itPrefersOperationBypassesOverResourceBypasses(): void
+    {
+        $metadata = (new AttributesResourceMetadataCollectionFactory())
+            ->create(OperationBypassedResource::class);
+
+        self::assertEquals(
+            [new BypassRateLimit(bucket: 'operation')],
+            $this->extractor->extractBypasses(
+                $metadata->getOperation('operation_bypassed_get'),
+            ),
+        );
+    }
+
+    #[Test]
+    public function itRejectsInvalidBypassMetadata(): void
+    {
+        $operation = new Get(extraProperties: [
+            BypassRateLimit::class => 'invalid',
+        ]);
+
+        $this->expectException(InvalidRateLimitMetadataException::class);
+
+        $this->extractor->extractBypasses($operation);
     }
 
     #[Test]

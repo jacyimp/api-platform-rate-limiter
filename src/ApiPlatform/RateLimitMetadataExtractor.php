@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 /**
@@ -47,5 +48,41 @@ final class RateLimitMetadataExtractor
         }
 
         return array_values($rateLimits);
+    }
+
+    /**
+     * @return list<BypassRateLimit>
+     */
+    public function extractBypasses(Operation $operation): array
+    {
+        $extraProperties = $operation->getExtraProperties();
+
+        if (!isset($extraProperties[BypassRateLimit::class])) {
+            return [];
+        }
+
+        $metadata = $extraProperties[BypassRateLimit::class];
+        $bypasses = $metadata instanceof BypassRateLimit
+            ? [$metadata]
+            : $metadata;
+        if (!is_array($bypasses)) {
+            throw new InvalidRateLimitMetadataException(sprintf(
+                'Extra property "%s" must be a %s or a list of them.',
+                BypassRateLimit::class,
+                BypassRateLimit::class,
+            ));
+        }
+
+        foreach ($bypasses as $bypass) {
+            if (!$bypass instanceof BypassRateLimit) {
+                throw new InvalidRateLimitMetadataException(sprintf(
+                    'Extra property "%s" must contain only instances of %s.',
+                    BypassRateLimit::class,
+                    BypassRateLimit::class,
+                ));
+            }
+        }
+
+        return array_values($bypasses);
     }
 }

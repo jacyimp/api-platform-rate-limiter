@@ -17,6 +17,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Declarative `BypassRateLimit` resource and operation metadata, with optional
+  resolved-bucket matching and conditions.
 - Weighted token consumption through the per-limit `cost` option, including
   dynamic costs resolved by `DynamicCostResolverInterface` services.
 - Dynamic bucket and limit metadata through `DynamicBucket`, `DynamicLimit`,

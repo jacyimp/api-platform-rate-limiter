@@ -11,6 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
@@ -43,38 +44,74 @@ final readonly class RateLimitResolver
             ...$this->providerCollection->provide($operation),
         ];
 
+        /** @var list<array{bucket: string, rateLimit: ResolvedRateLimit}> $resolved */
         $resolved = [];
 
         foreach ($rateLimits as $rateLimit) {
-            $resolved[] = $this->resolveRateLimit(
-                rateLimit: $rateLimit,
-                operationKey: $operationKey,
-            );
+            $bucket = $this->resolveBucket($rateLimit, $operationKey);
+            $resolved[] = [
+                'bucket' => $bucket,
+                'rateLimit' => $this->resolveRateLimit(
+                    rateLimit: $rateLimit,
+                    bucket: $bucket,
+                ),
+            ];
         }
 
         if ($this->globalRateLimit !== null) {
-            $resolved[] = new ResolvedRateLimit(
-                bucket: 'global',
-                definition: $this->globalRateLimit,
-                identityResolver: $this->globalRateLimit->identityResolver === null
-                    ? null
-                    : $this->strategyRegistry->identityResolver(
-                        $this->globalRateLimit->identityResolver,
-                    ),
-                condition: $this->globalRateLimit->when === null
-                    ? null
-                    : $this->strategyRegistry->condition(
-                        $this->globalRateLimit->when,
-                    ),
-            );
+            $resolved[] = [
+                'bucket' => 'global',
+                'rateLimit' => new ResolvedRateLimit(
+                    bucket: 'global',
+                    definition: $this->globalRateLimit,
+                    identityResolver: $this->globalRateLimit->identityResolver === null
+                        ? null
+                        : $this->strategyRegistry->identityResolver(
+                            $this->globalRateLimit->identityResolver,
+                        ),
+                    condition: $this->globalRateLimit->when === null
+                        ? null
+                        : $this->strategyRegistry->condition(
+                            $this->globalRateLimit->when,
+                        ),
+                ),
+            ];
         }
 
-        return $resolved;
+        $bypasses = array_values(array_filter(
+            $this->metadataExtractor->extractBypasses($operation),
+            fn (BypassRateLimit $bypass): bool => $bypass->when === null
+                || $this->strategyRegistry
+                    ->condition($bypass->when)
+                    ->shouldApply(),
+        ));
+
+        return array_values(array_map(
+            static fn (array $item): ResolvedRateLimit => $item['rateLimit'],
+            array_filter(
+                $resolved,
+                fn (array $item): bool => !$this->isBypassed(
+                    $item['bucket'],
+                    $bypasses,
+                ),
+            ),
+        ));
     }
 
-    private function resolveRateLimit(RateLimit $rateLimit, string $operationKey,): ResolvedRateLimit
+    /** @param list<BypassRateLimit> $bypasses */
+    private function isBypassed(string $bucket, array $bypasses): bool
     {
-        $bucket = $this->resolveBucket($rateLimit, $operationKey);
+        foreach ($bypasses as $bypass) {
+            if ($bypass->bucket === null || $bypass->bucket === $bucket) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function resolveRateLimit(RateLimit $rateLimit, string $bucket,): ResolvedRateLimit
+    {
         $definition = $this->resolveDefinition($rateLimit, $bucket);
         $identityResolver = $rateLimit->identityResolver
             ?? $definition->identityResolver;

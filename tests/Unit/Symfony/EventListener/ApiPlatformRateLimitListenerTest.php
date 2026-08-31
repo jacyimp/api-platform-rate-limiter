@@ -20,12 +20,14 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -94,6 +96,31 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             ->onKernelRequest(
                 $this->requestEvent($request),
             );
+    }
+
+    #[Test]
+    public function itDoesNotConsumeTokensOrDispatchEventsForBypassedLimits(): void
+    {
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::never())->method('consume');
+
+        $eventDispatcher = self::createMock(EventDispatcherInterface::class);
+        $eventDispatcher->expects(self::never())->method('dispatch');
+
+        $request = new Request();
+        $request->attributes->set('_api_operation', new Get(
+            name: 'product_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 10,
+                    interval: '1 minute',
+                ),
+                BypassRateLimit::class => new BypassRateLimit(),
+            ],
+        ));
+
+        $this->listener($rateLimiter, eventDispatcher: $eventDispatcher)
+            ->onKernelRequest($this->requestEvent($request));
     }
 
     #[Test]
@@ -215,6 +242,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
     private function listener(
         RateLimiterInterface $rateLimiter,
         ?RateLimitRejectionHandlerInterface $rejectionHandler = null,
+        ?EventDispatcherInterface $eventDispatcher = null,
     ): ApiPlatformRateLimitListener {
         $identityResolver = self::createStub(
             IdentityResolverInterface::class,
@@ -244,7 +272,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
                 rateLimiter: $rateLimiter,
                 identityResolver: $identityResolver,
                 bypass: $bypass,
-                eventDispatcher: new EventDispatcher(),
+                eventDispatcher: $eventDispatcher ?? new EventDispatcher(),
             ),
             rejectionHandler: $rejectionHandler
                 ?? new SymfonyRateLimitRejectionHandler(),
