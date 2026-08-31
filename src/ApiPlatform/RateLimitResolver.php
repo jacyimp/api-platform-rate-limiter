@@ -88,9 +88,7 @@ final readonly class RateLimitResolver
 
         $bypasses = array_values(array_filter(
             $this->metadataExtractor->extractBypasses($operation),
-            fn (BypassRateLimit $bypass): bool => $bypass->when === null
-                || (new RateLimitConditionEvaluator($this->strategyRegistry))
-                    ->matches($bypass->when),
+            fn (BypassRateLimit $bypass): bool => $this->conditionMatches($bypass->when),
         ));
 
         return array_values(array_map(
@@ -236,7 +234,7 @@ final readonly class RateLimitResolver
             ->resolve();
     }
 
-    private function resolveBucket(RateLimit $rateLimit, string $operationKey,): string
+    private function resolveBucket(RateLimit $rateLimit, string $operationKey): string
     {
         if ($rateLimit->bucket instanceof DynamicBucket) {
             $bucket = $this->strategyRegistry
@@ -247,9 +245,11 @@ final readonly class RateLimitResolver
         }
 
         if (trim($bucket) === '') {
-            throw new InvalidRateLimitException($rateLimit->bucket === null
+            throw new InvalidRateLimitException(
+                $rateLimit->bucket === null
                     ? 'Operation key cannot be empty.'
-                    : 'Resolved rate limit bucket cannot be empty.',);
+                    : 'Resolved rate limit bucket cannot be empty.',
+            );
         }
 
         return $bucket;
