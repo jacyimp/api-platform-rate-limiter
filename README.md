@@ -2,8 +2,7 @@
 
 Operation-specific and shared rate limits for API Platform applications.
 
-> This package is in early development. Its public API may change before the
-> first stable release.
+> This package is pre-1.0. Its public API may still change between releases.
 
 ## Requirements
 
@@ -13,8 +12,16 @@ Operation-specific and shared rate limits for API Platform applications.
 
 ## Installation
 
+For tagged releases:
+
 ```bash
 composer require jacyimp/api-platform-rate-limiter
+```
+
+To install the current development branch instead:
+
+```bash
+composer require jacyimp/api-platform-rate-limiter:dev-main
 ```
 
 Register the bundle:
