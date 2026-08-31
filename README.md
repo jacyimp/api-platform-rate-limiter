@@ -44,13 +44,13 @@ Rate-limit metadata is attached to API Platform operations through `extraPropert
 ```php
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
     operations: [
         new Get(
             extraProperties: [
-                OperationRateLimit::class => new OperationRateLimit(
+                RateLimit::class => new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -70,10 +70,10 @@ The default policy is `sliding_window`.
 A fixed window can be selected explicitly:
 
 ```php
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
-new OperationRateLimit(
+new RateLimit(
     limit: 100,
     interval: '1 minute',
     policy: RateLimitPolicy::FIXED_WINDOW,
@@ -166,12 +166,12 @@ An operation may have both an operation-specific limit and a shared limit:
 
 ```php
 use ApiPlatform\Metadata\Get;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
 new Get(
     extraProperties: [
-        OperationRateLimit::class => new OperationRateLimit(
+        RateLimit::class => new RateLimit(
             limit: 20,
             interval: '1 minute',
         ),

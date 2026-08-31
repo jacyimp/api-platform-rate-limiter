@@ -10,7 +10,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
 final readonly class RateLimitResolver
@@ -33,7 +33,7 @@ final readonly class RateLimitResolver
 
         foreach ($this->metadataExtractor->extract($operation) as $rateLimit) {
             $resolved[] = match (true) {
-                $rateLimit instanceof OperationRateLimit => $this->resolveOperation(
+                $rateLimit instanceof RateLimit => $this->resolveOperation(
                     rateLimit: $rateLimit,
                     operationKey: $operationKey,
                 ),
@@ -47,7 +47,7 @@ final readonly class RateLimitResolver
     }
 
     private function resolveOperation(
-        OperationRateLimit $rateLimit,
+        RateLimit $rateLimit,
         string $operationKey,
     ): ResolvedRateLimit {
         if (trim($operationKey) === '') {

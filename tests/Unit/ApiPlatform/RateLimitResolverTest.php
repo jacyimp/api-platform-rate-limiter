@@ -11,7 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -28,7 +28,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => new OperationRateLimit(
+                RateLimit::class => new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -93,7 +93,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => new OperationRateLimit(
+                RateLimit::class => new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -128,7 +128,7 @@ final class RateLimitResolverTest extends TestCase
     {
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => new OperationRateLimit(
+                RateLimit::class => new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),

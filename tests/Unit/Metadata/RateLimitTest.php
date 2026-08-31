@@ -7,19 +7,19 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 use DateInterval;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(OperationRateLimit::class)]
-final class OperationRateLimitTest extends TestCase
+#[CoversClass(RateLimit::class)]
+final class RateLimitTest extends TestCase
 {
     #[Test]
     public function itAcceptsStringInterval(): void
     {
-        $rateLimit = new OperationRateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
         );
@@ -37,7 +37,7 @@ final class OperationRateLimitTest extends TestCase
     {
         $interval = new DateInterval('PT1M');
 
-        $rateLimit = new OperationRateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: $interval,
         );
@@ -50,7 +50,7 @@ final class OperationRateLimitTest extends TestCase
     {
         $interval = new Interval(minutes: 1);
 
-        $rateLimit = new OperationRateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: $interval,
         );
@@ -61,7 +61,7 @@ final class OperationRateLimitTest extends TestCase
     #[Test]
     public function itAcceptsExplicitPolicy(): void
     {
-        $rateLimit = new OperationRateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
             policy: RateLimitPolicy::FIXED_WINDOW,
@@ -81,7 +81,7 @@ final class OperationRateLimitTest extends TestCase
             'Rate limit must be greater than zero.',
         );
 
-        new OperationRateLimit(
+        new RateLimit(
             limit: 0,
             interval: '1 minute',
         );
@@ -92,7 +92,7 @@ final class OperationRateLimitTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new OperationRateLimit(
+        new RateLimit(
             limit: -1,
             interval: '1 minute',
         );

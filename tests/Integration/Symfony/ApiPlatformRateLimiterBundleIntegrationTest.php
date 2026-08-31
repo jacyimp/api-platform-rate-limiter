@@ -6,7 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony;
 
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -36,7 +36,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'limited_get',
             extraProperties: [
-                OperationRateLimit::class => new OperationRateLimit(
+                RateLimit::class => new RateLimit(
                     limit: 2,
                     interval: '1 minute',
                 ),

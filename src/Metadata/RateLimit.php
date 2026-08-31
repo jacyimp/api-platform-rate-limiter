@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 use DateInterval;
 use InvalidArgumentException;
 
-final readonly class OperationRateLimit
+final readonly class RateLimit
 {
     public function __construct(
         public int $limit,

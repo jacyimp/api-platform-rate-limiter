@@ -16,7 +16,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -76,7 +76,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    OperationRateLimit::class => new OperationRateLimit(
+                    RateLimit::class => new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),
@@ -120,7 +120,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    OperationRateLimit::class => new OperationRateLimit(
+                    RateLimit::class => new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),
@@ -186,7 +186,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    OperationRateLimit::class => new OperationRateLimit(
+                    RateLimit::class => new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),

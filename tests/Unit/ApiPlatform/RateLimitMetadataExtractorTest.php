@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 use ApiPlatform\Metadata\Get;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
-use JacyImp\ApiPlatformRateLimiter\Metadata\OperationRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,14 +26,14 @@ final class RateLimitMetadataExtractorTest extends TestCase
     #[Test]
     public function itExtractsOperationRateLimit(): void
     {
-        $rateLimit = new OperationRateLimit(
+        $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
         );
 
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => $rateLimit,
+                RateLimit::class => $rateLimit,
             ],
         );
 
@@ -63,7 +63,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
     #[Test]
     public function itExtractsBothRateLimits(): void
     {
-        $operationRateLimit = new OperationRateLimit(
+        $operationRateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
         );
@@ -72,7 +72,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => $operationRateLimit,
+                RateLimit::class => $operationRateLimit,
                 SharedRateLimit::class => $sharedRateLimit,
             ],
         );
@@ -97,7 +97,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
     {
         $operation = new Get(
             extraProperties: [
-                OperationRateLimit::class => 'invalid',
+                RateLimit::class => 'invalid',
             ],
         );
 
