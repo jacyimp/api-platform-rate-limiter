@@ -28,9 +28,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
  */
 final readonly class RateLimitResolver
 {
-    /**
-     * @param array<string, RateLimitDefinition> $globalRateLimits
-     */
+    /** @param array<string, RateLimit> $globalRateLimits */
     public function __construct(
         private RateLimitMetadataExtractor $metadataExtractor,
         private RateLimitProviderCollection $providerCollection,
@@ -54,32 +52,28 @@ final readonly class RateLimitResolver
             ...$this->providerCollection->provide($operation),
         ];
 
-        /** @var list<array{bucket: string, rateLimit: ResolvedRateLimit}> $resolved */
+        /** @var list<array{aliases: list<string>, rateLimit: ResolvedRateLimit}> $resolved */
         $resolved = [];
 
         foreach ($rateLimits as $rateLimit) {
             $bucket = $this->resolveBucket($rateLimit, $operationKey);
+            $resolvedRateLimit = $this->resolveRateLimit($rateLimit, $bucket);
             $resolved[] = [
-                'bucket' => $bucket,
-                'rateLimit' => $this->resolveRateLimit(
-                    rateLimit: $rateLimit,
-                    bucket: $bucket,
-                ),
+                'aliases' => [$bucket, $resolvedRateLimit->bucket],
+                'rateLimit' => $resolvedRateLimit,
             ];
         }
 
         foreach ($this->globalRateLimits as $name => $globalRateLimit) {
-            $bucket = sprintf('global:%s', $name);
+            $bucket = $this->resolveBucket($globalRateLimit, $name);
+            $resolvedRateLimit = $this->resolveRateLimit(
+                rateLimit: $globalRateLimit,
+                bucket: $bucket,
+                globalName: $name,
+            );
             $resolved[] = [
-                'bucket' => $bucket,
-                'rateLimit' => new ResolvedRateLimit(
-                    bucket: $bucket,
-                    definition: $globalRateLimit,
-                    identityResolver: $this->resolveIdentity(
-                        $globalRateLimit->identity,
-                    ),
-                    condition: $globalRateLimit->when,
-                ),
+                'aliases' => [$resolvedRateLimit->bucket],
+                'rateLimit' => $resolvedRateLimit,
             ];
         }
 
@@ -95,18 +89,21 @@ final readonly class RateLimitResolver
             array_filter(
                 $resolved,
                 fn (array $item): bool => !$this->isBypassed(
-                    $item['bucket'],
+                    $item['aliases'],
                     $bypasses,
                 ),
             ),
         ));
     }
 
-    /** @param list<BypassRateLimit> $bypasses */
-    private function isBypassed(string $bucket, array $bypasses): bool
+    /**
+     * @param list<string> $aliases
+     * @param list<BypassRateLimit> $bypasses
+     */
+    private function isBypassed(array $aliases, array $bypasses): bool
     {
         foreach ($bypasses as $bypass) {
-            if ($bypass->bucket === null || $bypass->bucket === $bucket) {
+            if ($bypass->bucket === null || in_array($bypass->bucket, $aliases, true)) {
                 return true;
             }
         }
@@ -114,21 +111,38 @@ final readonly class RateLimitResolver
         return false;
     }
 
-    private function resolveRateLimit(RateLimit $rateLimit, string $bucket,): ResolvedRateLimit
-    {
+    private function resolveRateLimit(
+        RateLimit $rateLimit,
+        string $bucket,
+        ?string $globalName = null,
+    ): ResolvedRateLimit {
         $definition = $this->resolveDefinition($rateLimit, $bucket);
         $identity = $rateLimit->identity ?? $definition->identity;
         $when = $rateLimit->when ?? $definition->when;
 
         return new ResolvedRateLimit(
-            bucket: $rateLimit->bucket === null
-                ? sprintf('operation:%s', $bucket)
-                : sprintf('shared:%s', $bucket),
+            bucket: $this->resolvedBucketName($rateLimit, $bucket, $globalName),
             definition: $definition,
             identityResolver: $this->resolveIdentity($identity),
             condition: $when,
             cost: $this->resolveCost($rateLimit),
         );
+    }
+
+    private function resolvedBucketName(
+        RateLimit $rateLimit,
+        string $bucket,
+        ?string $globalName,
+    ): string {
+        if ($globalName !== null) {
+            return $rateLimit->bucket === null
+                ? sprintf('global:%s', $globalName)
+                : sprintf('global:%s:%s', $globalName, $bucket);
+        }
+
+        return $rateLimit->bucket === null
+            ? sprintf('operation:%s', $bucket)
+            : sprintf('shared:%s', $bucket);
     }
 
     private function resolveIdentity(

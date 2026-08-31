@@ -21,6 +21,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
@@ -482,9 +483,9 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itResolvesOneNamedGlobalRateLimitForEveryOperation(): void
     {
-        $global = new RateLimitDefinition(
+        $global = new RateLimit(
             limit: 1_000,
-            intervalSeconds: 3_600,
+            interval: '1 hour',
             policy: RateLimitPolicy::FIXED_WINDOW,
         );
 
@@ -495,14 +496,14 @@ final class RateLimitResolverTest extends TestCase
 
         self::assertCount(1, $resolved);
         self::assertSame('global:burst', $resolved[0]->bucket);
-        self::assertSame($global, $resolved[0]->definition);
+        self::assertSame(1_000, $resolved[0]->definition->limit);
     }
 
     #[Test]
     public function itResolvesMultipleGlobalsInConfigurationOrder(): void
     {
-        $burst = new RateLimitDefinition(100, 60, RateLimitPolicy::SLIDING_WINDOW);
-        $daily = new RateLimitDefinition(10_000, 86_400, RateLimitPolicy::SLIDING_WINDOW);
+        $burst = new RateLimit(100, '1 minute');
+        $daily = new RateLimit(10_000, '1 day');
 
         $resolved = $this->resolver(globals: [
             'burst' => $burst,
@@ -516,8 +517,8 @@ final class RateLimitResolverTest extends TestCase
                 $resolved,
             ),
         );
-        self::assertSame($burst, $resolved[0]->definition);
-        self::assertSame($daily, $resolved[1]->definition);
+        self::assertSame(100, $resolved[0]->definition->limit);
+        self::assertSame(10_000, $resolved[1]->definition->limit);
     }
 
     #[Test]
@@ -550,17 +551,15 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(
             globals: [
-                'burst' => new RateLimitDefinition(
+                'burst' => new RateLimit(
                     100,
-                    60,
-                    RateLimitPolicy::SLIDING_WINDOW,
+                    '1 minute',
                     identity: new Identity($burstIdentity::class),
                     when: new Condition($burstCondition::class),
                 ),
-                'daily' => new RateLimitDefinition(
+                'daily' => new RateLimit(
                     10_000,
-                    86_400,
-                    RateLimitPolicy::SLIDING_WINDOW,
+                    '1 day',
                     identity: new Identity($dailyIdentity::class),
                     when: new Condition($dailyCondition::class),
                 ),
@@ -588,11 +587,110 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itResolvesDynamicGlobalValuesThroughTheCommonPipeline(): void
+    {
+        $limitResolver = new class implements LimitResolverInterface {
+            public function resolve(): int
+            {
+                return 42;
+            }
+        };
+        $costResolver = new class implements DynamicCostResolverInterface {
+            public function resolve(): int
+            {
+                return 3;
+            }
+        };
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return 'premium';
+            }
+        };
+        $identityResolver = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'customer';
+            }
+        };
+        $condition = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return true;
+            }
+        };
+
+        $resolved = $this->resolver(
+            globals: ['api' => new RateLimit(
+                limit: new DynamicLimit($limitResolver::class),
+                interval: '1 minute',
+                identity: new Identity($identityResolver::class),
+                when: new AllOf([
+                    new Condition($condition::class),
+                    new Condition($condition::class),
+                ]),
+                bucket: new DynamicBucket($bucketResolver::class),
+                cost: new DynamicCost($costResolver::class),
+            )],
+            identityResolvers: [$identityResolver],
+            conditions: [$condition],
+            bucketResolvers: [$bucketResolver],
+            limitResolvers: [$limitResolver],
+            costResolvers: [$costResolver],
+        )->resolve(new Get(), 'product_get');
+
+        self::assertSame('global:api:premium', $resolved[0]->bucket);
+        self::assertSame(42, $resolved[0]->definition->limit);
+        self::assertSame(3, $resolved[0]->cost);
+        self::assertSame('customer', $resolved[0]->identityResolver?->resolve());
+        self::assertInstanceOf(AllOf::class, $resolved[0]->condition);
+    }
+
+    #[Test]
+    public function itBypassesADynamicallyNamespacedGlobalByItsFinalName(): void
+    {
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return 'free';
+            }
+        };
+
+        $resolved = $this->resolver(
+            globals: ['api' => new RateLimit(
+                limit: 10,
+                interval: '1 minute',
+                bucket: new DynamicBucket($bucketResolver::class),
+            )],
+            bucketResolvers: [$bucketResolver],
+        )->resolve(new Get(extraProperties: [
+            BypassRateLimit::class => new BypassRateLimit(bucket: 'global:api:free'),
+        ]), 'product_get');
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itUsesSharedDefinitionsForGlobalsWithoutSkippingResolution(): void
+    {
+        $definition = new RateLimitDefinition(20, 60, RateLimitPolicy::FIXED_WINDOW);
+
+        $resolved = $this->resolver(
+            shared: ['customers' => $definition],
+            globals: ['api' => new RateLimit(bucket: 'customers', cost: 2)],
+        )->resolve(new Get(), 'product_get');
+
+        self::assertSame('global:api:customers', $resolved[0]->bucket);
+        self::assertSame($definition, $resolved[0]->definition);
+        self::assertSame(2, $resolved[0]->cost);
+    }
+
+    #[Test]
     public function itUnconditionallyBypassesAllResolvedRateLimits(): void
     {
-        $resolved = $this->resolver(globals: ['burst' => new RateLimitDefinition(
+        $resolved = $this->resolver(globals: ['burst' => new RateLimit(
             limit: 1_000,
-            intervalSeconds: 3_600,
+            interval: '1 hour',
             policy: RateLimitPolicy::FIXED_WINDOW,
         )])->resolve(
             operation: new Get(extraProperties: [
@@ -719,16 +817,8 @@ final class RateLimitResolverTest extends TestCase
     public function itBypassesOnlyTheNamedGlobalBucketByItsResolvedName(): void
     {
         $resolved = $this->resolver(globals: [
-            'burst' => new RateLimitDefinition(
-                100,
-                60,
-                RateLimitPolicy::SLIDING_WINDOW,
-            ),
-            'daily' => new RateLimitDefinition(
-                10_000,
-                86_400,
-                RateLimitPolicy::SLIDING_WINDOW,
-            ),
+            'burst' => new RateLimit(100, '1 minute'),
+            'daily' => new RateLimit(10_000, '1 day'),
         ])->resolve(
             operation: new Get(extraProperties: [
                 BypassRateLimit::class => new BypassRateLimit(bucket: 'global:burst'),
@@ -771,7 +861,7 @@ final class RateLimitResolverTest extends TestCase
      * @param list<RateLimitProviderInterface> $providers
      * @param list<IdentityResolverInterface> $identityResolvers
      * @param list<RateLimitConditionInterface> $conditions
-     * @param array<string, RateLimitDefinition> $globals
+     * @param array<string, RateLimit> $globals
      * @param list<BucketResolverInterface> $bucketResolvers
      * @param list<LimitResolverInterface> $limitResolvers
      * @param list<DynamicCostResolverInterface> $costResolvers

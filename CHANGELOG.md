@@ -8,6 +8,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Routed named globals through the same declaration-resolution pipeline as
+  operation and resource limits, including dynamic values, identities,
+  conditions, costs, buckets, and compatible shared-definition lookup.
 - Replaced `RateLimit::$identityResolver` with composable `identity` metadata;
   identity resolvers may now return `null` when unavailable.
 - Replaced string `when` metadata with composable condition expressions and

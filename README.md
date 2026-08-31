@@ -60,9 +60,54 @@ api_platform_rate_limiter:
 
 Each quota is shared across all operations for its resolved identity and is
 enforced independently. Its bucket is named `global:<name>` (`global:burst`
-and `global:daily` above). The optional `policy`, `identity_resolver`, and
-`when` settings work the same way as they do for shared buckets. The policy
-defaults to `sliding_window`.
+and `global:daily` above). The optional `policy`, `identity_resolver`, `when`,
+and `cost` settings have the same meaning as their `RateLimit` counterparts.
+The policy defaults to `sliding_window`.
+
+Globals use the same runtime resolution pipeline as operation and resource
+limits. Resolver service IDs can therefore provide request-dependent values:
+
+```yaml
+api_platform_rate_limiter:
+    globals:
+        api:
+            limit_resolver: App\RateLimit\PlanLimitResolver
+            interval: '1 minute'
+            bucket_resolver: App\RateLimit\PlanBucketResolver
+            cost_resolver: App\RateLimit\RequestCostResolver
+            identity_resolver: App\RateLimit\ApiKeyIdentityResolver
+            when: App\RateLimit\ApiRequestCondition
+```
+
+A resolved dynamic bucket is nested below the configured global name. For
+example, `premium` and `free` from the `api` resolver become
+`global:api:premium` and `global:api:free`. This preserves the named global's
+namespace and prevents collisions. A global may alternatively set `bucket` and
+omit `limit` and `interval` to look up a configured shared-bucket definition;
+its final bucket remains in the global namespace.
+
+Composable conditions and identities use the same expression names in YAML:
+
+```yaml
+api_platform_rate_limiter:
+    globals:
+        authenticated_api:
+            limit: 100
+            interval: '1 minute'
+            identity:
+                composite:
+                    - App\RateLimit\TenantIdentityResolver
+                    - first_available:
+                        - App\RateLimit\ApiKeyIdentityResolver
+                        - App\RateLimit\UserIdentityResolver
+            when:
+                all_of:
+                    - App\RateLimit\AuthenticatedCondition
+                    - not: App\RateLimit\InternalRequestCondition
+```
+
+Identity operators are `composite` and `first_available`; condition operators
+are `all_of`, `any_of`, and `not`. A plain service ID remains a leaf expression.
 
 Global, operation-specific, and named shared limits are combined when more than
 one applies to a request.

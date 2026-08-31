@@ -24,7 +24,17 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
@@ -64,11 +74,17 @@ final class ApiPlatformRateLimiterExtension extends Extension
         /**
          * @var array{
          *     globals: array<string, array{
-         *         limit: int,
-         *         interval: string,
+         *         limit: int|null,
+         *         limit_resolver: string|null,
+         *         interval: string|null,
          *         policy: string,
          *         identity_resolver: string|null,
-         *         when: string|null
+         *         identity: mixed,
+         *         when: mixed,
+         *         bucket: string|null,
+         *         bucket_resolver: string|null,
+         *         cost: int,
+         *         cost_resolver: string|null
          *     }>,
          *     shared_buckets: array<string, array{
          *         limit: int,
@@ -164,7 +180,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(IntervalNormalizer::class),
                 new Reference(SharedRateLimitRegistry::class),
                 new Reference(RateLimitStrategyRegistry::class),
-                $this->rateLimitDefinitions($config['globals']),
+                $this->globalRateLimits($config['globals']),
                 new Reference(IdentityExpressionEvaluator::class),
             ]);
 
@@ -270,6 +286,134 @@ final class ApiPlatformRateLimiterExtension extends Extension
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param array<string, array{
+     *     limit: int|null,
+     *     limit_resolver: string|null,
+     *     interval: string|null,
+     *     policy: string,
+     *     identity_resolver: string|null,
+     *     identity: mixed,
+     *     when: mixed,
+     *     bucket: string|null,
+     *     bucket_resolver: string|null,
+     *     cost: int,
+     *     cost_resolver: string|null
+     * }> $rateLimits
+     *
+     * @return array<string, Definition>
+     */
+    private function globalRateLimits(array $rateLimits): array
+    {
+        $definitions = [];
+
+        foreach ($rateLimits as $name => $rateLimit) {
+            $limit = $rateLimit['limit_resolver'] === null
+                ? $rateLimit['limit']
+                : new Definition(DynamicLimit::class, [$rateLimit['limit_resolver']]);
+            $bucket = $rateLimit['bucket_resolver'] === null
+                ? $rateLimit['bucket']
+                : new Definition(DynamicBucket::class, [$rateLimit['bucket_resolver']]);
+            $cost = $rateLimit['cost_resolver'] === null
+                ? $rateLimit['cost']
+                : new Definition(DynamicCost::class, [$rateLimit['cost_resolver']]);
+
+            $definitions[$name] = new Definition(RateLimit::class, [
+                $limit,
+                $rateLimit['interval'],
+                RateLimitPolicy::from($rateLimit['policy']),
+                $this->globalIdentity($rateLimit),
+                $rateLimit['when'] === null
+                    ? null
+                    : $this->conditionExpression($rateLimit['when']),
+                $bucket,
+                $cost,
+            ]);
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param array{identity: mixed, identity_resolver: string|null} $rateLimit
+     */
+    private function globalIdentity(array $rateLimit): ?Definition
+    {
+        if ($rateLimit['identity'] !== null) {
+            return $this->identityExpression($rateLimit['identity']);
+        }
+
+        return $rateLimit['identity_resolver'] === null
+            ? null
+            : new Definition(Identity::class, [$rateLimit['identity_resolver']]);
+    }
+
+    private function identityExpression(mixed $value): Definition
+    {
+        if (is_string($value)) {
+            return new Definition(Identity::class, [$value]);
+        }
+
+        if (!is_array($value) || count($value) !== 1) {
+            throw new \InvalidArgumentException('Invalid global identity expression.');
+        }
+
+        $operator = array_key_first($value);
+        $children = is_string($operator) ? $value[$operator] : null;
+        if (!is_array($children)) {
+            throw new \InvalidArgumentException('Global identity expression children must be a list.');
+        }
+
+        $expressions = array_map(
+            fn (mixed $child): Definition => $this->identityExpression($child),
+            array_values($children),
+        );
+
+        return match ($operator) {
+            'composite' => new Definition(CompositeIdentity::class, [$expressions]),
+            'first_available' => new Definition(FirstAvailableIdentity::class, [$expressions]),
+            default => throw new \InvalidArgumentException(sprintf(
+                'Unknown global identity operator "%s".',
+                $operator,
+            )),
+        };
+    }
+
+    private function conditionExpression(mixed $value): Definition
+    {
+        if (is_string($value)) {
+            return new Definition(Condition::class, [$value]);
+        }
+
+        if (!is_array($value) || count($value) !== 1) {
+            throw new \InvalidArgumentException('Invalid global condition expression.');
+        }
+
+        $operator = array_key_first($value);
+        $operand = is_string($operator) ? $value[$operator] : null;
+        if ($operator === 'not') {
+            return new Definition(Not::class, [$this->conditionExpression($operand)]);
+        }
+
+        if (!is_array($operand)) {
+            throw new \InvalidArgumentException('Global condition expression children must be a list.');
+        }
+
+        $conditions = array_map(
+            fn (mixed $child): Definition => $this->conditionExpression($child),
+            array_values($operand),
+        );
+
+        return match ($operator) {
+            'all_of' => new Definition(AllOf::class, [$conditions]),
+            'any_of' => new Definition(AnyOf::class, [$conditions]),
+            default => throw new \InvalidArgumentException(sprintf(
+                'Unknown global condition operator "%s".',
+                $operator,
+            )),
+        };
     }
 
     /**

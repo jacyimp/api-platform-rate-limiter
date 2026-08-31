@@ -36,18 +36,52 @@ final class Configuration implements ConfigurationInterface
             ->useAttributeAsKey('name');
 
         $globalNode = $globalsNode->arrayPrototype();
+        $globalNode
+            ->validate()
+            ->ifTrue(static function (array $value): bool {
+                $hasLimit = $value['limit'] !== null;
+                $hasLimitResolver = $value['limit_resolver'] !== null;
+                $hasBucket = $value['bucket'] !== null;
+                $hasBucketResolver = $value['bucket_resolver'] !== null;
+
+                return $hasLimit === $hasLimitResolver
+                    || (($hasLimit || $hasLimitResolver) !== ($value['interval'] !== null))
+                    || ($hasLimit === false && $hasLimitResolver === false
+                        && $hasBucket === false && $hasBucketResolver === false)
+                    || ($hasBucket && $hasBucketResolver)
+                    || ($value['cost_resolver'] !== null && $value['cost'] !== 1)
+                    || ($value['identity'] !== null
+                        && $value['identity_resolver'] !== null);
+            })
+            ->thenInvalid(
+                'A global must configure exactly one of limit/limit_resolver with interval, '
+                . 'or a bucket/bucket_resolver for shared lookup; dynamic and static '
+                . 'variants of the same option cannot be combined.',
+            );
         $globalChildren = $globalNode->children();
 
         $globalChildren
             ->integerNode('limit')
-            ->isRequired()
+            ->defaultNull()
             ->min(1);
+
+        foreach (['limit_resolver', 'bucket', 'bucket_resolver', 'cost_resolver'] as $option) {
+            $globalChildren
+                ->scalarNode($option)
+                ->cannotBeEmpty()
+                ->defaultNull();
+        }
+
+        $globalChildren
+            ->integerNode('cost')
+            ->min(1)
+            ->defaultValue(1);
 
         $globalIntervalNode = $globalChildren
             ->scalarNode('interval');
 
         $globalIntervalNode
-            ->isRequired()
+            ->defaultNull()
             ->cannotBeEmpty();
 
         $globalIntervalNode
@@ -71,7 +105,7 @@ final class Configuration implements ConfigurationInterface
                 RateLimitPolicy::SLIDING_WINDOW->value,
             );
 
-        foreach (['identity_resolver', 'when'] as $serviceOption) {
+        foreach (['identity_resolver'] as $serviceOption) {
             $serviceNode = $globalChildren
                 ->scalarNode($serviceOption)
                 ->cannotBeEmpty()
@@ -87,6 +121,9 @@ final class Configuration implements ConfigurationInterface
                     sprintf('%s must be a service ID string.', $serviceOption),
                 );
         }
+
+        $globalChildren->variableNode('identity')->defaultNull();
+        $globalChildren->variableNode('when')->defaultNull();
 
         $sharedBucketsNode = $rootChildren
             ->arrayNode('shared_buckets');
