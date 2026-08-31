@@ -11,8 +11,9 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
 /**
  * @internal
@@ -70,68 +71,18 @@ final readonly class RateLimitResolver
         return $resolved;
     }
 
-    private function resolveRateLimit(
-        RateLimit|SharedRateLimit $rateLimit,
-        string $operationKey,
-    ): ResolvedRateLimit {
-        if ($rateLimit instanceof RateLimit) {
-            return $this->resolveOperation(
-                rateLimit: $rateLimit,
-                operationKey: $operationKey,
-            );
-        }
-
-        return $this->resolveShared($rateLimit);
-    }
-
-    private function resolveOperation(
-        RateLimit $rateLimit,
-        string $operationKey,
-    ): ResolvedRateLimit {
-        if (trim($operationKey) === '') {
-            throw new InvalidRateLimitException(
-                'Operation key cannot be empty.',
-            );
-        }
-
-        return new ResolvedRateLimit(
-            bucket: sprintf(
-                'operation:%s',
-                $operationKey,
-            ),
-            definition: new RateLimitDefinition(
-                limit: $rateLimit->limit,
-                intervalSeconds: $this->intervalNormalizer->normalize(
-                    $rateLimit->interval,
-                ),
-                policy: $rateLimit->policy,
-            ),
-            identityResolver: $rateLimit->identityResolver === null
-                ? null
-                : $this->strategyRegistry->identityResolver(
-                    $rateLimit->identityResolver,
-                ),
-            condition: $rateLimit->when === null
-                ? null
-                : $this->strategyRegistry->condition($rateLimit->when),
-        );
-    }
-
-    private function resolveShared(
-        SharedRateLimit $rateLimit,
-    ): ResolvedRateLimit {
-        $definition = $this->sharedRateLimitRegistry->get(
-            $rateLimit->bucket,
-        );
+    private function resolveRateLimit(RateLimit $rateLimit, string $operationKey,): ResolvedRateLimit
+    {
+        $bucket = $this->resolveBucket($rateLimit, $operationKey);
+        $definition = $this->resolveDefinition($rateLimit, $bucket);
         $identityResolver = $rateLimit->identityResolver
             ?? $definition->identityResolver;
         $when = $rateLimit->when ?? $definition->when;
 
         return new ResolvedRateLimit(
-            bucket: sprintf(
-                'shared:%s',
-                $rateLimit->bucket,
-            ),
+            bucket: $rateLimit->bucket === null
+                ? sprintf('operation:%s', $bucket)
+                : sprintf('shared:%s', $bucket),
             definition: $definition,
             identityResolver: $identityResolver === null
                 ? null
@@ -141,6 +92,50 @@ final readonly class RateLimitResolver
             condition: $when === null
                 ? null
                 : $this->strategyRegistry->condition($when),
+        );
+    }
+
+    private function resolveBucket(RateLimit $rateLimit, string $operationKey,): string
+    {
+        if ($rateLimit->bucket instanceof DynamicBucket) {
+            $bucket = $this->strategyRegistry
+                ->bucketResolver($rateLimit->bucket->resolver)
+                ->resolve();
+        } else {
+            $bucket = $rateLimit->bucket ?? $operationKey;
+        }
+
+        if (trim($bucket) === '') {
+            throw new InvalidRateLimitException($rateLimit->bucket === null
+                    ? 'Operation key cannot be empty.'
+                    : 'Resolved rate limit bucket cannot be empty.',);
+        }
+
+        return $bucket;
+    }
+
+    private function resolveDefinition(RateLimit $rateLimit, string $bucket,): RateLimitDefinition
+    {
+        if ($rateLimit->limit === null) {
+            return $this->sharedRateLimitRegistry->get($bucket);
+        }
+
+        $limit = $rateLimit->limit instanceof DynamicLimit
+            ? $this->strategyRegistry
+                ->limitResolver($rateLimit->limit->resolver)
+                ->resolve()
+            : $rateLimit->limit;
+        $interval = $rateLimit->interval;
+        if ($interval === null) {
+            throw new InvalidRateLimitException(
+                'Rate limit interval cannot be omitted when a limit is set.',
+            );
+        }
+
+        return new RateLimitDefinition(
+            limit: $limit,
+            intervalSeconds: $this->intervalNormalizer->normalize($interval),
+            policy: $rateLimit->policy,
         );
     }
 }

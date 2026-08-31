@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Get;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -37,10 +36,7 @@ final class RateLimitProviderCollectionTest extends TestCase
             interval: '1 minute',
         );
 
-        $sharedRateLimit = new SharedRateLimit(
-            'catalog',
-        );
-
+        $sharedRateLimit = new RateLimit(bucket: 'catalog');
         $firstProvider = self::createMock(
             RateLimitProviderInterface::class,
         );
@@ -94,10 +90,7 @@ final class RateLimitProviderCollectionTest extends TestCase
             interval: '1 minute',
         );
 
-        $third = new SharedRateLimit(
-            'catalog',
-        );
-
+        $third = new RateLimit(bucket: 'catalog');
         $firstProvider = self::createStub(
             RateLimitProviderInterface::class,
         );

@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Merged the unreleased `SharedRateLimit` metadata API into `RateLimit` via its
+  optional `bucket`; combined metadata now accepts a list of `RateLimit` values.
 - Renamed operation metadata from `OperationRateLimit` to `RateLimit`.
 - Simplified bypass rules to `shouldBypass(): bool`.
 - Moved `RateLimiterInterface` into `Core` and marked implementation types as internal.
@@ -15,10 +17,12 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Dynamic bucket and limit metadata through `DynamicBucket`, `DynamicLimit`,
+  `BucketResolverInterface`, and `LimitResolverInterface`.
 - Optional global rate-limit configuration shared by every API Platform
   operation.
-- Support for defining `RateLimit` and `SharedRateLimit` metadata on an
-  `ApiResource`, applying it to all of the resource's operations.
+- Support for defining `RateLimit` metadata on an `ApiResource`, applying it to
+  all of the resource's operations.
 - A package-specific exception hierarchy with `RateLimiterExceptionInterface`
   as its common catch point and specific validation, identity, shared-bucket,
   metadata, and rate-limit rejection exceptions.

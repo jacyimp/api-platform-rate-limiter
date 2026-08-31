@@ -8,11 +8,6 @@ use ApiPlatform\Metadata\Operation;
 
 interface RateLimitProviderInterface
 {
-    /**
-     * @return iterable<
-     *     \JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit
-     *     |\JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit
-     * >
-     */
+    /** @return iterable<\JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit> */
     public function provide(Operation $operation): iterable;
 }

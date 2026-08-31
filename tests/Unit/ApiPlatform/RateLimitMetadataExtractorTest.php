@@ -9,7 +9,6 @@ use ApiPlatform\Metadata\Resource\Factory\AttributesResourceMetadataCollectionFa
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationLimitedResource;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\ResourceLimitedResource;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -47,13 +46,12 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
-    public function itExtractsSharedRateLimit(): void
+    public function itExtractsBucketRateLimit(): void
     {
-        $rateLimit = new SharedRateLimit('catalog');
-
+        $rateLimit = new RateLimit(bucket: 'catalog');
         $operation = new Get(
             extraProperties: [
-                SharedRateLimit::class => $rateLimit,
+                RateLimit::class => $rateLimit,
             ],
         );
 
@@ -71,12 +69,10 @@ final class RateLimitMetadataExtractorTest extends TestCase
             interval: '1 minute',
         );
 
-        $sharedRateLimit = new SharedRateLimit('catalog');
-
+        $sharedRateLimit = new RateLimit(bucket: 'catalog');
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => $rateLimit,
-                SharedRateLimit::class => $sharedRateLimit,
+                RateLimit::class => [$rateLimit, $sharedRateLimit],
             ],
         );
 
@@ -96,7 +92,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
         self::assertEquals(
             [
                 new RateLimit(limit: 100, interval: '1 minute'),
-                new SharedRateLimit('catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
             $this->extractor->extract($operation),
         );
@@ -112,7 +108,7 @@ final class RateLimitMetadataExtractorTest extends TestCase
         self::assertEquals(
             [
                 new RateLimit(limit: 10, interval: '1 second'),
-                new SharedRateLimit('operation'),
+                new RateLimit(bucket: 'operation'),
             ],
             $this->extractor->extract($operation),
         );
@@ -142,11 +138,14 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsInvalidSharedRateLimitMetadata(): void
+    public function itRejectsInvalidRateLimitList(): void
     {
         $operation = new Get(
             extraProperties: [
-                SharedRateLimit::class => 'invalid',
+                RateLimit::class => [
+                    new RateLimit(limit: 1, interval: '1 minute'),
+                    'invalid',
+                ],
             ],
         );
 

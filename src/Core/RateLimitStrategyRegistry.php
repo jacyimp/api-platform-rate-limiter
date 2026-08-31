@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
@@ -18,17 +20,50 @@ final readonly class RateLimitStrategyRegistry
 
     /** @var array<string, RateLimitConditionInterface> */
     private array $conditions;
+    /** @var array<string, BucketResolverInterface> */
+    private array $bucketResolvers;
+
+    /** @var array<string, LimitResolverInterface> */
+    private array $limitResolvers;
 
     /**
      * @param iterable<IdentityResolverInterface> $identityResolvers
      * @param iterable<RateLimitConditionInterface> $conditions
+     * @param iterable<BucketResolverInterface> $bucketResolvers
+     * @param iterable<LimitResolverInterface> $limitResolvers
      */
     public function __construct(
         iterable $identityResolvers,
         iterable $conditions,
+        iterable $bucketResolvers = [],
+        iterable $limitResolvers = [],
     ) {
         $this->identityResolvers = $this->index($identityResolvers);
         $this->conditions = $this->index($conditions);
+        $this->bucketResolvers = $this->index($bucketResolvers);
+        $this->limitResolvers = $this->index($limitResolvers);
+    }
+
+    public function bucketResolver(string $serviceId): BucketResolverInterface
+    {
+        return $this->bucketResolvers[$serviceId]
+            ?? throw new InvalidRateLimitException(sprintf(
+                'Bucket resolver service "%s" is not registered. '
+                . 'Ensure it implements %s and is autoconfigured or tagged.',
+                $serviceId,
+                BucketResolverInterface::class,
+            ));
+    }
+
+    public function limitResolver(string $serviceId): LimitResolverInterface
+    {
+        return $this->limitResolvers[$serviceId]
+            ?? throw new InvalidRateLimitException(sprintf(
+                'Limit resolver service "%s" is not registered. '
+                . 'Ensure it implements %s and is autoconfigured or tagged.',
+                $serviceId,
+                LimitResolverInterface::class,
+            ));
     }
 
     public function identityResolver(

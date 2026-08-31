@@ -21,12 +21,7 @@ final readonly class RateLimitProviderCollection
     ) {
     }
 
-    /**
-     * @return list<
-     *     \JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit
-     *     |\JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit
-     * >
-     */
+    /** @return list<\JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit> */
     public function provide(Operation $operation): array
     {
         $rateLimits = [];

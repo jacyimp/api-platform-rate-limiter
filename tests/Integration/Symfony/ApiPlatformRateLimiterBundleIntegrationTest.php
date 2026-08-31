@@ -8,7 +8,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -63,9 +62,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'shared_limited_get',
             extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit(
-                    'shared_api',
-                ),
+                RateLimit::class => new RateLimit(bucket: 'shared_api'),
             ],
         );
 
@@ -146,9 +143,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'conditional_shared_get',
             extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit(
-                    'conditional_shared',
-                ),
+                RateLimit::class => new RateLimit(bucket: 'conditional_shared',),
             ],
         );
 

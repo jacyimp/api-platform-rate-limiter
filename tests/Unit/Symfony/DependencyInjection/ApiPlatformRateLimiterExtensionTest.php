@@ -7,7 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\DependencyInjection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
@@ -151,6 +153,24 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertTrue(
             $childDefinition->hasTag(
                 ApiPlatformRateLimiterExtension::IDENTITY_RESOLVER_TAG,
+            ),
+        );
+    }
+
+    #[Test]
+    public function itAutoconfiguresDynamicValueResolvers(): void
+    {
+        $container = $this->container();
+        $autoconfiguration = $container->getAutoconfiguredInstanceof();
+
+        self::assertTrue(
+            $autoconfiguration[BucketResolverInterface::class]->hasTag(
+                ApiPlatformRateLimiterExtension::BUCKET_RESOLVER_TAG,
+            ),
+        );
+        self::assertTrue(
+            $autoconfiguration[LimitResolverInterface::class]->hasTag(
+                ApiPlatformRateLimiterExtension::LIMIT_RESOLVER_TAG,
             ),
         );
     }

@@ -8,7 +8,9 @@ use ApiPlatform\Metadata\Get;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
@@ -16,9 +18,10 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -75,9 +78,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit(
-                    'catalog',
-                ),
+                RateLimit::class => new RateLimit(bucket: 'catalog'),
             ],
         );
 
@@ -98,6 +99,75 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itResolvesConfiguredBucketFromRateLimit(): void
+    {
+        $definition = new RateLimitDefinition(
+            limit: 1_000,
+            intervalSeconds: 3_600,
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        );
+        $resolved = $this->resolver(['catalog' => $definition])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(bucket: 'catalog'),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame('shared:catalog', $resolved[0]->bucket);
+        self::assertSame($definition, $resolved[0]->definition);
+    }
+
+    #[Test]
+    public function itResolvesInlineSharedBucket(): void
+    {
+        $resolved = $this->resolver()->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 50,
+                    interval: '1 minute',
+                    bucket: 'catalog',
+                ),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame('shared:catalog', $resolved[0]->bucket);
+        self::assertSame(50, $resolved[0]->definition->limit);
+    }
+
+    #[Test]
+    public function itResolvesDynamicBucketAndLimit(): void
+    {
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return 'customer-tier';
+            }
+        };
+        $limitResolver = new class implements LimitResolverInterface {
+            public function resolve(): int
+            {
+                return 75;
+            }
+        };
+        $resolved = $this->resolver(
+            bucketResolvers: [$bucketResolver],
+            limitResolvers: [$limitResolver],
+        )->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: new DynamicLimit($limitResolver::class),
+                    interval: '1 minute',
+                    bucket: new DynamicBucket($bucketResolver::class),
+                ),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame('shared:customer-tier', $resolved[0]->bucket);
+        self::assertSame(75, $resolved[0]->definition->limit);
+    }
+    #[Test]
     public function itResolvesOperationAndSharedRateLimits(): void
     {
         $sharedDefinition = new RateLimitDefinition(
@@ -112,13 +182,10 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 100,
-                    interval: '1 minute',
-                ),
-                SharedRateLimit::class => new SharedRateLimit(
-                    'catalog',
-                ),
+                RateLimit::class => [
+                    new RateLimit(limit: 100, interval: '1 minute',),
+                    new RateLimit(bucket: 'catalog'),
+                ],
             ],
         );
 
@@ -231,7 +298,7 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $resolver->resolve(
             operation: new Get(extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit('otp'),
+                RateLimit::class => new RateLimit(bucket: 'otp'),
             ]),
             operationKey: 'otp_post',
         );
@@ -264,7 +331,7 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $resolver->resolve(
             operation: new Get(extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit(
+                RateLimit::class => new RateLimit(
                     bucket: 'otp',
                     identityResolver: $identityResolver::class,
                     when: $condition::class,
@@ -287,7 +354,7 @@ final class RateLimitResolverTest extends TestCase
         $provider
             ->method('provide')
             ->willReturn([
-                new SharedRateLimit('catalog'),
+                new RateLimit(bucket: 'catalog'),
             ]);
 
         $sharedDefinition = new RateLimitDefinition(
@@ -392,6 +459,8 @@ final class RateLimitResolverTest extends TestCase
      * @param list<RateLimitProviderInterface> $providers
      * @param list<IdentityResolverInterface> $identityResolvers
      * @param list<RateLimitConditionInterface> $conditions
+     * @param list<BucketResolverInterface> $bucketResolvers
+     * @param list<LimitResolverInterface> $limitResolvers
      */
     private function resolver(
         array $shared = [],
@@ -399,6 +468,8 @@ final class RateLimitResolverTest extends TestCase
         array $identityResolvers = [],
         array $conditions = [],
         ?RateLimitDefinition $global = null,
+        array $bucketResolvers = [],
+        array $limitResolvers = [],
     ): RateLimitResolver {
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
@@ -412,6 +483,8 @@ final class RateLimitResolverTest extends TestCase
             strategyRegistry: new RateLimitStrategyRegistry(
                 $identityResolvers,
                 $conditions,
+                $bucketResolvers,
+                $limitResolvers,
             ),
             globalRateLimit: $global,
         );

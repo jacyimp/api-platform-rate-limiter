@@ -106,9 +106,9 @@ final class Product
 }
 ```
 
-`SharedRateLimit` can be defined at resource level in the same way. Metadata
-defined on an individual operation overrides metadata of the same type inherited
-from the resource.
+Bucket-based `RateLimit` metadata can be defined at resource level in the same
+way. Metadata on an individual operation overrides inherited metadata under the
+same `RateLimit::class` key.
 
 To use a fixed window instead:
 
@@ -155,12 +155,20 @@ api_platform_rate_limiter:
 Then reference it from each operation that should share the quota:
 
 ```php
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
-
 new Get(
     extraProperties: [
-        SharedRateLimit::class => new SharedRateLimit('catalog'),
+        RateLimit::class => new RateLimit(bucket: 'catalog'),
     ],
+);
+```
+
+You can also define a shared bucket inline, without central configuration:
+
+```php
+new RateLimit(
+    limit: 1000,
+    interval: '1 minute',
+    bucket: 'catalog',
 );
 ```
 
@@ -174,11 +182,13 @@ An operation can have both its own limit and a shared limit:
 ```php
 new Get(
     extraProperties: [
-        RateLimit::class => new RateLimit(
-            limit: 20,
-            interval: '1 minute',
-        ),
-        SharedRateLimit::class => new SharedRateLimit('catalog'),
+        RateLimit::class => [
+            new RateLimit(
+                limit: 20,
+                interval: '1 minute',
+            ),
+            new RateLimit(bucket: 'catalog'),
+        ],
     ],
 );
 ```
@@ -257,10 +267,10 @@ new RateLimit(
 );
 ```
 
-The same per-operation overrides are available for a shared bucket:
+The same per-operation overrides are available for a configured shared bucket:
 
 ```php
-new SharedRateLimit(
+new RateLimit(
     bucket: 'otp',
     identityResolver: ApiKeyIdentityResolver::class,
     when: InternalRequestCondition::class,
@@ -285,17 +295,49 @@ api_platform_rate_limiter:
             when: App\RateLimit\InternalRequestCondition
 ```
 
-Symfony autoconfiguration registers both service types. If autoconfiguration is
-disabled, add the tags manually:
+## Dynamic buckets and limits
 
-```yaml
-services:
-    App\RateLimit\ApiKeyIdentityResolver:
-        tags: ['jacyimp.api_platform_rate_limiter.identity_resolver']
+Use the small descriptors when a value must be decided for each request. Their
+resolver properties are Symfony service IDs; class names are convenient when
+autoconfiguration is enabled:
 
-    App\RateLimit\InternalRequestCondition:
-        tags: ['jacyimp.api_platform_rate_limiter.condition']
+```php
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
+
+final class CustomerBucketResolver implements BucketResolverInterface
+{
+    public function resolve(): string
+    {
+        return 'customer:current';
+    }
+}
+
+final class PlanLimitResolver implements LimitResolverInterface
+{
+    public function resolve(): int
+    {
+        return 500;
+    }
+}
+
+new RateLimit(
+    limit: new DynamicLimit(PlanLimitResolver::class),
+    interval: '1 minute',
+    bucket: new DynamicBucket(CustomerBucketResolver::class),
+);
 ```
+
+A dynamic bucket with no inline `limit` and `interval` resolves the name of a
+centrally configured shared bucket. Resolvers must return a non-empty bucket and
+a positive limit. Values are resolved before enforcement and storage receive the
+limit.
+
+With autoconfiguration disabled, use
+`jacyimp.api_platform_rate_limiter.bucket_resolver` and
+`jacyimp.api_platform_rate_limiter.limit_resolver` respectively.
 
 ## Bypass rules
 

@@ -7,7 +7,6 @@ namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 
 /**
  * @internal
@@ -15,7 +14,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
 final class RateLimitMetadataExtractor
 {
     /**
-     * @return list<RateLimit|SharedRateLimit>
+     * @return list<RateLimit>
      */
     public function extract(Operation $operation): array
     {
@@ -24,37 +23,29 @@ final class RateLimitMetadataExtractor
         $rateLimits = [];
 
         if (isset($extraProperties[RateLimit::class])) {
-            $rateLimit = $extraProperties[RateLimit::class];
-
-            if (!$rateLimit instanceof RateLimit) {
-                throw new InvalidRateLimitMetadataException(
-                    sprintf(
-                        'Extra property "%s" must be an instance of %s.',
-                        RateLimit::class,
-                        RateLimit::class,
-                    ),
-                );
+            $metadata = $extraProperties[RateLimit::class];
+            $rateLimits = $metadata instanceof RateLimit
+                ? [$metadata]
+                : $metadata;
+            if (!is_array($rateLimits)) {
+                throw new InvalidRateLimitMetadataException(sprintf(
+                    'Extra property "%s" must be a %s or a list of them.',
+                    RateLimit::class,
+                    RateLimit::class,
+                ));
             }
 
-            $rateLimits[] = $rateLimit;
-        }
-
-        if (isset($extraProperties[SharedRateLimit::class])) {
-            $sharedRateLimit = $extraProperties[SharedRateLimit::class];
-
-            if (!$sharedRateLimit instanceof SharedRateLimit) {
-                throw new InvalidRateLimitMetadataException(
-                    sprintf(
-                        'Extra property "%s" must be an instance of %s.',
-                        SharedRateLimit::class,
-                        SharedRateLimit::class,
-                    ),
-                );
+            foreach ($rateLimits as $rateLimit) {
+                if (!$rateLimit instanceof RateLimit) {
+                    throw new InvalidRateLimitMetadataException(sprintf(
+                        'Extra property "%s" must contain only instances of %s.',
+                        RateLimit::class,
+                        RateLimit::class,
+                    ));
+                }
             }
-
-            $rateLimits[] = $sharedRateLimit;
         }
 
-        return $rateLimits;
+        return array_values($rateLimits);
     }
 }

@@ -7,7 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
@@ -39,11 +41,11 @@ use Symfony\Component\RateLimiter\Storage\StorageInterface;
 final class ApiPlatformRateLimiterExtension extends Extension
 {
     public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
-
+    public const BUCKET_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.bucket_resolver';
     public const CONDITION_TAG = 'jacyimp.api_platform_rate_limiter.condition';
 
     public const IDENTITY_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.identity_resolver';
-
+    public const LIMIT_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.limit_resolver';
     public const PROVIDER_TAG = 'jacyimp.api_platform_rate_limiter.provider';
 
     /**
@@ -79,7 +81,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $container
             ->registerForAutoconfiguration(RateLimitConditionInterface::class)
             ->addTag(self::CONDITION_TAG);
-
+        $container
+            ->registerForAutoconfiguration(BucketResolverInterface::class)
+            ->addTag(self::BUCKET_RESOLVER_TAG);
         $container
             ->registerForAutoconfiguration(RateLimitBypassInterface::class)
             ->addTag(self::BYPASS_TAG);
@@ -87,7 +91,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $container
             ->registerForAutoconfiguration(IdentityResolverInterface::class)
             ->addTag(self::IDENTITY_RESOLVER_TAG);
-
+        $container
+            ->registerForAutoconfiguration(LimitResolverInterface::class)
+            ->addTag(self::LIMIT_RESOLVER_TAG);
         $container
             ->registerForAutoconfiguration(RateLimitProviderInterface::class)
             ->addTag(self::PROVIDER_TAG);
@@ -117,8 +123,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
                     null,
                     true,
                 ),
+                new TaggedIteratorArgument(self::BUCKET_RESOLVER_TAG, null, null, true,),
+                new TaggedIteratorArgument(self::LIMIT_RESOLVER_TAG, null, null, true,),
             ]);
-
         $container
             ->register(SharedRateLimitRegistry::class)
             ->setArguments([
