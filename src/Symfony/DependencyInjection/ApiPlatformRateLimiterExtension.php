@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
@@ -34,6 +36,8 @@ final class ApiPlatformRateLimiterExtension extends Extension
 {
     public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
 
+    public const PROVIDER_TAG = 'jacyimp.api_platform_rate_limiter.provider';
+
     /**
      * @param array<array-key, mixed> $configs
      */
@@ -56,23 +60,25 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
-            ->registerForAutoconfiguration(
-                RateLimitBypassInterface::class,
-            )
+            ->registerForAutoconfiguration(RateLimitBypassInterface::class)
             ->addTag(self::BYPASS_TAG);
 
-        $container->register(
-            RateLimitMetadataExtractor::class,
-        );
+        $container
+            ->registerForAutoconfiguration(RateLimitProviderInterface::class)
+            ->addTag(self::PROVIDER_TAG);
 
-        $container->register(
-            IntervalNormalizer::class,
-        );
+        $container->register(RateLimitMetadataExtractor::class);
 
         $container
-            ->register(
-                SharedRateLimitRegistry::class,
-            )
+            ->register(RateLimitProviderCollection::class)
+            ->setArguments([
+                new TaggedIteratorArgument(self::PROVIDER_TAG),
+            ]);
+
+        $container->register(IntervalNormalizer::class);
+
+        $container
+            ->register(SharedRateLimitRegistry::class)
             ->setArguments([
                 $this->sharedRateLimitDefinitions(
                     $config['shared_buckets'],
@@ -80,25 +86,16 @@ final class ApiPlatformRateLimiterExtension extends Extension
             ]);
 
         $container
-            ->register(
-                RateLimitResolver::class,
-            )
+            ->register(RateLimitResolver::class)
             ->setArguments([
-                new Reference(
-                    RateLimitMetadataExtractor::class,
-                ),
-                new Reference(
-                    IntervalNormalizer::class,
-                ),
-                new Reference(
-                    SharedRateLimitRegistry::class,
-                ),
+                new Reference(RateLimitMetadataExtractor::class),
+                new Reference(RateLimitProviderCollection::class),
+                new Reference(IntervalNormalizer::class),
+                new Reference(SharedRateLimitRegistry::class),
             ]);
 
         $container
-            ->register(
-                CacheStorage::class,
-            )
+            ->register(CacheStorage::class)
             ->setArguments([
                 new Reference('cache.app'),
             ]);
@@ -109,13 +106,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
-            ->register(
-                SymfonyRateLimiter::class,
-            )
+            ->register(SymfonyRateLimiter::class)
             ->setArguments([
-                new Reference(
-                    StorageInterface::class,
-                ),
+                new Reference(StorageInterface::class),
             ]);
 
         $container->setAlias(
@@ -124,9 +117,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
-            ->register(
-                SymfonyIdentityResolver::class,
-            )
+            ->register(SymfonyIdentityResolver::class)
             ->setArguments([
                 new Reference('request_stack'),
                 new Reference(
@@ -141,13 +132,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
-            ->register(
-                RateLimitBypassChecker::class,
-            )
+            ->register(RateLimitBypassChecker::class)
             ->setArguments([
-                new TaggedIteratorArgument(
-                    self::BYPASS_TAG,
-                ),
+                new TaggedIteratorArgument(self::BYPASS_TAG),
             ]);
 
         $container->setAlias(
@@ -156,32 +143,18 @@ final class ApiPlatformRateLimiterExtension extends Extension
         );
 
         $container
-            ->register(
-                RateLimitEnforcer::class,
-            )
+            ->register(RateLimitEnforcer::class)
             ->setArguments([
-                new Reference(
-                    RateLimiterInterface::class,
-                ),
-                new Reference(
-                    IdentityResolverInterface::class,
-                ),
-                new Reference(
-                    RateLimitBypassInterface::class,
-                ),
+                new Reference(RateLimiterInterface::class),
+                new Reference(IdentityResolverInterface::class),
+                new Reference(RateLimitBypassInterface::class),
             ]);
 
         $container
-            ->register(
-                ApiPlatformRateLimitListener::class,
-            )
+            ->register(ApiPlatformRateLimitListener::class)
             ->setArguments([
-                new Reference(
-                    RateLimitResolver::class,
-                ),
-                new Reference(
-                    RateLimitEnforcer::class,
-                ),
+                new Reference(RateLimitResolver::class),
+                new Reference(RateLimitEnforcer::class),
             ])
             ->addTag(
                 'kernel.event_listener',

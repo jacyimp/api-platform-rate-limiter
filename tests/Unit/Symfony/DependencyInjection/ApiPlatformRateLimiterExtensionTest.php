@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\DependencyInjection;
 
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
@@ -35,17 +37,18 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
 
         foreach (
             [
-                     RateLimitMetadataExtractor::class,
-                     IntervalNormalizer::class,
-                     SharedRateLimitRegistry::class,
-                     RateLimitResolver::class,
-                     CacheStorage::class,
-                     SymfonyRateLimiter::class,
-                     SymfonyIdentityResolver::class,
-                     RateLimitBypassChecker::class,
-                     RateLimitEnforcer::class,
-                     ApiPlatformRateLimitListener::class,
-                 ] as $service
+                RateLimitMetadataExtractor::class,
+                RateLimitProviderCollection::class,
+                IntervalNormalizer::class,
+                SharedRateLimitRegistry::class,
+                RateLimitResolver::class,
+                CacheStorage::class,
+                SymfonyRateLimiter::class,
+                SymfonyIdentityResolver::class,
+                RateLimitBypassChecker::class,
+                RateLimitEnforcer::class,
+                ApiPlatformRateLimitListener::class,
+            ] as $service
         ) {
             self::assertTrue(
                 $container->hasDefinition($service),
@@ -92,6 +95,38 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
     }
 
     #[Test]
+    public function itAutoconfiguresRateLimitBypasses(): void
+    {
+        $container = $this->container();
+
+        $childDefinition = $container
+            ->getAutoconfiguredInstanceof()
+        [RateLimitBypassInterface::class];
+
+        self::assertTrue(
+            $childDefinition->hasTag(
+                ApiPlatformRateLimiterExtension::BYPASS_TAG,
+            ),
+        );
+    }
+
+    #[Test]
+    public function itAutoconfiguresRateLimitProviders(): void
+    {
+        $container = $this->container();
+
+        $childDefinition = $container
+            ->getAutoconfiguredInstanceof()
+        [RateLimitProviderInterface::class];
+
+        self::assertTrue(
+            $childDefinition->hasTag(
+                ApiPlatformRateLimiterExtension::PROVIDER_TAG,
+            ),
+        );
+    }
+
+    #[Test]
     public function itCollectsTaggedBypasses(): void
     {
         $container = $this->container();
@@ -105,6 +140,33 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertInstanceOf(
             TaggedIteratorArgument::class,
             $argument,
+        );
+
+        self::assertSame(
+            ApiPlatformRateLimiterExtension::BYPASS_TAG,
+            $argument->getTag(),
+        );
+    }
+
+    #[Test]
+    public function itCollectsTaggedRateLimitProviders(): void
+    {
+        $container = $this->container();
+
+        $argument = $container
+            ->getDefinition(
+                RateLimitProviderCollection::class,
+            )
+            ->getArgument(0);
+
+        self::assertInstanceOf(
+            TaggedIteratorArgument::class,
+            $argument,
+        );
+
+        self::assertSame(
+            ApiPlatformRateLimiterExtension::PROVIDER_TAG,
+            $argument->getTag(),
         );
     }
 

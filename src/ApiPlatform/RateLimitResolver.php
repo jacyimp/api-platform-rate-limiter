@@ -20,6 +20,7 @@ final readonly class RateLimitResolver
 {
     public function __construct(
         private RateLimitMetadataExtractor $metadataExtractor,
+        private RateLimitProviderCollection $providerCollection,
         private IntervalNormalizer $intervalNormalizer,
         private SharedRateLimitRegistry $sharedRateLimitRegistry,
     ) {
@@ -32,21 +33,35 @@ final readonly class RateLimitResolver
         Operation $operation,
         string $operationKey,
     ): array {
+        $rateLimits = [
+            ...$this->metadataExtractor->extract($operation),
+            ...$this->providerCollection->provide($operation),
+        ];
+
         $resolved = [];
 
-        foreach ($this->metadataExtractor->extract($operation) as $rateLimit) {
-            $resolved[] = match (true) {
-                $rateLimit instanceof RateLimit => $this->resolveOperation(
-                    rateLimit: $rateLimit,
-                    operationKey: $operationKey,
-                ),
-                $rateLimit instanceof SharedRateLimit => $this->resolveShared(
-                    $rateLimit,
-                ),
-            };
+        foreach ($rateLimits as $rateLimit) {
+            $resolved[] = $this->resolveRateLimit(
+                rateLimit: $rateLimit,
+                operationKey: $operationKey,
+            );
         }
 
         return $resolved;
+    }
+
+    private function resolveRateLimit(
+        RateLimit|SharedRateLimit $rateLimit,
+        string $operationKey,
+    ): ResolvedRateLimit {
+        if ($rateLimit instanceof RateLimit) {
+            return $this->resolveOperation(
+                rateLimit: $rateLimit,
+                operationKey: $operationKey,
+            );
+        }
+
+        return $this->resolveShared($rateLimit);
     }
 
     private function resolveOperation(
@@ -60,7 +75,10 @@ final readonly class RateLimitResolver
         }
 
         return new ResolvedRateLimit(
-            bucket: sprintf('operation:%s', $operationKey),
+            bucket: sprintf(
+                'operation:%s',
+                $operationKey,
+            ),
             definition: new RateLimitDefinition(
                 limit: $rateLimit->limit,
                 intervalSeconds: $this->intervalNormalizer->normalize(
@@ -75,7 +93,10 @@ final readonly class RateLimitResolver
         SharedRateLimit $rateLimit,
     ): ResolvedRateLimit {
         return new ResolvedRateLimit(
-            bucket: sprintf('shared:%s', $rateLimit->bucket),
+            bucket: sprintf(
+                'shared:%s',
+                $rateLimit->bucket,
+            ),
             definition: $this->sharedRateLimitRegistry->get(
                 $rateLimit->bucket,
             ),

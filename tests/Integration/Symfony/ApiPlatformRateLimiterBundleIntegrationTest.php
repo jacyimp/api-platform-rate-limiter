@@ -76,6 +76,21 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $this->assertRateLimited($operation);
     }
 
+    #[Test]
+    public function itEnforcesManuallyTaggedProviderThroughSymfonyKernel(): void
+    {
+        $operation = new Get(
+            name: 'manual_provider_get',
+        );
+
+        self::assertSame(
+            200,
+            $this->handle($operation)->getStatusCode(),
+        );
+
+        $this->assertRateLimited($operation);
+    }
+
     private function assertRateLimited(
         Operation $operation,
     ): void {

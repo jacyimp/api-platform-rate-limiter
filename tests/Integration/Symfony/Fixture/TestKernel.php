@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture;
 
 use JacyImp\ApiPlatformRateLimiter\Symfony\ApiPlatformRateLimiterBundle;
+use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -50,10 +51,17 @@ final class TestKernel extends Kernel
             ],
         );
 
-        $container
-            ->services()
+        $services = $container->services();
+
+        $services
             ->set(LimitedController::class)
             ->public();
+
+        $services
+            ->set(ManualRateLimitProvider::class)
+            ->tag(
+                ApiPlatformRateLimiterExtension::PROVIDER_TAG,
+            );
     }
 
     protected function configureRoutes(

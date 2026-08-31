@@ -7,7 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 use ApiPlatform\Metadata\Get;
 use InvalidArgumentException;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
@@ -45,8 +47,14 @@ final class RateLimitResolverTest extends TestCase
             'operation:product_get',
             $resolved[0]->bucket,
         );
-        self::assertSame(100, $resolved[0]->definition->limit);
-        self::assertSame(60, $resolved[0]->definition->intervalSeconds);
+        self::assertSame(
+            100,
+            $resolved[0]->definition->limit,
+        );
+        self::assertSame(
+            60,
+            $resolved[0]->definition->intervalSeconds,
+        );
     }
 
     #[Test]
@@ -64,7 +72,9 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                SharedRateLimit::class => new SharedRateLimit('catalog'),
+                SharedRateLimit::class => new SharedRateLimit(
+                    'catalog',
+                ),
             ],
         );
 
@@ -74,8 +84,14 @@ final class RateLimitResolverTest extends TestCase
         );
 
         self::assertCount(1, $resolved);
-        self::assertSame('shared:catalog', $resolved[0]->bucket);
-        self::assertSame($definition, $resolved[0]->definition);
+        self::assertSame(
+            'shared:catalog',
+            $resolved[0]->bucket,
+        );
+        self::assertSame(
+            $definition,
+            $resolved[0]->definition,
+        );
     }
 
     #[Test]
@@ -97,7 +113,9 @@ final class RateLimitResolverTest extends TestCase
                     limit: 100,
                     interval: '1 minute',
                 ),
-                SharedRateLimit::class => new SharedRateLimit('catalog'),
+                SharedRateLimit::class => new SharedRateLimit(
+                    'catalog',
+                ),
             ],
         );
 
@@ -107,8 +125,107 @@ final class RateLimitResolverTest extends TestCase
         );
 
         self::assertCount(2, $resolved);
-        self::assertSame('operation:product_get', $resolved[0]->bucket);
-        self::assertSame('shared:catalog', $resolved[1]->bucket);
+        self::assertSame(
+            'operation:product_get',
+            $resolved[0]->bucket,
+        );
+        self::assertSame(
+            'shared:catalog',
+            $resolved[1]->bucket,
+        );
+    }
+
+    #[Test]
+    public function itResolvesProviderRateLimits(): void
+    {
+        $providedRateLimit = new RateLimit(
+            limit: 25,
+            interval: '1 minute',
+        );
+
+        $provider = self::createStub(
+            RateLimitProviderInterface::class,
+        );
+
+        $provider
+            ->method('provide')
+            ->willReturn([
+                $providedRateLimit,
+            ]);
+
+        $resolver = $this->resolver(
+            providers: [
+                $provider,
+            ],
+        );
+
+        $resolved = $resolver->resolve(
+            operation: new Get(),
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+        self::assertSame(
+            'operation:product_get',
+            $resolved[0]->bucket,
+        );
+        self::assertSame(
+            25,
+            $resolved[0]->definition->limit,
+        );
+    }
+
+    #[Test]
+    public function itResolvesMetadataBeforeProviderRateLimits(): void
+    {
+        $provider = self::createStub(
+            RateLimitProviderInterface::class,
+        );
+
+        $provider
+            ->method('provide')
+            ->willReturn([
+                new SharedRateLimit('catalog'),
+            ]);
+
+        $sharedDefinition = new RateLimitDefinition(
+            limit: 1_000,
+            intervalSeconds: 3_600,
+            policy: RateLimitPolicy::SLIDING_WINDOW,
+        );
+
+        $resolver = $this->resolver(
+            shared: [
+                'catalog' => $sharedDefinition,
+            ],
+            providers: [
+                $provider,
+            ],
+        );
+
+        $operation = new Get(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 100,
+                    interval: '1 minute',
+                ),
+            ],
+        );
+
+        $resolved = $resolver->resolve(
+            operation: $operation,
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(2, $resolved);
+        self::assertSame(
+            'operation:product_get',
+            $resolved[0]->bucket,
+        );
+        self::assertSame(
+            'shared:catalog',
+            $resolved[1]->bucket,
+        );
     }
 
     #[Test]
@@ -135,7 +252,10 @@ final class RateLimitResolverTest extends TestCase
             ],
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(
+            InvalidArgumentException::class,
+        );
+
         $this->expectExceptionMessage(
             'Operation key cannot be empty.',
         );
@@ -148,13 +268,21 @@ final class RateLimitResolverTest extends TestCase
 
     /**
      * @param array<string, RateLimitDefinition> $shared
+     * @param list<RateLimitProviderInterface> $providers
      */
-    private function resolver(array $shared = []): RateLimitResolver
-    {
+    private function resolver(
+        array $shared = [],
+        array $providers = [],
+    ): RateLimitResolver {
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
+            providerCollection: new RateLimitProviderCollection(
+                $providers,
+            ),
             intervalNormalizer: new IntervalNormalizer(),
-            sharedRateLimitRegistry: new SharedRateLimitRegistry($shared),
+            sharedRateLimitRegistry: new SharedRateLimitRegistry(
+                $shared,
+            ),
         );
     }
 }

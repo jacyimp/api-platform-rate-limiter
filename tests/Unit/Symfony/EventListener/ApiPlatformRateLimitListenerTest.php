@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Get;
 use DateTimeImmutable;
 use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
@@ -229,6 +230,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
         return new ApiPlatformRateLimitListener(
             rateLimitResolver: new RateLimitResolver(
                 metadataExtractor: new RateLimitMetadataExtractor(),
+                providerCollection: new RateLimitProviderCollection([]),
                 intervalNormalizer: new IntervalNormalizer(),
                 sharedRateLimitRegistry: new SharedRateLimitRegistry([]),
             ),
