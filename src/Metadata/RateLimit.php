@@ -16,6 +16,7 @@ final readonly class RateLimit
         public ?string $identityResolver = null,
         public ?string $when = null,
         public string|DynamicBucket|null $bucket = null,
+        public int|DynamicCost $cost = 1,
     ) {
         if (is_int($limit) && $limit < 1) {
             throw new InvalidRateLimitException(
@@ -38,6 +39,12 @@ final readonly class RateLimit
         if (is_string($bucket) && trim($bucket) === '') {
             throw new InvalidRateLimitException(
                 'Rate limit bucket cannot be empty.',
+            );
+        }
+
+        if (is_int($cost) && $cost < 1) {
+            throw new InvalidRateLimitException(
+                'Rate limit cost must be greater than zero.',
             );
         }
 

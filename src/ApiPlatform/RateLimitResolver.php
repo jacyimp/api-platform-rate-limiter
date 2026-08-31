@@ -12,6 +12,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
@@ -92,7 +93,19 @@ final readonly class RateLimitResolver
             condition: $when === null
                 ? null
                 : $this->strategyRegistry->condition($when),
+            cost: $this->resolveCost($rateLimit),
         );
+    }
+
+    private function resolveCost(RateLimit $rateLimit): int
+    {
+        if (!$rateLimit->cost instanceof DynamicCost) {
+            return $rateLimit->cost;
+        }
+
+        return $this->strategyRegistry
+            ->costResolver($rateLimit->cost->resolver)
+            ->resolve();
     }
 
     private function resolveBucket(RateLimit $rateLimit, string $operationKey,): string

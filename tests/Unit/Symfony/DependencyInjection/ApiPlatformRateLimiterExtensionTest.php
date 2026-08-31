@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
@@ -171,6 +172,11 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertTrue(
             $autoconfiguration[LimitResolverInterface::class]->hasTag(
                 ApiPlatformRateLimiterExtension::LIMIT_RESOLVER_TAG,
+            ),
+        );
+        self::assertTrue(
+            $autoconfiguration[DynamicCostResolverInterface::class]->hasTag(
+                ApiPlatformRateLimiterExtension::COST_RESOLVER_TAG,
             ),
         );
     }

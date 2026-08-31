@@ -175,6 +175,41 @@ new RateLimit(
 The `policy` setting is optional and defaults to `sliding_window`. Supported
 values are `sliding_window` and `fixed_window`.
 
+## Consume weighted tokens
+
+Set `cost` when a request should consume more than one token. It defaults to
+`1` and must be a positive integer:
+
+```php
+new RateLimit(
+    limit: 100,
+    interval: '1 minute',
+    cost: 5,
+);
+```
+
+Costs are per `RateLimit`, not per bucket. This lets operations consume
+different token amounts from the same shared bucket:
+
+```php
+new Get(
+    name: 'product_get',
+    extraProperties: [
+        RateLimit::class => new RateLimit(bucket: 'catalog', cost: 1),
+    ],
+);
+
+new Get(
+    name: 'product_export',
+    extraProperties: [
+        RateLimit::class => new RateLimit(bucket: 'catalog', cost: 10),
+    ],
+);
+```
+
+The cost does not affect the storage key; both operations consume from the
+same `catalog` quota for the resolved identity.
+
 ## Combine limits
 
 An operation can have both its own limit and a shared limit:
@@ -295,7 +330,7 @@ api_platform_rate_limiter:
             when: App\RateLimit\InternalRequestCondition
 ```
 
-## Dynamic buckets and limits
+## Dynamic buckets, limits, and costs
 
 Use the small descriptors when a value must be decided for each request. Their
 resolver properties are Symfony service IDs; class names are convenient when
@@ -303,8 +338,10 @@ autoconfiguration is enabled:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 
 final class CustomerBucketResolver implements BucketResolverInterface
@@ -323,21 +360,31 @@ final class PlanLimitResolver implements LimitResolverInterface
     }
 }
 
+final class RequestCostResolver implements DynamicCostResolverInterface
+{
+    public function resolve(): int
+    {
+        return 5;
+    }
+}
+
 new RateLimit(
     limit: new DynamicLimit(PlanLimitResolver::class),
     interval: '1 minute',
     bucket: new DynamicBucket(CustomerBucketResolver::class),
+    cost: new DynamicCost(RequestCostResolver::class),
 );
 ```
 
 A dynamic bucket with no inline `limit` and `interval` resolves the name of a
 centrally configured shared bucket. Resolvers must return a non-empty bucket and
-a positive limit. Values are resolved before enforcement and storage receive the
-limit.
+a positive limit and cost. Values are resolved before enforcement; storage
+receives the resolved limit and enforcement consumes the resolved cost.
 
 With autoconfiguration disabled, use
 `jacyimp.api_platform_rate_limiter.bucket_resolver` and
-`jacyimp.api_platform_rate_limiter.limit_resolver` respectively.
+`jacyimp.api_platform_rate_limiter.limit_resolver`, and
+`jacyimp.api_platform_rate_limiter.cost_resolver` respectively.
 
 ## Bypass rules
 

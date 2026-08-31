@@ -18,10 +18,18 @@ final readonly class ResolvedRateLimit
         public RateLimitDefinition $definition,
         public ?IdentityResolverInterface $identityResolver = null,
         public ?RateLimitConditionInterface $condition = null,
+        public int $cost = 1,
     ) {
         if (trim($bucket) === '') {
             throw new InvalidRateLimitException(
                 'Rate limit bucket cannot be empty.',
+            );
+        }
+
+
+        if ($cost < 1) {
+            throw new InvalidRateLimitException(
+                'Resolved rate limit cost must be greater than zero.',
             );
         }
     }

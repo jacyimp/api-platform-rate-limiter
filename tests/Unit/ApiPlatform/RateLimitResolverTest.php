@@ -9,6 +9,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
@@ -19,6 +20,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -166,6 +168,61 @@ final class RateLimitResolverTest extends TestCase
 
         self::assertSame('shared:customer-tier', $resolved[0]->bucket);
         self::assertSame(75, $resolved[0]->definition->limit);
+    }
+
+    #[Test]
+    public function itResolvesStaticAndDynamicCosts(): void
+    {
+        $costResolver = new class implements DynamicCostResolverInterface {
+            public function resolve(): int
+            {
+                return 4;
+            }
+        };
+
+        $resolved = $this->resolver(costResolvers: [$costResolver])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => [
+                    new RateLimit(limit: 10, interval: '1 minute', cost: 2,),
+                    new RateLimit(
+                        limit: 20,
+                        interval: '1 minute',
+                        cost: new DynamicCost($costResolver::class),
+                    ),
+                ],
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame(2, $resolved[0]->cost);
+        self::assertSame(4, $resolved[1]->cost);
+    }
+
+    #[Test]
+    public function itRejectsInvalidResolvedDynamicCost(): void
+    {
+        $costResolver = new class implements DynamicCostResolverInterface {
+            public function resolve(): int
+            {
+                return 0;
+            }
+        };
+
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Resolved rate limit cost must be greater than zero.',
+        );
+
+        $this->resolver(costResolvers: [$costResolver])->resolve(
+            operation: new Get(extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 10,
+                    interval: '1 minute',
+                    cost: new DynamicCost($costResolver::class),
+                ),
+            ]),
+            operationKey: 'product_get',
+        );
     }
     #[Test]
     public function itResolvesOperationAndSharedRateLimits(): void
@@ -461,6 +518,7 @@ final class RateLimitResolverTest extends TestCase
      * @param list<RateLimitConditionInterface> $conditions
      * @param list<BucketResolverInterface> $bucketResolvers
      * @param list<LimitResolverInterface> $limitResolvers
+     * @param list<DynamicCostResolverInterface> $costResolvers
      */
     private function resolver(
         array $shared = [],
@@ -470,6 +528,7 @@ final class RateLimitResolverTest extends TestCase
         ?RateLimitDefinition $global = null,
         array $bucketResolvers = [],
         array $limitResolvers = [],
+        array $costResolvers = [],
     ): RateLimitResolver {
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
@@ -485,6 +544,7 @@ final class RateLimitResolverTest extends TestCase
                 $conditions,
                 $bucketResolvers,
                 $limitResolvers,
+                $costResolvers,
             ),
             globalRateLimit: $global,
         );

@@ -7,7 +7,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedCostResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -72,6 +74,33 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         );
 
         $this->assertRateLimited($operation);
+    }
+
+    #[Test]
+    public function itConsumesDifferentCostsFromOneSharedBucket(): void
+    {
+        $lowerCostOperation = new Get(
+            name: 'weighted_shared_lower_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    bucket: 'weighted_shared',
+                    cost: 2,
+                ),
+            ],
+        );
+        $dynamicCostOperation = new Get(
+            name: 'weighted_shared_dynamic_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    bucket: 'weighted_shared',
+                    cost: new DynamicCost(FixedCostResolver::class),
+                ),
+            ],
+        );
+
+        self::assertSame(200, $this->handle($lowerCostOperation)->getStatusCode());
+        self::assertSame(200, $this->handle($dynamicCostOperation)->getStatusCode());
+        $this->assertRateLimited($lowerCostOperation, '1');
     }
 
     #[Test]
@@ -171,6 +200,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
 
     private function assertRateLimited(
         Operation $operation,
+        string $remaining = '0',
     ): void {
         try {
             $this->handle($operation);
@@ -195,7 +225,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
             );
 
             self::assertSame(
-                '0',
+                $remaining,
                 $exception->getHeaders()['RateLimit-Remaining'],
             );
         }

@@ -17,6 +17,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Weighted token consumption through the per-limit `cost` option, including
+  dynamic costs resolved by `DynamicCostResolverInterface` services.
 - Dynamic bucket and limit metadata through `DynamicBucket`, `DynamicLimit`,
   `BucketResolverInterface`, and `LimitResolverInterface`.
 - Optional global rate-limit configuration shared by every API Platform

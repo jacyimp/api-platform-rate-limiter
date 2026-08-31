@@ -59,6 +59,10 @@ final class TestKernel extends Kernel
                     'identity_resolver' => FixedIdentityResolver::class,
                     'when' => 'test.never_apply',
                 ],
+                'weighted_shared' => [
+                    'limit' => 5,
+                    'interval' => '1 minute',
+                ],
             ],
         ];
 
@@ -88,6 +92,10 @@ final class TestKernel extends Kernel
 
         $services
             ->set(FixedIdentityResolver::class)
+            ->autoconfigure();
+
+        $services
+            ->set(FixedCostResolver::class)
             ->autoconfigure();
 
         $services

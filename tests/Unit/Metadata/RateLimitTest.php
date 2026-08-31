@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -97,6 +98,33 @@ final class RateLimitTest extends TestCase
         $rateLimit = new RateLimit(limit: $limit, interval: '1 minute', bucket: $bucket,);
         self::assertSame($limit, $rateLimit->limit);
         self::assertSame($bucket, $rateLimit->bucket);
+    }
+
+    #[Test]
+    public function itAcceptsStaticAndDynamicCosts(): void
+    {
+        $dynamicCost = new DynamicCost('app.cost_resolver');
+
+        self::assertSame(3, new RateLimit(limit: 10, interval: '1 minute', cost: 3,)->cost);
+        self::assertSame(
+            $dynamicCost,
+            new RateLimit(limit: 10, interval: '1 minute', cost: $dynamicCost,)->cost,
+        );
+    }
+
+    #[Test]
+    public function itDefaultsCostToOne(): void
+    {
+        self::assertSame(1, new RateLimit(limit: 10, interval: '1 minute',)->cost);
+    }
+
+    #[Test]
+    public function itRejectsInvalidStaticCost(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Rate limit cost must be greater than zero.');
+
+        new RateLimit(limit: 10, interval: '1 minute', cost: 0,);
     }
 
     #[Test]

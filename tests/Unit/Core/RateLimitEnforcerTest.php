@@ -80,6 +80,35 @@ final class RateLimitEnforcerTest extends TestCase
     }
 
     #[Test]
+    public function itConsumesTheResolvedCost(): void
+    {
+        $rateLimit = $this->rateLimit(cost: 3);
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $identityResolver->method('resolve')->willReturn('user:123');
+        $bypass = self::createStub(RateLimitBypassInterface::class);
+        $bypass->method('shouldBypass')->willReturn(false);
+
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::once())
+            ->method('consume')
+            ->with($rateLimit, 'user:123', 3)
+            ->willReturn(new RateLimitResult(
+                accepted: true,
+                remaining: 7,
+                retryAfter: new DateTimeImmutable('+1 minute'),
+            ));
+
+        $enforcer = new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $bypass,
+            eventDispatcher: new EventDispatcher(),
+        );
+
+        self::assertTrue($enforcer->enforce([$rateLimit])->isAccepted());
+    }
+
+    #[Test]
     public function itSkipsBypassedRateLimit(): void
     {
         $rateLimit = $this->rateLimit();
@@ -461,6 +490,7 @@ final class RateLimitEnforcerTest extends TestCase
         string $bucket = 'operation:product_get',
         ?IdentityResolverInterface $identityResolver = null,
         ?RateLimitConditionInterface $condition = null,
+        int $cost = 1,
     ): ResolvedRateLimit {
         return new ResolvedRateLimit(
             bucket: $bucket,
@@ -471,6 +501,7 @@ final class RateLimitEnforcerTest extends TestCase
             ),
             identityResolver: $identityResolver,
             condition: $condition,
+            cost: $cost,
         );
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
@@ -26,22 +27,39 @@ final readonly class RateLimitStrategyRegistry
     /** @var array<string, LimitResolverInterface> */
     private array $limitResolvers;
 
+    /** @var array<string, DynamicCostResolverInterface> */
+    private array $costResolvers;
+
     /**
      * @param iterable<IdentityResolverInterface> $identityResolvers
      * @param iterable<RateLimitConditionInterface> $conditions
      * @param iterable<BucketResolverInterface> $bucketResolvers
      * @param iterable<LimitResolverInterface> $limitResolvers
+     * @param iterable<DynamicCostResolverInterface> $costResolvers
      */
     public function __construct(
         iterable $identityResolvers,
         iterable $conditions,
         iterable $bucketResolvers = [],
         iterable $limitResolvers = [],
+        iterable $costResolvers = [],
     ) {
         $this->identityResolvers = $this->index($identityResolvers);
         $this->conditions = $this->index($conditions);
         $this->bucketResolvers = $this->index($bucketResolvers);
         $this->limitResolvers = $this->index($limitResolvers);
+        $this->costResolvers = $this->index($costResolvers);
+    }
+
+    public function costResolver(string $serviceId): DynamicCostResolverInterface
+    {
+        return $this->costResolvers[$serviceId]
+            ?? throw new InvalidRateLimitException(sprintf(
+                'Cost resolver service "%s" is not registered. '
+                . 'Ensure it implements %s and is autoconfigured or tagged.',
+                $serviceId,
+                DynamicCostResolverInterface::class,
+            ));
     }
 
     public function bucketResolver(string $serviceId): BucketResolverInterface

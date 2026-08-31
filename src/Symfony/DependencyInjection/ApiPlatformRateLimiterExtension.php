@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\DynamicCostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
@@ -43,6 +44,8 @@ final class ApiPlatformRateLimiterExtension extends Extension
     public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
     public const BUCKET_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.bucket_resolver';
     public const CONDITION_TAG = 'jacyimp.api_platform_rate_limiter.condition';
+
+    public const COST_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.cost_resolver';
 
     public const IDENTITY_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.identity_resolver';
     public const LIMIT_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.limit_resolver';
@@ -85,6 +88,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
             ->registerForAutoconfiguration(BucketResolverInterface::class)
             ->addTag(self::BUCKET_RESOLVER_TAG);
         $container
+            ->registerForAutoconfiguration(DynamicCostResolverInterface::class)
+            ->addTag(self::COST_RESOLVER_TAG);
+        $container
             ->registerForAutoconfiguration(RateLimitBypassInterface::class)
             ->addTag(self::BYPASS_TAG);
 
@@ -125,6 +131,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 ),
                 new TaggedIteratorArgument(self::BUCKET_RESOLVER_TAG, null, null, true,),
                 new TaggedIteratorArgument(self::LIMIT_RESOLVER_TAG, null, null, true,),
+                new TaggedIteratorArgument(self::COST_RESOLVER_TAG, null, null, true,),
             ]);
         $container
             ->register(SharedRateLimitRegistry::class)

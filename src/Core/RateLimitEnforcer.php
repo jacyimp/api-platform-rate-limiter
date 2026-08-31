@@ -65,6 +65,7 @@ final readonly class RateLimitEnforcer
             $result = $this->rateLimiter->consume(
                 rateLimit: $rateLimit,
                 identity: $identity,
+                tokens: $rateLimit->cost,
             );
 
             $consumptions[] = new RateLimitConsumption(
