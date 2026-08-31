@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Resource\Factory\AttributesResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\SharedRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationLimitedResource;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\ResourceLimitedResource;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -79,6 +82,38 @@ final class RateLimitMetadataExtractorTest extends TestCase
 
         self::assertSame(
             [$rateLimit, $sharedRateLimit],
+            $this->extractor->extract($operation),
+        );
+    }
+
+    #[Test]
+    public function itExtractsRateLimitsDefinedOnTheResource(): void
+    {
+        $metadata = (new AttributesResourceMetadataCollectionFactory())
+            ->create(ResourceLimitedResource::class);
+        $operation = $metadata->getOperation('resource_limited_get');
+
+        self::assertEquals(
+            [
+                new RateLimit(limit: 100, interval: '1 minute'),
+                new SharedRateLimit('catalog'),
+            ],
+            $this->extractor->extract($operation),
+        );
+    }
+
+    #[Test]
+    public function itPrefersOperationRateLimitsOverResourceRateLimits(): void
+    {
+        $metadata = (new AttributesResourceMetadataCollectionFactory())
+            ->create(OperationLimitedResource::class);
+        $operation = $metadata->getOperation('operation_limited_get');
+
+        self::assertEquals(
+            [
+                new RateLimit(limit: 10, interval: '1 second'),
+                new SharedRateLimit('operation'),
+            ],
             $this->extractor->extract($operation),
         );
     }

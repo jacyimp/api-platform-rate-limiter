@@ -15,6 +15,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Support for defining `RateLimit` and `SharedRateLimit` metadata on an
+  `ApiResource`, applying it to all of the resource's operations.
 - A package-specific exception hierarchy with `RateLimiterExceptionInterface`
   as its common catch point and specific validation, identity, shared-bucket,
   metadata, and rate-limit rejection exceptions.

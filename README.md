@@ -69,6 +69,27 @@ final class Product
 This allows each resolved identity 100 requests per minute for this operation.
 The default policy is `sliding_window`.
 
+To apply the same limit to every operation of a resource, define it on the
+`ApiResource` instead:
+
+```php
+#[ApiResource(
+    extraProperties: [
+        RateLimit::class => new RateLimit(
+            limit: 100,
+            interval: '1 minute',
+        ),
+    ],
+)]
+final class Product
+{
+}
+```
+
+`SharedRateLimit` can be defined at resource level in the same way. Metadata
+defined on an individual operation overrides metadata of the same type inherited
+from the resource.
+
 To use a fixed window instead:
 
 ```php
