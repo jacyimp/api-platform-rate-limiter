@@ -109,17 +109,17 @@ final class RateLimitTest extends TestCase
     {
         $dynamicCost = new DynamicCost('app.cost_resolver');
 
-        self::assertSame(3, new RateLimit(limit: 10, interval: '1 minute', cost: 3,)->cost);
+        self::assertSame(3, (new RateLimit(limit: 10, interval: '1 minute', cost: 3,))->cost);
         self::assertSame(
             $dynamicCost,
-            new RateLimit(limit: 10, interval: '1 minute', cost: $dynamicCost,)->cost,
+            (new RateLimit(limit: 10, interval: '1 minute', cost: $dynamicCost,))->cost,
         );
     }
 
     #[Test]
     public function itDefaultsCostToOne(): void
     {
-        self::assertSame(1, new RateLimit(limit: 10, interval: '1 minute',)->cost);
+        self::assertSame(1, (new RateLimit(limit: 10, interval: '1 minute',))->cost);
     }
 
     #[Test]
