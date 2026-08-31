@@ -111,10 +111,10 @@ final class IdentityExpressionEvaluatorTest extends TestCase
     #[Test]
     public function itUsesCollisionSafeCompositeEncoding(): void
     {
-        $first = $this->evaluator(['a' => 'a|b', 'b' => 'c'])->evaluate(
+        $first = $this->evaluator(['a' => 'a', 'b' => 'bc'])->evaluate(
             new CompositeIdentity([new Identity('a'), new Identity('b')]),
         );
-        $second = $this->evaluator(['a' => 'a', 'b' => 'b|c'])->evaluate(
+        $second = $this->evaluator(['a' => 'ab', 'b' => 'c'])->evaluate(
             new CompositeIdentity([new Identity('a'), new Identity('b')]),
         );
 

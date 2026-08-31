@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Symfony;
 
+use JacyImp\ApiPlatformRateLimiter\Core\LimiterStorageKey;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
@@ -55,7 +56,7 @@ final readonly class SymfonyRateLimiter implements RateLimiterInterface
 
         $result = $factory
             ->create(
-                $this->storageKey(
+                LimiterStorageKey::for(
                     rateLimit: $rateLimit,
                     identity: $identity,
                 ),
@@ -66,24 +67,6 @@ final readonly class SymfonyRateLimiter implements RateLimiterInterface
             accepted: $result->isAccepted(),
             remaining: $result->getRemainingTokens(),
             retryAfter: $result->getRetryAfter(),
-        );
-    }
-
-    private function storageKey(
-        ResolvedRateLimit $rateLimit,
-        string $identity,
-    ): string {
-        $definition = $rateLimit->definition;
-
-        return hash(
-            'sha256',
-            implode("\0", [
-                $rateLimit->bucket,
-                $identity,
-                $definition->policy->value,
-                (string) $definition->limit,
-                (string) $definition->intervalSeconds,
-            ]),
         );
     }
 }

@@ -8,6 +8,9 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Formalized persisted counter identity as the collision-safe tuple of final
+  bucket, resolved identity, policy, limit, and normalized interval. Dynamic
+  definition changes select separate state, while request cost does not.
 - Renamed `DynamicCostResolverInterface` to `CostResolverInterface`, matching
   `BucketResolverInterface` and `LimitResolverInterface`.
 - Reordered advanced `RateLimit` constructor options to `bucket`, `cost`,

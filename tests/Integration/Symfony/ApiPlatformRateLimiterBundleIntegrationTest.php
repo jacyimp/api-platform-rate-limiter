@@ -64,8 +64,14 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
     #[Test]
     public function itEnforcesSharedRateLimitThroughSymfonyKernel(): void
     {
-        $operation = new Get(
-            name: 'shared_limited_get',
+        $firstOperation = new Get(
+            name: 'shared_limited_first_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(bucket: 'shared_api'),
+            ],
+        );
+        $secondOperation = new Get(
+            name: 'shared_limited_second_get',
             extraProperties: [
                 RateLimit::class => new RateLimit(bucket: 'shared_api'),
             ],
@@ -73,10 +79,31 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
 
         self::assertSame(
             200,
-            $this->handle($operation)->getStatusCode(),
+            $this->handle($firstOperation)->getStatusCode(),
         );
 
-        $this->assertRateLimited($operation);
+        $this->assertRateLimited($secondOperation);
+    }
+
+    #[Test]
+    public function itIsolatesOperationLocalLimits(): void
+    {
+        $firstOperation = new Get(
+            name: 'local_first_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(1, '1 minute'),
+            ],
+        );
+        $secondOperation = new Get(
+            name: 'local_second_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(1, '1 minute'),
+            ],
+        );
+
+        self::assertSame(200, $this->handle($firstOperation)->getStatusCode());
+        self::assertSame(200, $this->handle($secondOperation)->getStatusCode());
+        $this->assertRateLimited($firstOperation);
     }
 
     #[Test]

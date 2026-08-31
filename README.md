@@ -492,6 +492,14 @@ centrally configured shared bucket. Resolvers must return a non-empty bucket and
 a positive limit and cost. Values are resolved before enforcement; storage
 receives the resolved limit and enforcement consumes the resolved cost.
 
+The resolved values define counter identity. Repeated resolutions of the same
+dynamic bucket reuse a counter, while different bucket values partition it.
+A change in a dynamic limit selects a different counter; returning to a
+previous limit resumes that limit's existing counter. The same rule applies to
+any interval or policy value resolved dynamically by future metadata support.
+Dynamic cost is deliberately different: it never selects a counter and only
+controls how many tokens the request consumes from the selected counter.
+
 With autoconfiguration disabled, use
 `jacyimp.api_platform_rate_limiter.bucket_resolver` and
 `jacyimp.api_platform_rate_limiter.limit_resolver`, and
@@ -607,6 +615,37 @@ api_platform_rate_limiter:
 The service must implement Symfony's `StorageInterface`; the package does not
 replace Symfony's generic interface alias. In a multi-instance
 deployment, configure that pool to use shared storage such as Redis.
+
+### Counter identity
+
+A persisted limiter counter is identified by exactly this concrete tuple:
+
+```text
+(final bucket, resolved identity, policy, limit, normalized interval seconds)
+```
+
+The tuple is encoded with collision-safe component boundaries and hashed before
+it is passed to Symfony RateLimiter storage. Equal tuples share state; a change
+to any tuple component selects distinct state. In particular, changing a
+dynamic `limit`, interval, or policy does not reinterpret or reset an
+incompatible counter. Returning to an earlier complete tuple resumes its
+previous persisted state until that state expires.
+
+Request `cost` is not part of counter identity: costs `1` and `10` consume one
+and ten tokens from the same counter when the tuple above matches. Resolver
+service IDs, conditions, unresolved metadata, and operation path, method, or
+name are not separately appended to shared or global keys. Operation metadata
+matters only when the operation key creates the final local bucket namespace:
+
+- operation-local limits use `operation:<operation key>` and remain isolated;
+- shared limits use `shared:<resolved bucket>` across every referencing
+  operation;
+- named globals use `global:<name>`, with dynamic partitions nested as
+  `global:<name>:<resolved bucket>`.
+
+Consequently, a shared and a global bucket with similar human-facing names do
+not share state, and dynamic global partitions such as `global:api:free` and
+`global:api:premium` remain independent.
 
 ## Lifecycle events
 
