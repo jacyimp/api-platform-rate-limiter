@@ -58,6 +58,7 @@
     },
     "require-dev": {
         "api-platform/laravel": "^4.2 || ^4.3",
+        "behat/behat": "^3.32",
         "laravel/framework": "^11.0 || ^12.0 || ^13.0",
         "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
         "paragonie/random_compat": "^9.99",
@@ -68,8 +69,7 @@
         "phpunit/phpunit": "^11.5.50",
         "slevomat/coding-standard": "^8.31",
         "squizlabs/php_codesniffer": "^4.0.4",
-        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
-        "behat/behat": "^3.32"
+        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0"
     },
     "suggest": {
         "api-platform/laravel": "Required when using the Laravel integration."
