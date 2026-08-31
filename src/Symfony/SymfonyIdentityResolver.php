@@ -14,14 +14,14 @@ final readonly class SymfonyIdentityResolver implements IdentityResolverInterfac
 {
     public function __construct(
         private RequestStack $requestStack,
-        private TokenStorageInterface $tokenStorage,
+        private ?TokenStorageInterface $tokenStorage = null,
     ) {
     }
 
     public function resolve(): string
     {
         $user = $this->tokenStorage
-            ->getToken()
+            ?->getToken()
             ?->getUser();
 
         if ($user instanceof UserInterface) {

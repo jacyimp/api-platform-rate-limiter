@@ -82,6 +82,29 @@ final class SymfonyIdentityResolverTest extends TestCase
     }
 
     #[Test]
+    public function itFallsBackToClientIpWithoutTokenStorage(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(
+            Request::create(
+                uri: '/',
+                server: [
+                    'REMOTE_ADDR' => '192.0.2.1',
+                ],
+            ),
+        );
+
+        $resolver = new SymfonyIdentityResolver(
+            requestStack: $requestStack,
+        );
+
+        self::assertSame(
+            'ip:192.0.2.1',
+            $resolver->resolve(),
+        );
+    }
+
+    #[Test]
     public function itFallsBackToClientIpForAnonymousToken(): void
     {
         $requestStack = new RequestStack();
@@ -127,6 +150,21 @@ final class SymfonyIdentityResolverTest extends TestCase
         $resolver = new SymfonyIdentityResolver(
             requestStack: new RequestStack(),
             tokenStorage: $tokenStorage,
+        );
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'Cannot resolve rate limit identity without a current request.',
+        );
+
+        $resolver->resolve();
+    }
+
+    #[Test]
+    public function itRejectsMissingRequestWithoutTokenStorage(): void
+    {
+        $resolver = new SymfonyIdentityResolver(
+            requestStack: new RequestStack(),
         );
 
         $this->expectException(RuntimeException::class);
