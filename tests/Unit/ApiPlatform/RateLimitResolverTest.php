@@ -343,6 +343,25 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itResolvesGlobalRateLimitForEveryOperation(): void
+    {
+        $global = new RateLimitDefinition(
+            limit: 1_000,
+            intervalSeconds: 3_600,
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        );
+
+        $resolved = $this->resolver(global: $global)->resolve(
+            operation: new Get(),
+            operationKey: 'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+        self::assertSame('global', $resolved[0]->bucket);
+        self::assertSame($global, $resolved[0]->definition);
+    }
+
+    #[Test]
     public function itRejectsEmptyOperationKeyForRateLimit(): void
     {
         $operation = new Get(
@@ -379,6 +398,7 @@ final class RateLimitResolverTest extends TestCase
         array $providers = [],
         array $identityResolvers = [],
         array $conditions = [],
+        ?RateLimitDefinition $global = null,
     ): RateLimitResolver {
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
@@ -393,6 +413,7 @@ final class RateLimitResolverTest extends TestCase
                 $identityResolvers,
                 $conditions,
             ),
+            globalRateLimit: $global,
         );
     }
 }

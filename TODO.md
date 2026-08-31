@@ -171,7 +171,6 @@ Do not document internal classes as supported extension points.
 ---
 
 6. Make users be able to disable the ratelimit altogether for testing/development
-7. Add a global ratelimit config
-8. Make sure the global ratelimit can be excluded operation/resource level
-9. Make sure users can define custom exceptions for their ratelimiting
-10. Make sure users can use different custom caches
+7. Make sure the global ratelimit can be excluded operation/resource level
+8. Make sure users can define custom exceptions for their ratelimiting
+9. Make sure users can use different custom caches

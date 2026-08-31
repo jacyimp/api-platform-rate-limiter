@@ -26,8 +26,63 @@ final class Configuration implements ConfigurationInterface
             $treeBuilder->getRootNode(),
         );
 
-        $sharedBucketsNode = $rootNode
-            ->children()
+        $rootChildren = $rootNode->children();
+
+        $globalNode = $rootChildren
+            ->arrayNode('global');
+        $globalChildren = $globalNode->children();
+
+        $globalChildren
+            ->integerNode('limit')
+            ->isRequired()
+            ->min(1);
+
+        $globalIntervalNode = $globalChildren
+            ->scalarNode('interval');
+
+        $globalIntervalNode
+            ->isRequired()
+            ->cannotBeEmpty();
+
+        $globalIntervalNode
+            ->validate()
+            ->ifTrue(
+                static fn (mixed $value): bool => !is_string(
+                    $value,
+                ),
+            )
+            ->thenInvalid(
+                'Global rate limit interval must be a string.',
+            );
+
+        $globalChildren
+            ->enumNode('policy')
+            ->values([
+                RateLimitPolicy::FIXED_WINDOW->value,
+                RateLimitPolicy::SLIDING_WINDOW->value,
+            ])
+            ->defaultValue(
+                RateLimitPolicy::SLIDING_WINDOW->value,
+            );
+
+        foreach (['identity_resolver', 'when'] as $serviceOption) {
+            $serviceNode = $globalChildren
+                ->scalarNode($serviceOption)
+                ->cannotBeEmpty()
+                ->defaultNull();
+
+            $serviceNode
+                ->validate()
+                ->ifTrue(
+                    static fn (mixed $value): bool => $value !== null
+                        && !is_string($value),
+                )
+                ->thenInvalid(
+                    sprintf('%s must be a service ID string.', $serviceOption),
+                );
+        }
+
+        $sharedBucketsNode = $rootChildren
             ->arrayNode('shared_buckets');
 
         $sharedBucketsNode

@@ -25,6 +25,7 @@ final readonly class RateLimitResolver
         private IntervalNormalizer $intervalNormalizer,
         private SharedRateLimitRegistry $sharedRateLimitRegistry,
         private RateLimitStrategyRegistry $strategyRegistry,
+        private ?RateLimitDefinition $globalRateLimit = null,
     ) {
     }
 
@@ -46,6 +47,23 @@ final readonly class RateLimitResolver
             $resolved[] = $this->resolveRateLimit(
                 rateLimit: $rateLimit,
                 operationKey: $operationKey,
+            );
+        }
+
+        if ($this->globalRateLimit !== null) {
+            $resolved[] = new ResolvedRateLimit(
+                bucket: 'global',
+                definition: $this->globalRateLimit,
+                identityResolver: $this->globalRateLimit->identityResolver === null
+                    ? null
+                    : $this->strategyRegistry->identityResolver(
+                        $this->globalRateLimit->identityResolver,
+                    ),
+                condition: $this->globalRateLimit->when === null
+                    ? null
+                    : $this->strategyRegistry->condition(
+                        $this->globalRateLimit->when,
+                    ),
             );
         }
 

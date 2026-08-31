@@ -40,6 +40,26 @@ return [
 
 No other configuration is required for operation-specific limits.
 
+## Limit the entire API
+
+Configure one shared quota for every API Platform operation:
+
+```yaml
+# config/packages/api_platform_rate_limiter.yaml
+
+api_platform_rate_limiter:
+    global:
+        limit: 1000
+        interval: '1 minute'
+```
+
+The quota is shared across all operations for each resolved identity. The
+optional `policy`, `identity_resolver`, and `when` settings work the same way as
+they do for shared buckets. The policy defaults to `sliding_window`.
+
+Global, operation-specific, and named shared limits are combined when more than
+one applies to a request.
+
 ## Limit an operation
 
 Add a `RateLimit` to the operation's `extraProperties`:

@@ -55,6 +55,13 @@ final class ApiPlatformRateLimiterExtension extends Extension
     ): void {
         /**
          * @var array{
+         *     global?: array{
+         *         limit: int,
+         *         interval: string,
+         *         policy: string,
+         *         identity_resolver: string|null,
+         *         when: string|null
+         *     },
          *     shared_buckets: array<string, array{
          *         limit: int,
          *         interval: string,
@@ -128,6 +135,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(IntervalNormalizer::class),
                 new Reference(SharedRateLimitRegistry::class),
                 new Reference(RateLimitStrategyRegistry::class),
+                isset($config['global'])
+                    ? $this->rateLimitDefinition($config['global'])
+                    : null,
             ]);
 
         $container
@@ -225,27 +235,41 @@ final class ApiPlatformRateLimiterExtension extends Extension
     private function sharedRateLimitDefinitions(
         array $buckets,
     ): array {
-        $intervalNormalizer = new IntervalNormalizer();
-
         $definitions = [];
 
         foreach ($buckets as $name => $bucket) {
-            $definitions[$name] = new Definition(
-                RateLimitDefinition::class,
-                [
-                    $bucket['limit'],
-                    $intervalNormalizer->normalize(
-                        $bucket['interval'],
-                    ),
-                    RateLimitPolicy::from(
-                        $bucket['policy'],
-                    ),
-                    $bucket['identity_resolver'],
-                    $bucket['when'],
-                ],
-            );
+            $definitions[$name] = $this->rateLimitDefinition($bucket);
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param array{
+     *     limit: int,
+     *     interval: string,
+     *     policy: string,
+     *     identity_resolver: string|null,
+     *     when: string|null
+     * } $rateLimit
+     */
+    private function rateLimitDefinition(array $rateLimit): Definition
+    {
+        $intervalNormalizer = new IntervalNormalizer();
+
+        return new Definition(
+            RateLimitDefinition::class,
+            [
+                $rateLimit['limit'],
+                $intervalNormalizer->normalize(
+                    $rateLimit['interval'],
+                ),
+                RateLimitPolicy::from(
+                    $rateLimit['policy'],
+                ),
+                $rateLimit['identity_resolver'],
+                $rateLimit['when'],
+            ],
+        );
     }
 }

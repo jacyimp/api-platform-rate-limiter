@@ -15,6 +15,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Optional global rate-limit configuration shared by every API Platform
+  operation.
 - Support for defining `RateLimit` and `SharedRateLimit` metadata on an
   `ApiResource`, applying it to all of the resource's operations.
 - A package-specific exception hierarchy with `RateLimiterExceptionInterface`

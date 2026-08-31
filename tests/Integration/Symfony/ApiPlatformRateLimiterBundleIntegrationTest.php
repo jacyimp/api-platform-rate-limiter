@@ -93,6 +93,27 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itEnforcesGlobalRateLimitAcrossOperations(): void
+    {
+        $this->kernel = new TestKernel(
+            environment: sprintf(
+                'test%s',
+                bin2hex(random_bytes(8)),
+            ),
+            debug: false,
+            globalRateLimit: true,
+        );
+        $this->kernel->boot();
+
+        self::assertSame(
+            200,
+            $this->handle(new Get(name: 'first_get'))->getStatusCode(),
+        );
+
+        $this->assertRateLimited(new Get(name: 'second_get'));
+    }
+
+    #[Test]
     public function itUsesPerLimitIdentityResolverThroughSymfonyKernel(): void
     {
         $operation = new Get(

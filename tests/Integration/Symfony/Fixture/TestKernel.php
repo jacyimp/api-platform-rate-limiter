@@ -16,6 +16,14 @@ final class TestKernel extends Kernel
 {
     use MicroKernelTrait;
 
+    public function __construct(
+        string $environment,
+        bool $debug,
+        private readonly bool $globalRateLimit = false,
+    ) {
+        parent::__construct($environment, $debug);
+    }
+
     /**
      * @return iterable<\Symfony\Component\HttpKernel\Bundle\BundleInterface>
      */
@@ -38,23 +46,32 @@ final class TestKernel extends Kernel
             ],
         );
 
-        $container->extension(
-            'api_platform_rate_limiter',
-            [
-                'shared_buckets' => [
-                    'shared_api' => [
-                        'limit' => 1,
-                        'interval' => '1 minute',
-                        'policy' => 'sliding_window',
-                    ],
-                    'conditional_shared' => [
-                        'limit' => 1,
-                        'interval' => '1 minute',
-                        'identity_resolver' => FixedIdentityResolver::class,
-                        'when' => 'test.never_apply',
-                    ],
+        $rateLimiterConfig = [
+            'shared_buckets' => [
+                'shared_api' => [
+                    'limit' => 1,
+                    'interval' => '1 minute',
+                    'policy' => 'sliding_window',
+                ],
+                'conditional_shared' => [
+                    'limit' => 1,
+                    'interval' => '1 minute',
+                    'identity_resolver' => FixedIdentityResolver::class,
+                    'when' => 'test.never_apply',
                 ],
             ],
+        ];
+
+        if ($this->globalRateLimit) {
+            $rateLimiterConfig['global'] = [
+                'limit' => 1,
+                'interval' => '1 minute',
+            ];
+        }
+
+        $container->extension(
+            'api_platform_rate_limiter',
+            $rateLimiterConfig,
         );
 
         $services = $container->services();
