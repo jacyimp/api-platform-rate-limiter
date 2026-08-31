@@ -3,6 +3,18 @@
     "description": "Flexible rate limiting for API Platform",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "api-platform",
+        "rate-limit",
+        "rate-limiter",
+        "symfony",
+        "throttling"
+    ],
+    "homepage": "https://github.com/jacyimp/api-platform-rate-limiter",
+    "support": {
+        "issues": "https://github.com/jacyimp/api-platform-rate-limiter/issues",
+        "source": "https://github.com/jacyimp/api-platform-rate-limiter"
+    },
     "autoload": {
         "psr-4": {
             "JacyImp\\ApiPlatformRateLimiter\\": "src/"
