@@ -16,6 +16,8 @@ use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
@@ -37,6 +39,7 @@ final readonly class RateLimitResolver
         private RateLimitStrategyRegistry $strategyRegistry,
         private array $globalRateLimits = [],
         private ?IdentityExpressionEvaluator $identityExpressionEvaluator = null,
+        private ?RateLimitConditionEvaluator $conditionEvaluator = null,
     ) {
     }
 
@@ -58,6 +61,9 @@ final readonly class RateLimitResolver
         foreach ($rateLimits as $rateLimit) {
             $bucket = $this->resolveBucket($rateLimit, $operationKey);
             $resolvedRateLimit = $this->resolveRateLimit($rateLimit, $bucket);
+            if ($resolvedRateLimit === null) {
+                continue;
+            }
             $resolved[] = [
                 'aliases' => [$bucket, $resolvedRateLimit->bucket],
                 'rateLimit' => $resolvedRateLimit,
@@ -71,6 +77,9 @@ final readonly class RateLimitResolver
                 bucket: $bucket,
                 globalName: $name,
             );
+            if ($resolvedRateLimit === null) {
+                continue;
+            }
             $resolved[] = [
                 'aliases' => [$resolvedRateLimit->bucket],
                 'rateLimit' => $resolvedRateLimit,
@@ -115,18 +124,66 @@ final readonly class RateLimitResolver
         RateLimit $rateLimit,
         string $bucket,
         ?string $globalName = null,
-    ): ResolvedRateLimit {
-        $definition = $this->resolveDefinition($rateLimit, $bucket);
-        $identity = $rateLimit->identity ?? $definition->identity;
-        $when = $rateLimit->when ?? $definition->when;
+    ): ?ResolvedRateLimit {
+        $declaration = $this->resolveDeclaration($rateLimit, $bucket);
+        if (!$this->conditionMatches($declaration->when)) {
+            return null;
+        }
+
+        $definition = $this->resolveDefinition($declaration);
 
         return new ResolvedRateLimit(
             bucket: $this->resolvedBucketName($rateLimit, $bucket, $globalName),
             definition: $definition,
-            identityResolver: $this->resolveIdentity($identity),
-            condition: $when,
-            cost: $this->resolveCost($rateLimit),
+            identityResolver: $this->resolveIdentity($declaration->identity),
+            cost: $this->resolveCost($declaration),
         );
+    }
+
+    private function resolveDeclaration(RateLimit $rateLimit, string $bucket): RateLimit
+    {
+        if ($rateLimit->limit !== null) {
+            return $rateLimit;
+        }
+
+        $configured = $this->sharedRateLimitRegistry->get($bucket);
+
+        return new RateLimit(
+            limit: $configured->limit,
+            interval: $configured->interval,
+            policy: $configured->policy,
+            identity: $rateLimit->identity ?? $configured->identity,
+            when: $this->composeConditions($configured->when, $rateLimit->when),
+            bucket: $rateLimit->bucket,
+            cost: $this->resolveCost($configured) * $this->resolveCost($rateLimit),
+        );
+    }
+
+    private function composeConditions(
+        ?RateLimitCondition $configured,
+        ?RateLimitCondition $reference,
+    ): ?RateLimitCondition {
+        if ($configured === null) {
+            return $reference;
+        }
+
+        if ($reference === null) {
+            return $configured;
+        }
+
+        return new AllOf([$configured, $reference]);
+    }
+
+    private function conditionMatches(?RateLimitCondition $condition): bool
+    {
+        if ($condition === null) {
+            return true;
+        }
+
+        $evaluator = $this->conditionEvaluator
+            ?? new RateLimitConditionEvaluator($this->strategyRegistry);
+
+        return $evaluator->matches($condition);
     }
 
     private function resolvedBucketName(
@@ -192,17 +249,16 @@ final readonly class RateLimitResolver
         return $bucket;
     }
 
-    private function resolveDefinition(RateLimit $rateLimit, string $bucket,): RateLimitDefinition
+    private function resolveDefinition(RateLimit $rateLimit): RateLimitDefinition
     {
-        if ($rateLimit->limit === null) {
-            return $this->sharedRateLimitRegistry->get($bucket);
-        }
-
         $limit = $rateLimit->limit instanceof DynamicLimit
             ? $this->strategyRegistry
                 ->limitResolver($rateLimit->limit->resolver)
                 ->resolve()
             : $rateLimit->limit;
+        if ($limit === null) {
+            throw new \LogicException('Resolved rate limit declaration must have a limit.');
+        }
         $interval = $rateLimit->interval;
         if ($interval === null) {
             throw new InvalidRateLimitException(

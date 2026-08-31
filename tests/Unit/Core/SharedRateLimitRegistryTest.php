@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 
-use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\UndefinedSharedBucketException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -18,9 +18,9 @@ final class SharedRateLimitRegistryTest extends TestCase
     #[Test]
     public function itReturnsSharedRateLimitDefinition(): void
     {
-        $definition = new RateLimitDefinition(
+        $definition = new RateLimit(
             limit: 100,
-            intervalSeconds: 60,
+            interval: '1 minute',
             policy: RateLimitPolicy::SLIDING_WINDOW,
         );
 

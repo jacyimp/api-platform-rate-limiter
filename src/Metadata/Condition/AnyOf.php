@@ -20,14 +20,17 @@ final readonly class AnyOf implements RateLimitCondition
             );
         }
 
+        $validated = [];
         foreach ($conditions as $condition) {
             if (!$condition instanceof RateLimitCondition) {
                 throw new InvalidRateLimitException(
                     'AnyOf children must be rate limit condition expressions.',
                 );
             }
+
+            $validated[] = $condition;
         }
 
-        $this->conditions = $conditions;
+        $this->conditions = $validated;
     }
 }

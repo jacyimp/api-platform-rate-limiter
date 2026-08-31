@@ -167,7 +167,3 @@ Document:
 Keep advanced customization below the basic quick-start.
 
 Do not document internal classes as supported extension points.
-
----
-
-6. Make sure users can use different custom caches

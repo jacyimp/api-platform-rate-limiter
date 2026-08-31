@@ -15,6 +15,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
@@ -73,9 +74,9 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itResolvesSharedRateLimit(): void
     {
-        $definition = new RateLimitDefinition(
+        $definition = new RateLimit(
             limit: 1_000,
-            intervalSeconds: 3_600,
+            interval: '1 hour',
             policy: RateLimitPolicy::SLIDING_WINDOW,
         );
 
@@ -99,18 +100,15 @@ final class RateLimitResolverTest extends TestCase
             'shared:catalog',
             $resolved[0]->bucket,
         );
-        self::assertSame(
-            $definition,
-            $resolved[0]->definition,
-        );
+        self::assertSame(1_000, $resolved[0]->definition->limit);
     }
 
     #[Test]
     public function itResolvesConfiguredBucketFromRateLimit(): void
     {
-        $definition = new RateLimitDefinition(
+        $definition = new RateLimit(
             limit: 1_000,
-            intervalSeconds: 3_600,
+            interval: '1 hour',
             policy: RateLimitPolicy::FIXED_WINDOW,
         );
         $resolved = $this->resolver(['catalog' => $definition])->resolve(
@@ -121,7 +119,7 @@ final class RateLimitResolverTest extends TestCase
         );
 
         self::assertSame('shared:catalog', $resolved[0]->bucket);
-        self::assertSame($definition, $resolved[0]->definition);
+        self::assertSame(RateLimitPolicy::FIXED_WINDOW, $resolved[0]->definition->policy);
     }
 
     #[Test]
@@ -314,6 +312,7 @@ final class RateLimitResolverTest extends TestCase
             IdentityResolverInterface::class,
         );
         $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('matches')->willReturn(true);
 
         $resolver = $this->resolver(
             identityResolvers: [$identityResolver],
@@ -336,7 +335,7 @@ final class RateLimitResolverTest extends TestCase
             $identityResolver->resolve(),
             $resolved[0]->identityResolver?->resolve(),
         );
-        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
+        self::assertCount(1, $resolved);
     }
 
     #[Test]
@@ -346,10 +345,11 @@ final class RateLimitResolverTest extends TestCase
             IdentityResolverInterface::class,
         );
         $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('matches')->willReturn(true);
 
-        $definition = new RateLimitDefinition(
+        $definition = new RateLimit(
             limit: 5,
-            intervalSeconds: 60,
+            interval: '1 minute',
             policy: RateLimitPolicy::SLIDING_WINDOW,
             identity: new Identity($identityResolver::class),
             when: new Condition($condition::class),
@@ -372,7 +372,7 @@ final class RateLimitResolverTest extends TestCase
             $identityResolver->resolve(),
             $resolved[0]->identityResolver?->resolve(),
         );
-        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
+        self::assertCount(1, $resolved);
     }
 
     #[Test]
@@ -382,15 +382,16 @@ final class RateLimitResolverTest extends TestCase
             IdentityResolverInterface::class,
         );
         $condition = self::createStub(RateLimitConditionInterface::class);
+        $condition->method('matches')->willReturn(true);
 
         $resolver = $this->resolver(
             shared: [
-                'otp' => new RateLimitDefinition(
+                'otp' => new RateLimit(
                     limit: 5,
-                    intervalSeconds: 60,
+                    interval: '1 minute',
                     policy: RateLimitPolicy::SLIDING_WINDOW,
                     identity: new Identity('default.identity'),
-                    when: new Condition('default.condition'),
+                    when: new Condition($condition::class),
                 ),
             ],
             identityResolvers: [$identityResolver],
@@ -412,7 +413,7 @@ final class RateLimitResolverTest extends TestCase
             $identityResolver->resolve(),
             $resolved[0]->identityResolver?->resolve(),
         );
-        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
+        self::assertCount(1, $resolved);
     }
 
     #[Test]
@@ -572,18 +573,7 @@ final class RateLimitResolverTest extends TestCase
             $burstIdentity->resolve(),
             $resolved[0]->identityResolver?->resolve(),
         );
-        self::assertSame(
-            $dailyIdentity->resolve(),
-            $resolved[1]->identityResolver?->resolve(),
-        );
-        self::assertEquals(
-            new Condition($burstCondition::class),
-            $resolved[0]->condition,
-        );
-        self::assertEquals(
-            new Condition($dailyCondition::class),
-            $resolved[1]->condition,
-        );
+        self::assertCount(1, $resolved);
     }
 
     #[Test]
@@ -643,7 +633,6 @@ final class RateLimitResolverTest extends TestCase
         self::assertSame(42, $resolved[0]->definition->limit);
         self::assertSame(3, $resolved[0]->cost);
         self::assertSame('customer', $resolved[0]->identityResolver?->resolve());
-        self::assertInstanceOf(AllOf::class, $resolved[0]->condition);
     }
 
     #[Test]
@@ -673,7 +662,7 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itUsesSharedDefinitionsForGlobalsWithoutSkippingResolution(): void
     {
-        $definition = new RateLimitDefinition(20, 60, RateLimitPolicy::FIXED_WINDOW);
+        $definition = new RateLimit(20, '1 minute', RateLimitPolicy::FIXED_WINDOW);
 
         $resolved = $this->resolver(
             shared: ['customers' => $definition],
@@ -681,7 +670,7 @@ final class RateLimitResolverTest extends TestCase
         )->resolve(new Get(), 'product_get');
 
         self::assertSame('global:api:customers', $resolved[0]->bucket);
-        self::assertSame($definition, $resolved[0]->definition);
+        self::assertSame(20, $resolved[0]->definition->limit);
         self::assertSame(2, $resolved[0]->cost);
     }
 
@@ -857,7 +846,7 @@ final class RateLimitResolverTest extends TestCase
     }
 
     /**
-     * @param array<string, RateLimitDefinition> $shared
+     * @param array<string, RateLimit|RateLimitDefinition> $shared
      * @param list<RateLimitProviderInterface> $providers
      * @param list<IdentityResolverInterface> $identityResolvers
      * @param list<RateLimitConditionInterface> $conditions
@@ -876,23 +865,34 @@ final class RateLimitResolverTest extends TestCase
         array $limitResolvers = [],
         array $costResolvers = [],
     ): RateLimitResolver {
+        $strategyRegistry = new RateLimitStrategyRegistry(
+            $identityResolvers,
+            $conditions,
+            $bucketResolvers,
+            $limitResolvers,
+            $costResolvers,
+        );
+
         return new RateLimitResolver(
             metadataExtractor: new RateLimitMetadataExtractor(),
             providerCollection: new RateLimitProviderCollection(
                 $providers,
             ),
             intervalNormalizer: new IntervalNormalizer(),
-            sharedRateLimitRegistry: new SharedRateLimitRegistry(
+            sharedRateLimitRegistry: new SharedRateLimitRegistry(array_map(
+                static fn (RateLimit|RateLimitDefinition $definition): RateLimit =>
+                    $definition instanceof RateLimit
+                        ? $definition
+                        : new RateLimit(
+                            $definition->limit,
+                            sprintf('%d seconds', $definition->intervalSeconds),
+                            $definition->policy,
+                        ),
                 $shared,
-            ),
-            strategyRegistry: new RateLimitStrategyRegistry(
-                $identityResolvers,
-                $conditions,
-                $bucketResolvers,
-                $limitResolvers,
-                $costResolvers,
-            ),
+            )),
+            strategyRegistry: $strategyRegistry,
             globalRateLimits: $globals,
+            conditionEvaluator: new RateLimitConditionEvaluator($strategyRegistry),
         );
     }
 }

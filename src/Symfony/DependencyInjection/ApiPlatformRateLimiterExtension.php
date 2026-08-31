@@ -19,7 +19,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
-use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
@@ -47,13 +46,13 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
-use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 /**
  * @internal
  */
 final class ApiPlatformRateLimiterExtension extends Extension
 {
+    public const STORAGE_SERVICE = 'jacyimp.api_platform_rate_limiter.storage';
     public const BYPASS_TAG = 'jacyimp.api_platform_rate_limiter.bypass';
     public const BUCKET_RESOLVER_TAG = 'jacyimp.api_platform_rate_limiter.bucket_resolver';
     public const CONDITION_TAG = 'jacyimp.api_platform_rate_limiter.condition';
@@ -86,13 +85,19 @@ final class ApiPlatformRateLimiterExtension extends Extension
          *         cost: int,
          *         cost_resolver: string|null
          *     }>,
-         *     shared_buckets: array<string, array{
-         *         limit: int,
+         *     buckets: array<string, array{
+         *         limit: int|null,
+         *         limit_resolver: string|null,
          *         interval: string,
          *         policy: string,
          *         identity_resolver: string|null,
-         *         when: string|null
-         *     }>
+         *         identity: mixed,
+         *         when: mixed,
+         *         cost: int,
+         *         cost_resolver: string|null
+         *     }>,
+         *     storage: string|null,
+         *     cache_pool: string
          * } $config
          */
         $config = $this->processConfiguration(
@@ -155,8 +160,8 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $container
             ->register(SharedRateLimitRegistry::class)
             ->setArguments([
-                $this->rateLimitDefinitions(
-                    $config['shared_buckets'],
+                $this->configuredRateLimits(
+                    $config['buckets'],
                 ),
             ]);
 
@@ -182,23 +187,23 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(RateLimitStrategyRegistry::class),
                 $this->globalRateLimits($config['globals']),
                 new Reference(IdentityExpressionEvaluator::class),
+                new Reference(RateLimitConditionEvaluator::class),
             ]);
 
-        $container
-            ->register(CacheStorage::class)
-            ->setArguments([
-                new Reference('cache.app'),
-            ]);
-
-        $container->setAlias(
-            StorageInterface::class,
-            CacheStorage::class,
-        );
+        if ($config['storage'] === null) {
+            $container
+                ->register(self::STORAGE_SERVICE, CacheStorage::class)
+                ->setArguments([
+                    new Reference($config['cache_pool']),
+                ]);
+        } else {
+            $container->setAlias(self::STORAGE_SERVICE, $config['storage']);
+        }
 
         $container
             ->register(SymfonyRateLimiter::class)
             ->setArguments([
-                new Reference(StorageInterface::class),
+                new Reference(self::STORAGE_SERVICE),
             ]);
 
         $container->setAlias(
@@ -239,7 +244,6 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(IdentityResolverInterface::class),
                 new Reference(RateLimitBypassInterface::class),
                 new Reference('event_dispatcher'),
-                new Reference(RateLimitConditionEvaluator::class),
             ]);
 
         $container->register(SymfonyRateLimitRejectionHandler::class);
@@ -268,21 +272,25 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
     /**
      * @param array<string, array{
-     *     limit: int,
+     *     limit: int|null,
+     *     limit_resolver: string|null,
      *     interval: string,
      *     policy: string,
      *     identity_resolver: string|null,
-     *     when: string|null
+     *     identity: mixed,
+     *     when: mixed,
+     *     cost: int,
+     *     cost_resolver: string|null
      * }> $rateLimits
      *
      * @return array<string, Definition>
      */
-    private function rateLimitDefinitions(array $rateLimits): array
+    private function configuredRateLimits(array $rateLimits): array
     {
         $definitions = [];
 
         foreach ($rateLimits as $name => $rateLimit) {
-            $definitions[$name] = $this->rateLimitDefinition($rateLimit);
+            $definitions[$name] = $this->rateLimitDeclaration($rateLimit);
         }
 
         return $definitions;
@@ -334,6 +342,41 @@ final class ApiPlatformRateLimiterExtension extends Extension
         }
 
         return $definitions;
+    }
+
+    /**
+     * @param array{
+     *     limit: int|null,
+     *     limit_resolver: string|null,
+     *     interval: string,
+     *     policy: string,
+     *     identity_resolver: string|null,
+     *     identity: mixed,
+     *     when: mixed,
+     *     cost: int,
+     *     cost_resolver: string|null
+     * } $rateLimit
+     */
+    private function rateLimitDeclaration(array $rateLimit): Definition
+    {
+        $limit = $rateLimit['limit_resolver'] === null
+            ? $rateLimit['limit']
+            : new Definition(DynamicLimit::class, [$rateLimit['limit_resolver']]);
+        $cost = $rateLimit['cost_resolver'] === null
+            ? $rateLimit['cost']
+            : new Definition(DynamicCost::class, [$rateLimit['cost_resolver']]);
+
+        return new Definition(RateLimit::class, [
+            $limit,
+            $rateLimit['interval'],
+            RateLimitPolicy::from($rateLimit['policy']),
+            $this->globalIdentity($rateLimit),
+            $rateLimit['when'] === null
+                ? null
+                : $this->conditionExpression($rateLimit['when']),
+            null,
+            $cost,
+        ]);
     }
 
     /**
@@ -414,36 +457,5 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 $operator,
             )),
         };
-    }
-
-    /**
-     * @param array{
-     *     limit: int,
-     *     interval: string,
-     *     policy: string,
-     *     identity_resolver: string|null,
-     *     when: string|null
-     * } $rateLimit
-     */
-    private function rateLimitDefinition(array $rateLimit): Definition
-    {
-        $intervalNormalizer = new IntervalNormalizer();
-
-        return new Definition(
-            RateLimitDefinition::class,
-            [
-                $rateLimit['limit'],
-                $intervalNormalizer->normalize(
-                    $rateLimit['interval'],
-                ),
-                RateLimitPolicy::from(
-                    $rateLimit['policy'],
-                ),
-                $rateLimit['identity_resolver'],
-                $rateLimit['when'] === null
-                    ? null
-                    : new Definition(Condition::class, [$rateLimit['when']]),
-            ],
-        );
     }
 }

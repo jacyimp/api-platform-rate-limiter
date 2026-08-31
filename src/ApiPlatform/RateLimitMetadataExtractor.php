@@ -35,19 +35,14 @@ final class RateLimitMetadataExtractor
                     RateLimit::class,
                 ));
             }
-
-            foreach ($rateLimits as $rateLimit) {
-                if (!$rateLimit instanceof RateLimit) {
-                    throw new InvalidRateLimitMetadataException(sprintf(
-                        'Extra property "%s" must contain only instances of %s.',
-                        RateLimit::class,
-                        RateLimit::class,
-                    ));
-                }
-            }
         }
 
-        return array_values($rateLimits);
+        $validated = [];
+        foreach ($rateLimits as $rateLimit) {
+            $validated[] = $this->requireRateLimit($rateLimit);
+        }
+
+        return $validated;
     }
 
     /**
@@ -73,16 +68,37 @@ final class RateLimitMetadataExtractor
             ));
         }
 
+        $validated = [];
         foreach ($bypasses as $bypass) {
-            if (!$bypass instanceof BypassRateLimit) {
-                throw new InvalidRateLimitMetadataException(sprintf(
-                    'Extra property "%s" must contain only instances of %s.',
-                    BypassRateLimit::class,
-                    BypassRateLimit::class,
-                ));
-            }
+            $validated[] = $this->requireBypass($bypass);
         }
 
-        return array_values($bypasses);
+        return $validated;
+    }
+
+    private function requireRateLimit(mixed $rateLimit): RateLimit
+    {
+        if (!$rateLimit instanceof RateLimit) {
+            throw new InvalidRateLimitMetadataException(sprintf(
+                'Extra property "%s" must contain only instances of %s.',
+                RateLimit::class,
+                RateLimit::class,
+            ));
+        }
+
+        return $rateLimit;
+    }
+
+    private function requireBypass(mixed $bypass): BypassRateLimit
+    {
+        if (!$bypass instanceof BypassRateLimit) {
+            throw new InvalidRateLimitMetadataException(sprintf(
+                'Extra property "%s" must contain only instances of %s.',
+                BypassRateLimit::class,
+                BypassRateLimit::class,
+            ));
+        }
+
+        return $bypass;
     }
 }

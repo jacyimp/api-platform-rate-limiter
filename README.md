@@ -197,7 +197,7 @@ bucket in Symfony configuration:
 # config/packages/api_platform_rate_limiter.yaml
 
 api_platform_rate_limiter:
-    shared_buckets:
+    buckets:
         catalog:
             limit: 1000
             interval: '1 minute'
@@ -240,8 +240,9 @@ new RateLimit(
 );
 ```
 
-Costs are per `RateLimit`, not per bucket. This lets operations consume
-different token amounts from the same shared bucket:
+Costs can be declared on a configured bucket and refined by a reference. When
+both are present, they are multiplied. This lets operations consume different
+token amounts from the same shared bucket:
 
 ```php
 new Get(
@@ -425,13 +426,17 @@ Shared buckets support both options:
 
 ```yaml
 api_platform_rate_limiter:
-    shared_buckets:
+    buckets:
         otp:
             limit: 5
             interval: '1 minute'
             identity_resolver: App\RateLimit\ApiKeyIdentityResolver
             when: App\RateLimit\InternalRequestCondition
 ```
+
+Configured `when` expressions use the same `all_of`, `any_of`, and `not`
+structure as globals. A condition on a bucket reference is combined with the
+configured condition, so both must match.
 
 ## Dynamic buckets, limits, and costs
 
@@ -581,7 +586,23 @@ services:
         alias: App\RateLimit\ApiRateLimitRejectionHandler
 ```
 
-Limiter state is stored in Symfony's `cache.app` pool. In a multi-instance
+Limiter state uses Symfony's `cache.app` pool by default. Select a dedicated
+cache pool when needed:
+
+```yaml
+api_platform_rate_limiter:
+    cache_pool: cache.rate_limiter
+```
+
+You can alternatively provide a Symfony RateLimiter storage service directly:
+
+```yaml
+api_platform_rate_limiter:
+    storage: app.rate_limit_storage
+```
+
+The service must implement Symfony's `StorageInterface`; the package does not
+replace Symfony's generic interface alias. In a multi-instance
 deployment, configure that pool to use shared storage such as Redis.
 
 ## Lifecycle events

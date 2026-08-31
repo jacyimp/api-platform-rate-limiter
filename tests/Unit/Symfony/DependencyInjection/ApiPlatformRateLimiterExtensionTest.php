@@ -32,8 +32,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
-use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 #[CoversClass(ApiPlatformRateLimiterExtension::class)]
 final class ApiPlatformRateLimiterExtensionTest extends TestCase
@@ -50,7 +50,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
                 IntervalNormalizer::class,
                 SharedRateLimitRegistry::class,
                 RateLimitResolver::class,
-                CacheStorage::class,
+                ApiPlatformRateLimiterExtension::STORAGE_SERVICE,
                 SymfonyRateLimiter::class,
                 SymfonyRateLimitRejectionHandler::class,
                 SymfonyIdentityResolver::class,
@@ -103,12 +103,83 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             ),
         );
 
+        self::assertFalse($container->hasAlias(
+            \Symfony\Component\RateLimiter\Storage\StorageInterface::class,
+        ));
         self::assertSame(
             CacheStorage::class,
+            $container->getDefinition(
+                ApiPlatformRateLimiterExtension::STORAGE_SERVICE,
+            )->getClass(),
+        );
+    }
+
+    #[Test]
+    public function itUsesTheConfiguredCachePoolForPackageStorage(): void
+    {
+        $container = new ContainerBuilder();
+        (new ApiPlatformRateLimiterExtension())->load([[
+            'cache_pool' => 'cache.rate_limiter',
+        ]], $container);
+
+        $argument = $container
+            ->getDefinition(ApiPlatformRateLimiterExtension::STORAGE_SERVICE)
+            ->getArgument(0);
+
+        self::assertInstanceOf(Reference::class, $argument);
+        self::assertSame('cache.rate_limiter', (string) $argument);
+    }
+
+    #[Test]
+    public function itUsesAConfiguredStorageServiceWithoutAFrameworkAlias(): void
+    {
+        $container = new ContainerBuilder();
+        (new ApiPlatformRateLimiterExtension())->load([[
+            'storage' => 'app.rate_limit_storage',
+        ]], $container);
+
+        self::assertSame(
+            'app.rate_limit_storage',
             (string) $container->getAlias(
-                StorageInterface::class,
+                ApiPlatformRateLimiterExtension::STORAGE_SERVICE,
             ),
         );
+        self::assertFalse($container->hasAlias(
+            \Symfony\Component\RateLimiter\Storage\StorageInterface::class,
+        ));
+    }
+
+    #[Test]
+    public function itAcceptsDynamicAndComposableConfiguredBuckets(): void
+    {
+        $container = new ContainerBuilder();
+
+        (new ApiPlatformRateLimiterExtension())->load([[
+            'buckets' => [
+                'api' => [
+                    'limit_resolver' => 'app.limit_resolver',
+                    'interval' => '1 minute',
+                    'cost_resolver' => 'app.cost_resolver',
+                    'identity' => [
+                        'first_available' => ['app.api_key', 'app.user'],
+                    ],
+                    'when' => [
+                        'all_of' => [
+                            'app.authenticated',
+                            ['not' => 'app.internal'],
+                        ],
+                    ],
+                    'policy' => 'fixed_window',
+                ],
+            ],
+        ]], $container);
+
+        $definitions = $container
+            ->getDefinition(SharedRateLimitRegistry::class)
+            ->getArgument(0);
+
+        self::assertIsArray($definitions);
+        self::assertArrayHasKey('api', $definitions);
     }
 
     #[Test]

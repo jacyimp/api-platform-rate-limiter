@@ -126,19 +126,46 @@ final class Configuration implements ConfigurationInterface
         $globalChildren->variableNode('when')->defaultNull();
 
         $sharedBucketsNode = $rootChildren
-            ->arrayNode('shared_buckets');
+            ->arrayNode('buckets');
 
         $sharedBucketsNode
             ->defaultValue([])
             ->useAttributeAsKey('name');
 
         $bucketNode = $sharedBucketsNode->arrayPrototype();
+        $bucketNode
+            ->validate()
+            ->ifTrue(static function (array $value): bool {
+                $hasLimit = $value['limit'] !== null;
+                $hasLimitResolver = $value['limit_resolver'] !== null;
+
+                return $hasLimit === $hasLimitResolver
+                    || ($value['cost_resolver'] !== null && $value['cost'] !== 1)
+                    || ($value['identity'] !== null
+                        && $value['identity_resolver'] !== null);
+            })
+            ->thenInvalid(
+                'A bucket must configure exactly one of limit/limit_resolver; dynamic and '
+                . 'static variants of the same option cannot be combined.',
+            );
         $bucketChildren = $bucketNode->children();
 
         $bucketChildren
             ->integerNode('limit')
-            ->isRequired()
+            ->defaultNull()
             ->min(1);
+
+        foreach (['limit_resolver', 'cost_resolver'] as $option) {
+            $bucketChildren
+                ->scalarNode($option)
+                ->cannotBeEmpty()
+                ->defaultNull();
+        }
+
+        $bucketChildren
+            ->integerNode('cost')
+            ->min(1)
+            ->defaultValue(1);
 
         $intervalNode = $bucketChildren
             ->scalarNode('interval');
@@ -168,7 +195,7 @@ final class Configuration implements ConfigurationInterface
                 RateLimitPolicy::SLIDING_WINDOW->value,
             );
 
-        foreach (['identity_resolver', 'when'] as $serviceOption) {
+        foreach (['identity_resolver'] as $serviceOption) {
             $serviceNode = $bucketChildren
                 ->scalarNode($serviceOption)
                 ->cannotBeEmpty()
@@ -184,6 +211,19 @@ final class Configuration implements ConfigurationInterface
                     sprintf('%s must be a service ID string.', $serviceOption),
                 );
         }
+
+        $bucketChildren->variableNode('identity')->defaultNull();
+        $bucketChildren->variableNode('when')->defaultNull();
+
+        $rootChildren
+            ->scalarNode('storage')
+            ->cannotBeEmpty()
+            ->defaultNull();
+
+        $rootChildren
+            ->scalarNode('cache_pool')
+            ->cannotBeEmpty()
+            ->defaultValue('cache.app');
 
         return $treeBuilder;
     }

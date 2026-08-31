@@ -7,7 +7,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core;
 use DateTimeImmutable;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
@@ -172,25 +171,13 @@ final class RateLimitEnforcerTest extends TestCase
         );
         $secondIdentityResolver->method('resolve')->willReturn('api-key:2');
 
-        $firstCondition = self::createStub(
-            RateLimitConditionInterface::class,
-        );
-        $firstCondition->method('matches')->willReturn(true);
-
-        $secondCondition = self::createStub(
-            RateLimitConditionInterface::class,
-        );
-        $secondCondition->method('matches')->willReturn(true);
-
         $first = $this->rateLimit(
             bucket: 'operation:otp_post',
             identityResolver: $firstIdentityResolver,
-            condition: $firstCondition,
         );
         $second = $this->rateLimit(
             bucket: 'shared:api',
             identityResolver: $secondIdentityResolver,
-            condition: $secondCondition,
         );
 
         $rateLimiter = self::createMock(RateLimiterInterface::class);
@@ -223,48 +210,6 @@ final class RateLimitEnforcerTest extends TestCase
         );
 
         self::assertTrue($enforcer->enforce([$first, $second])->isAccepted());
-    }
-
-    #[Test]
-    public function itSkipsOnlyTheLimitWhoseConditionDoesNotApply(): void
-    {
-        $identityResolver = self::createStub(
-            IdentityResolverInterface::class,
-        );
-        $identityResolver->method('resolve')->willReturn('user:123');
-
-        $condition = self::createStub(RateLimitConditionInterface::class);
-        $condition->method('matches')->willReturn(false);
-
-        $first = $this->rateLimit(condition: $condition);
-        $second = $this->rateLimit('shared:catalog');
-
-        $rateLimiter = self::createMock(RateLimiterInterface::class);
-        $rateLimiter
-            ->expects(self::once())
-            ->method('consume')
-            ->with($second, 'user:123', 1)
-            ->willReturn(new RateLimitResult(
-                accepted: true,
-                remaining: 9,
-                retryAfter: new DateTimeImmutable('+1 minute'),
-            ));
-
-        $globalBypass = self::createStub(RateLimitBypassInterface::class);
-        $globalBypass->method('shouldBypass')->willReturn(false);
-
-        $enforcer = new RateLimitEnforcer(
-            rateLimiter: $rateLimiter,
-            identityResolver: $identityResolver,
-            bypass: $globalBypass,
-            eventDispatcher: new EventDispatcher(),
-        );
-
-        $result = $enforcer->enforce([$first, $second]);
-
-        self::assertTrue($result->isAccepted());
-        self::assertCount(1, $result->consumptions);
-        self::assertSame($second, $result->consumptions[0]->rateLimit);
     }
 
     #[Test]
@@ -511,7 +456,6 @@ final class RateLimitEnforcerTest extends TestCase
     private function rateLimit(
         string $bucket = 'operation:product_get',
         ?IdentityResolverInterface $identityResolver = null,
-        ?RateLimitConditionInterface $condition = null,
         int $cost = 1,
     ): ResolvedRateLimit {
         return new ResolvedRateLimit(
@@ -522,7 +466,6 @@ final class RateLimitEnforcerTest extends TestCase
                 policy: RateLimitPolicy::SLIDING_WINDOW,
             ),
             identityResolver: $identityResolver,
-            condition: $condition,
             cost: $cost,
         );
     }

@@ -50,7 +50,7 @@ final class TestKernel extends Kernel
         );
 
         $rateLimiterConfig = [
-            'shared_buckets' => [
+            'buckets' => [
                 'shared_api' => [
                     'limit' => 1,
                     'interval' => '1 minute',
