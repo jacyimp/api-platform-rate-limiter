@@ -6,6 +6,7 @@ namespace Jacyimp\ApiPlatformRateLimiter\Tests\Unit\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Get;
 use DateTimeImmutable;
+use DateTimeZone;
 use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use Jacyimp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
@@ -149,7 +150,9 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             );
 
             self::assertSame(
-                $retryAfter->format(DATE_RFC7231),
+                $retryAfter
+                    ->setTimezone(new DateTimeZone('GMT'))
+                    ->format('D, d M Y H:i:s \G\M\T'),
                 $exception->getHeaders()['Retry-After'],
             );
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Jacyimp\ApiPlatformRateLimiter\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Operation;
+use DateTimeZone;
 use Jacyimp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use Jacyimp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -52,7 +53,8 @@ final readonly class ApiPlatformRateLimitListener
             retryAfter: $rejected
                 ->result
                 ->retryAfter
-                ->format(DATE_RFC7231),
+                ->setTimezone(new DateTimeZone('GMT'))
+                ->format('D, d M Y H:i:s \G\M\T'),
             message: 'Rate limit exceeded.',
             headers: [
                 'RateLimit-Limit' => (string) $rejected
