@@ -17,8 +17,7 @@ The package is not yet available on Packagist. Install the development version
 from GitHub:
 
 ```bash
-composer config repositories.api-platform-rate-limiter vcs https://github.com/jacyimp/api-platform-rate-limiter.git
-composer require jacyimp/api-platform-rate-limiter:dev-main
+composer require jacyimp/api-platform-rate-limiter
 ```
 
 Register the bundle:
