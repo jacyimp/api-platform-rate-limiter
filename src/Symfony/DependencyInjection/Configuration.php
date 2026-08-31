@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use LogicException;
+use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -16,8 +18,18 @@ final class Configuration implements ConfigurationInterface
             'api_platform_rate_limiter',
         );
 
-        $treeBuilder
-            ->getRootNode()
+        $rootNode = $treeBuilder->getRootNode();
+
+        // Symfony 6.4 types this as NodeDefinition|ArrayNodeDefinition,
+        // while newer Symfony versions infer ArrayNodeDefinition directly.
+        /** @phpstan-ignore instanceof.alwaysTrue */
+        if (!$rootNode instanceof ArrayNodeDefinition) {
+            throw new LogicException(
+                'Rate limiter configuration root must be an array node.',
+            );
+        }
+
+        $rootNode
             ->children()
             ->arrayNode('shared_buckets')
             ->defaultValue([])
