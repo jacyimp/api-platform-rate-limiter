@@ -1,0 +1,19 @@
+{
+    "name": "jacyimp/api-platform-rate-limiter",
+    "description": "Rate limiting for API Platform using Symfony RateLimiter",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Jacyimp\\ApiPlatformRateLimiter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Jacy"
+        }
+    ],
+    "require": {
+        "php": "^8.2"
+    }
+}
