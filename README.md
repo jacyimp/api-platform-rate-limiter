@@ -505,6 +505,49 @@ With autoconfiguration disabled, use
 `jacyimp.api_platform_rate_limiter.limit_resolver`, and
 `jacyimp.api_platform_rate_limiter.cost_resolver` respectively.
 
+## Runtime providers
+
+Use first-class `Dynamic*`, identity, and condition metadata for common runtime
+variation. Use `RateLimitProviderInterface` when arbitrary application state
+must determine whether or how an entire `RateLimit` declaration is constructed:
+
+```php
+use ApiPlatform\Metadata\Operation;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+final class SubscriptionRateLimitProvider implements RateLimitProviderInterface
+{
+    public function __construct(private SubscriptionContext $subscriptions)
+    {
+    }
+
+    public function provide(Operation $operation): iterable
+    {
+        if (!$this->subscriptions->hasRequestLimit()) {
+            return [];
+        }
+
+        return [new RateLimit(
+            limit: $this->subscriptions->requestLimit(),
+            interval: '1 minute',
+        )];
+    }
+}
+```
+
+Providers are autoconfigured. Their limits use the same configured-bucket,
+dynamic value, identity, condition, cost, policy, bypass, and enforcement path
+as metadata limits. Resolution order is operation/resource metadata, providers
+in Symfony tagged-service order (preserving each provider's iterable order),
+then named globals. Declarations are not deduplicated: identical declarations
+are consumed sequentially and, because their fully resolved counter identity is
+the same, consume the same persisted counter. An empty iterable contributes no
+limits, and provider or declaration-resolution exceptions propagate normally.
+
+Avoid expanding providers with separate bucket, identity, cost, or condition
+APIs; construct those capabilities on the returned `RateLimit` instead.
+
 ## Bypass rules
 
 Use `BypassRateLimit` metadata to declaratively skip limits for a resource or

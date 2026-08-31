@@ -33,6 +33,10 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 - Simplified bypass rules to `shouldBypass(): bool`.
 - Moved `RateLimiterInterface` into `Core` and marked implementation types as internal.
 - Documented sequential combined-limit consumption without rollback.
+- Defined providers as an additive source of `RateLimit` declarations resolved
+  after operation/resource metadata and before globals. Provider declarations
+  now have explicitly documented common resolution, bypass, ordering, error,
+  and non-deduplication semantics.
 
 ### Added
 
