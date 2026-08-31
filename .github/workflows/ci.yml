@@ -44,8 +44,90 @@ jobs:
       - name: Run checks
         run: composer check
 
+  framework-compatibility:
+    name: ${{ matrix.name }}
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Symfony 6.4 / API Platform 3.4
+            php: '8.2'
+            api_platform: '^3.4'
+            symfony: '6.4.*'
+          - name: Symfony 7.x / API Platform 4.x
+            php: '8.2'
+            api_platform: '^4.0'
+            symfony: '7.*'
+          - name: Symfony 8.x / API Platform 4.x
+            php: '8.4'
+            api_platform: '^4.0'
+            symfony: '8.*'
+          - name: Laravel 11 / API Platform Laravel 4.2
+            php: '8.2'
+            laravel: '^11.0'
+            api_platform_laravel: '^4.2'
+            testbench: '^9.0'
+          - name: Laravel 12 / API Platform Laravel 4.3
+            php: '8.2'
+            laravel: '^12.0'
+            api_platform_laravel: '^4.3'
+            testbench: '^10.0'
+          - name: Laravel 13 / API Platform Laravel 4.3
+            php: '8.3'
+            laravel: '^13.0'
+            api_platform_laravel: '^4.3'
+            testbench: '^11.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Configure compatibility dependencies
+        env:
+          API_PLATFORM: ${{ matrix.api_platform }}
+          SYMFONY: ${{ matrix.symfony }}
+          LARAVEL: ${{ matrix.laravel }}
+          API_PLATFORM_LARAVEL: ${{ matrix.api_platform_laravel }}
+          TESTBENCH: ${{ matrix.testbench }}
+        run: |
+          if [ -n "$SYMFONY" ]; then
+            composer remove --dev api-platform/laravel laravel/framework orchestra/testbench --no-update
+            composer require --no-update "api-platform/metadata:$API_PLATFORM"
+            composer require --dev --no-update "symfony/framework-bundle:$SYMFONY"
+            composer config extra.laravel.providers '[]' --json
+          else
+            composer require --dev --no-update \
+              "api-platform/laravel:$API_PLATFORM_LARAVEL" \
+              "laravel/framework:$LARAVEL" \
+              "orchestra/testbench:$TESTBENCH"
+            composer config policy.advisories.block false
+          fi
+
+      - name: Install compatibility dependencies
+        env:
+          SYMFONY: ${{ matrix.symfony }}
+        run: |
+          if [ -n "$SYMFONY" ]; then
+            composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress
+          else
+            composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress
+          fi
+
+      - name: Run checks
+        run: composer check
+
   lowest-dependencies:
-    name: PHP 8.2 / Lowest Dependencies
+    name: PHP 8.2 / Lowest Core Dependencies
 
     runs-on: ubuntu-latest
 
@@ -60,8 +142,16 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Remove optional Laravel development stack
+        run: composer remove --dev api-platform/laravel laravel/framework orchestra/testbench --no-update
+
       - name: Install lowest supported dependencies
         run: composer update --prefer-lowest --prefer-stable --prefer-dist --no-interaction --no-progress
 
-      - name: Run checks
-        run: composer check
+      - name: Run non-Laravel checks
+        run: |
+          composer validate --strict
+          composer cs
+          composer analyse
+          vendor/bin/phpunit --exclude-group laravel
+          composer test:behaviour
