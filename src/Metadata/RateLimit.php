@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 
 final readonly class RateLimit
 {
@@ -14,7 +15,7 @@ final readonly class RateLimit
         public int|DynamicLimit|null $limit = null,
         public string|DateInterval|Interval|null $interval = null,
         public RateLimitPolicy $policy = RateLimitPolicy::SLIDING_WINDOW,
-        public ?string $identityResolver = null,
+        public ?IdentityExpression $identity = null,
         public ?RateLimitCondition $when = null,
         public string|DynamicBucket|null $bucket = null,
         public int|DynamicCost $cost = 1,
@@ -46,12 +47,6 @@ final readonly class RateLimit
         if (is_int($cost) && $cost < 1) {
             throw new InvalidRateLimitException(
                 'Rate limit cost must be greater than zero.',
-            );
-        }
-
-        if ($identityResolver !== null && trim($identityResolver) === '') {
-            throw new InvalidRateLimitException(
-                'Identity resolver service ID cannot be empty.',
             );
         }
     }

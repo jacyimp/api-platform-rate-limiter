@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\ExpressionIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
@@ -16,6 +19,8 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 /**
@@ -33,6 +38,7 @@ final readonly class RateLimitResolver
         private SharedRateLimitRegistry $sharedRateLimitRegistry,
         private RateLimitStrategyRegistry $strategyRegistry,
         private array $globalRateLimits = [],
+        private ?IdentityExpressionEvaluator $identityExpressionEvaluator = null,
     ) {
     }
 
@@ -69,11 +75,9 @@ final readonly class RateLimitResolver
                 'rateLimit' => new ResolvedRateLimit(
                     bucket: $bucket,
                     definition: $globalRateLimit,
-                    identityResolver: $globalRateLimit->identityResolver === null
-                        ? null
-                        : $this->strategyRegistry->identityResolver(
-                            $globalRateLimit->identityResolver,
-                        ),
+                    identityResolver: $this->resolveIdentity(
+                        $globalRateLimit->identity,
+                    ),
                     condition: $globalRateLimit->when,
                 ),
             ];
@@ -113,8 +117,7 @@ final readonly class RateLimitResolver
     private function resolveRateLimit(RateLimit $rateLimit, string $bucket,): ResolvedRateLimit
     {
         $definition = $this->resolveDefinition($rateLimit, $bucket);
-        $identityResolver = $rateLimit->identityResolver
-            ?? $definition->identityResolver;
+        $identity = $rateLimit->identity ?? $definition->identity;
         $when = $rateLimit->when ?? $definition->when;
 
         return new ResolvedRateLimit(
@@ -122,14 +125,27 @@ final readonly class RateLimitResolver
                 ? sprintf('operation:%s', $bucket)
                 : sprintf('shared:%s', $bucket),
             definition: $definition,
-            identityResolver: $identityResolver === null
-                ? null
-                : $this->strategyRegistry->identityResolver(
-                    $identityResolver,
-                ),
+            identityResolver: $this->resolveIdentity($identity),
             condition: $when,
             cost: $this->resolveCost($rateLimit),
         );
+    }
+
+    private function resolveIdentity(
+        IdentityExpression|string|null $identity,
+    ): ?IdentityResolverInterface {
+        if ($identity === null) {
+            return null;
+        }
+
+        if (is_string($identity)) {
+            $identity = new Identity($identity);
+        }
+
+        $evaluator = $this->identityExpressionEvaluator
+            ?? new IdentityExpressionEvaluator($this->strategyRegistry);
+
+        return new ExpressionIdentityResolver($evaluator, $identity);
     }
 
     private function resolveCost(RateLimit $rateLimit): int

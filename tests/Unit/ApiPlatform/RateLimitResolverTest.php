@@ -25,6 +25,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -323,14 +324,17 @@ final class RateLimitResolverTest extends TestCase
                 RateLimit::class => new RateLimit(
                     limit: 5,
                     interval: '1 minute',
-                    identityResolver: $identityResolver::class,
+                    identity: new Identity($identityResolver::class),
                     when: new Condition($condition::class),
                 ),
             ]),
             operationKey: 'otp_post',
         );
 
-        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame(
+            $identityResolver->resolve(),
+            $resolved[0]->identityResolver?->resolve(),
+        );
         self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
@@ -346,7 +350,7 @@ final class RateLimitResolverTest extends TestCase
             limit: 5,
             intervalSeconds: 60,
             policy: RateLimitPolicy::SLIDING_WINDOW,
-            identityResolver: $identityResolver::class,
+            identity: new Identity($identityResolver::class),
             when: new Condition($condition::class),
         );
 
@@ -363,7 +367,10 @@ final class RateLimitResolverTest extends TestCase
             operationKey: 'otp_post',
         );
 
-        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame(
+            $identityResolver->resolve(),
+            $resolved[0]->identityResolver?->resolve(),
+        );
         self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
@@ -381,7 +388,7 @@ final class RateLimitResolverTest extends TestCase
                     limit: 5,
                     intervalSeconds: 60,
                     policy: RateLimitPolicy::SLIDING_WINDOW,
-                    identityResolver: 'default.identity',
+                    identity: new Identity('default.identity'),
                     when: new Condition('default.condition'),
                 ),
             ],
@@ -393,14 +400,17 @@ final class RateLimitResolverTest extends TestCase
             operation: new Get(extraProperties: [
                 RateLimit::class => new RateLimit(
                     bucket: 'otp',
-                    identityResolver: $identityResolver::class,
+                    identity: new Identity($identityResolver::class),
                     when: new Condition($condition::class),
                 ),
             ]),
             operationKey: 'otp_post',
         );
 
-        self::assertSame($identityResolver, $resolved[0]->identityResolver);
+        self::assertSame(
+            $identityResolver->resolve(),
+            $resolved[0]->identityResolver?->resolve(),
+        );
         self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
@@ -544,14 +554,14 @@ final class RateLimitResolverTest extends TestCase
                     100,
                     60,
                     RateLimitPolicy::SLIDING_WINDOW,
-                    identityResolver: $burstIdentity::class,
+                    identity: new Identity($burstIdentity::class),
                     when: new Condition($burstCondition::class),
                 ),
                 'daily' => new RateLimitDefinition(
                     10_000,
                     86_400,
                     RateLimitPolicy::SLIDING_WINDOW,
-                    identityResolver: $dailyIdentity::class,
+                    identity: new Identity($dailyIdentity::class),
                     when: new Condition($dailyCondition::class),
                 ),
             ],
@@ -559,8 +569,14 @@ final class RateLimitResolverTest extends TestCase
             conditions: [$burstCondition, $dailyCondition],
         )->resolve(new Get(), 'product_get');
 
-        self::assertSame($burstIdentity, $resolved[0]->identityResolver);
-        self::assertSame($dailyIdentity, $resolved[1]->identityResolver);
+        self::assertSame(
+            $burstIdentity->resolve(),
+            $resolved[0]->identityResolver?->resolve(),
+        );
+        self::assertSame(
+            $dailyIdentity->resolve(),
+            $resolved[1]->identityResolver?->resolve(),
+        );
         self::assertEquals(
             new Condition($burstCondition::class),
             $resolved[0]->condition,

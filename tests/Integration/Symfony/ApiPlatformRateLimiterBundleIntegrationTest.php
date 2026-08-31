@@ -10,6 +10,7 @@ use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedCostResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
@@ -185,7 +186,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
                 RateLimit::class => new RateLimit(
                     limit: 1,
                     interval: '1 minute',
-                    identityResolver: FixedIdentityResolver::class,
+                    identity: new Identity(FixedIdentityResolver::class),
                 ),
             ],
         );

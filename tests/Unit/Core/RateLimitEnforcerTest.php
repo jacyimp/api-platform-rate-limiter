@@ -16,6 +16,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
+use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -484,6 +485,27 @@ final class RateLimitEnforcerTest extends TestCase
         self::assertSame('shared:catalog', $rejected->bucket);
         self::assertSame(0, $rejected->remaining);
         self::assertSame($retryAfter, $rejected->retryAfter);
+    }
+
+    #[Test]
+    public function itRejectsAnUnavailableFinalIdentityBeforeConsumption(): void
+    {
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $identityResolver->method('resolve')->willReturn(null);
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::never())->method('consume');
+        $bypass = self::createStub(RateLimitBypassInterface::class);
+        $bypass->method('shouldBypass')->willReturn(false);
+        $enforcer = new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $bypass,
+            eventDispatcher: new EventDispatcher(),
+        );
+
+        $this->expectException(IdentityResolutionException::class);
+
+        $enforcer->enforce([$this->rateLimit()]);
     }
 
     private function rateLimit(

@@ -6,5 +6,5 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 
 interface IdentityResolverInterface
 {
-    public function resolve(): string;
+    public function resolve(): ?string;
 }

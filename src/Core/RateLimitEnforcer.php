@@ -10,6 +10,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
+use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -53,8 +54,13 @@ final readonly class RateLimitEnforcer
 
             $identityResolver = $rateLimit->identityResolver
                 ?? $this->identityResolver;
-
             $identity = $identityResolver->resolve();
+
+            if ($identity === null || trim($identity) === '') {
+                throw new IdentityResolutionException(
+                    'Rate limit identity could not be resolved to a non-empty string.',
+                );
+            }
             $definition = $rateLimit->definition;
 
             $this->eventDispatcher->dispatch(new RateLimitChecking(

@@ -15,6 +15,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
@@ -150,6 +151,12 @@ final class ApiPlatformRateLimiterExtension extends Extension
             ]);
 
         $container
+            ->register(IdentityExpressionEvaluator::class)
+            ->setArguments([
+                new Reference(RateLimitStrategyRegistry::class),
+            ]);
+
+        $container
             ->register(RateLimitResolver::class)
             ->setArguments([
                 new Reference(RateLimitMetadataExtractor::class),
@@ -158,6 +165,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(SharedRateLimitRegistry::class),
                 new Reference(RateLimitStrategyRegistry::class),
                 $this->rateLimitDefinitions($config['globals']),
+                new Reference(IdentityExpressionEvaluator::class),
             ]);
 
         $container

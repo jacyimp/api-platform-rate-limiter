@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Replaced `RateLimit::$identityResolver` with composable `identity` metadata;
+  identity resolvers may now return `null` when unavailable.
 - Replaced string `when` metadata with composable condition expressions and
   renamed runtime condition checks from `shouldApply()` to `matches()`.
 - Replaced the singular `global` configuration with named `globals`; every
@@ -21,6 +23,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- `Identity`, `CompositeIdentity`, and `FirstAvailableIdentity` expressions,
+  including nested composition and collision-safe composite encoding.
 - `Condition`, `AllOf`, `AnyOf`, and `Not` expressions for composing nested
   rate-limit and bypass conditions with short-circuit evaluation.
 - Declarative `BypassRateLimit` resource and operation metadata, with optional

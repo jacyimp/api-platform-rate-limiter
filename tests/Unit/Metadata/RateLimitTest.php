@@ -10,6 +10,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -84,11 +85,12 @@ final class RateLimitTest extends TestCase
         $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
-            identityResolver: 'app.identity_resolver',
+            identity: new Identity('app.identity_resolver'),
             when: $condition,
         );
 
-        self::assertSame('app.identity_resolver', $rateLimit->identityResolver);
+        self::assertInstanceOf(Identity::class, $rateLimit->identity);
+        self::assertSame('app.identity_resolver', $rateLimit->identity->resolver);
         self::assertSame($condition, $rateLimit->when);
     }
 
@@ -148,7 +150,7 @@ final class RateLimitTest extends TestCase
         new RateLimit(
             limit: 100,
             interval: '1 minute',
-            identityResolver: ' ',
+            identity: new Identity(' '),
         );
     }
 

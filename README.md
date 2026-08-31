@@ -253,9 +253,9 @@ use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 
 final class ApiKeyIdentityResolver implements IdentityResolverInterface
 {
-    public function resolve(): string
+    public function resolve(): ?string
     {
-        return 'api-key:...';
+        return $apiKey === null ? null : 'api-key:' . $apiKey;
     }
 }
 ```
@@ -268,17 +268,51 @@ services:
         alias: App\RateLimit\ApiKeyIdentityResolver
 ```
 
-Override the identity for one operation with `identityResolver`:
+Override the identity for one operation with an identity expression. Resolver
+implementations are autoconfigured as services:
 
 ```php
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+
 new RateLimit(
     limit: 5,
     interval: '1 minute',
-    identityResolver: ApiKeyIdentityResolver::class,
+    identity: new Identity(ApiKeyIdentityResolver::class),
 );
 ```
 
-Other limits still use the global resolver.
+`null` from a resolver means that identity is unavailable for the current
+request. Use `FirstAvailableIdentity` for ordered fallback:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+
+identity: new FirstAvailableIdentity([
+    new Identity(ApiKeyIdentityResolver::class),
+    new Identity(UserIdentityResolver::class),
+    new Identity(IpIdentityResolver::class),
+])
+```
+
+Use `CompositeIdentity` when every component is required. Expressions can be
+nested:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
+
+identity: new CompositeIdentity([
+    new Identity(TenantIdentityResolver::class),
+    new FirstAvailableIdentity([
+        new Identity(ApiKeyIdentityResolver::class),
+        new Identity(UserIdentityResolver::class),
+    ]),
+])
+```
+
+Composite values use a deterministic length-prefixed encoding, so component
+boundaries cannot collide. Omitting `identity` keeps the default authenticated
+user → client IP behavior.
 
 ## Conditional limits
 
@@ -317,7 +351,7 @@ The same per-operation overrides are available for a configured shared bucket:
 ```php
 new RateLimit(
     bucket: 'otp',
-    identityResolver: ApiKeyIdentityResolver::class,
+    identity: new Identity(ApiKeyIdentityResolver::class),
     when: new Condition(InternalRequestCondition::class),
 );
 ```
