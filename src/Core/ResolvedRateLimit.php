@@ -7,6 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 
 /**
  * @internal
@@ -17,7 +18,7 @@ final readonly class ResolvedRateLimit
         public string $bucket,
         public RateLimitDefinition $definition,
         public ?IdentityResolverInterface $identityResolver = null,
-        public ?RateLimitConditionInterface $condition = null,
+        public RateLimitCondition|RateLimitConditionInterface|null $condition = null,
         public int $cost = 1,
     ) {
         if (trim($bucket) === '') {

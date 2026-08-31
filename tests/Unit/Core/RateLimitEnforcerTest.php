@@ -174,12 +174,12 @@ final class RateLimitEnforcerTest extends TestCase
         $firstCondition = self::createStub(
             RateLimitConditionInterface::class,
         );
-        $firstCondition->method('shouldApply')->willReturn(true);
+        $firstCondition->method('matches')->willReturn(true);
 
         $secondCondition = self::createStub(
             RateLimitConditionInterface::class,
         );
-        $secondCondition->method('shouldApply')->willReturn(true);
+        $secondCondition->method('matches')->willReturn(true);
 
         $first = $this->rateLimit(
             bucket: 'operation:otp_post',
@@ -233,7 +233,7 @@ final class RateLimitEnforcerTest extends TestCase
         $identityResolver->method('resolve')->willReturn('user:123');
 
         $condition = self::createStub(RateLimitConditionInterface::class);
-        $condition->method('shouldApply')->willReturn(false);
+        $condition->method('matches')->willReturn(false);
 
         $first = $this->rateLimit(condition: $condition);
         $second = $this->rateLimit('shared:catalog');

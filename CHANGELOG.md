@@ -8,6 +8,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Replaced string `when` metadata with composable condition expressions and
+  renamed runtime condition checks from `shouldApply()` to `matches()`.
 - Replaced the singular `global` configuration with named `globals`; every
   configured global is enforced independently using a `global:<name>` bucket.
 - Merged the unreleased `SharedRateLimit` metadata API into `RateLimit` via its
@@ -19,6 +21,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- `Condition`, `AllOf`, `AnyOf`, and `Not` expressions for composing nested
+  rate-limit and bypass conditions with short-circuit evaluation.
 - Declarative `BypassRateLimit` resource and operation metadata, with optional
   resolved-bucket matching and conditions.
 - Weighted token consumption through the per-limit `cost` option, including

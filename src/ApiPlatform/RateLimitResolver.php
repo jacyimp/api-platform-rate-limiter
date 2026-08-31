@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\ApiPlatform;
 
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
@@ -73,11 +74,7 @@ final readonly class RateLimitResolver
                         : $this->strategyRegistry->identityResolver(
                             $globalRateLimit->identityResolver,
                         ),
-                    condition: $globalRateLimit->when === null
-                        ? null
-                        : $this->strategyRegistry->condition(
-                            $globalRateLimit->when,
-                        ),
+                    condition: $globalRateLimit->when,
                 ),
             ];
         }
@@ -85,9 +82,8 @@ final readonly class RateLimitResolver
         $bypasses = array_values(array_filter(
             $this->metadataExtractor->extractBypasses($operation),
             fn (BypassRateLimit $bypass): bool => $bypass->when === null
-                || $this->strategyRegistry
-                    ->condition($bypass->when)
-                    ->shouldApply(),
+                || (new RateLimitConditionEvaluator($this->strategyRegistry))
+                    ->matches($bypass->when),
         ));
 
         return array_values(array_map(
@@ -131,9 +127,7 @@ final readonly class RateLimitResolver
                 : $this->strategyRegistry->identityResolver(
                     $identityResolver,
                 ),
-            condition: $when === null
-                ? null
-                : $this->strategyRegistry->condition($when),
+            condition: $when,
             cost: $this->resolveCost($rateLimit),
         );
     }

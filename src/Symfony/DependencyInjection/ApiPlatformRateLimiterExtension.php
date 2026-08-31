@@ -17,11 +17,13 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitBypassChecker;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
@@ -142,6 +144,12 @@ final class ApiPlatformRateLimiterExtension extends Extension
             ]);
 
         $container
+            ->register(RateLimitConditionEvaluator::class)
+            ->setArguments([
+                new Reference(RateLimitStrategyRegistry::class),
+            ]);
+
+        $container
             ->register(RateLimitResolver::class)
             ->setArguments([
                 new Reference(RateLimitMetadataExtractor::class),
@@ -207,6 +215,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(IdentityResolverInterface::class),
                 new Reference(RateLimitBypassInterface::class),
                 new Reference('event_dispatcher'),
+                new Reference(RateLimitConditionEvaluator::class),
             ]);
 
         $container->register(SymfonyRateLimitRejectionHandler::class);
@@ -279,7 +288,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
                     $rateLimit['policy'],
                 ),
                 $rateLimit['identity_resolver'],
-                $rateLimit['when'],
+                $rateLimit['when'] === null
+                    ? null
+                    : new Definition(Condition::class, [$rateLimit['when']]),
             ],
         );
     }

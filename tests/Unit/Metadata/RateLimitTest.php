@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
@@ -79,15 +80,16 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itAcceptsPerLimitServiceIds(): void
     {
+        $condition = new Condition('app.condition');
         $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
             identityResolver: 'app.identity_resolver',
-            when: 'app.condition',
+            when: $condition,
         );
 
         self::assertSame('app.identity_resolver', $rateLimit->identityResolver);
-        self::assertSame('app.condition', $rateLimit->when);
+        self::assertSame($condition, $rateLimit->when);
     }
 
     #[Test]
@@ -161,7 +163,7 @@ final class RateLimitTest extends TestCase
         new RateLimit(
             limit: 100,
             interval: '1 minute',
-            when: '',
+            when: new Condition(''),
         );
     }
 

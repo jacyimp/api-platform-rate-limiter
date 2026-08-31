@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -16,10 +17,11 @@ final class BypassRateLimitTest extends TestCase
     #[Test]
     public function itAcceptsOptionalBucketAndCondition(): void
     {
-        $bypass = new BypassRateLimit(bucket: 'catalog', when: 'condition');
+        $condition = new Condition('condition');
+        $bypass = new BypassRateLimit(bucket: 'catalog', when: $condition);
 
         self::assertSame('catalog', $bypass->bucket);
-        self::assertSame('condition', $bypass->when);
+        self::assertSame($condition, $bypass->when);
     }
 
     #[Test]
@@ -36,9 +38,9 @@ final class BypassRateLimitTest extends TestCase
     {
         $this->expectException(InvalidRateLimitException::class);
         $this->expectExceptionMessage(
-            'Bypass rate limit condition service ID cannot be empty.',
+            'Rate limit condition service ID cannot be empty.',
         );
 
-        new BypassRateLimit(when: ' ');
+        new BypassRateLimit(when: new Condition(' '));
     }
 }

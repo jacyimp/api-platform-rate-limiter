@@ -21,6 +21,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
@@ -323,14 +324,14 @@ final class RateLimitResolverTest extends TestCase
                     limit: 5,
                     interval: '1 minute',
                     identityResolver: $identityResolver::class,
-                    when: $condition::class,
+                    when: new Condition($condition::class),
                 ),
             ]),
             operationKey: 'otp_post',
         );
 
         self::assertSame($identityResolver, $resolved[0]->identityResolver);
-        self::assertSame($condition, $resolved[0]->condition);
+        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
     #[Test]
@@ -346,7 +347,7 @@ final class RateLimitResolverTest extends TestCase
             intervalSeconds: 60,
             policy: RateLimitPolicy::SLIDING_WINDOW,
             identityResolver: $identityResolver::class,
-            when: $condition::class,
+            when: new Condition($condition::class),
         );
 
         $resolver = $this->resolver(
@@ -363,7 +364,7 @@ final class RateLimitResolverTest extends TestCase
         );
 
         self::assertSame($identityResolver, $resolved[0]->identityResolver);
-        self::assertSame($condition, $resolved[0]->condition);
+        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
     #[Test]
@@ -381,7 +382,7 @@ final class RateLimitResolverTest extends TestCase
                     intervalSeconds: 60,
                     policy: RateLimitPolicy::SLIDING_WINDOW,
                     identityResolver: 'default.identity',
-                    when: 'default.condition',
+                    when: new Condition('default.condition'),
                 ),
             ],
             identityResolvers: [$identityResolver],
@@ -393,14 +394,14 @@ final class RateLimitResolverTest extends TestCase
                 RateLimit::class => new RateLimit(
                     bucket: 'otp',
                     identityResolver: $identityResolver::class,
-                    when: $condition::class,
+                    when: new Condition($condition::class),
                 ),
             ]),
             operationKey: 'otp_post',
         );
 
         self::assertSame($identityResolver, $resolved[0]->identityResolver);
-        self::assertSame($condition, $resolved[0]->condition);
+        self::assertEquals(new Condition($condition::class), $resolved[0]->condition);
     }
 
     #[Test]
@@ -525,13 +526,13 @@ final class RateLimitResolverTest extends TestCase
             }
         };
         $burstCondition = new class implements RateLimitConditionInterface {
-            public function shouldApply(): bool
+            public function matches(): bool
             {
                 return true;
             }
         };
         $dailyCondition = new class implements RateLimitConditionInterface {
-            public function shouldApply(): bool
+            public function matches(): bool
             {
                 return false;
             }
@@ -544,14 +545,14 @@ final class RateLimitResolverTest extends TestCase
                     60,
                     RateLimitPolicy::SLIDING_WINDOW,
                     identityResolver: $burstIdentity::class,
-                    when: $burstCondition::class,
+                    when: new Condition($burstCondition::class),
                 ),
                 'daily' => new RateLimitDefinition(
                     10_000,
                     86_400,
                     RateLimitPolicy::SLIDING_WINDOW,
                     identityResolver: $dailyIdentity::class,
-                    when: $dailyCondition::class,
+                    when: new Condition($dailyCondition::class),
                 ),
             ],
             identityResolvers: [$burstIdentity, $dailyIdentity],
@@ -560,8 +561,14 @@ final class RateLimitResolverTest extends TestCase
 
         self::assertSame($burstIdentity, $resolved[0]->identityResolver);
         self::assertSame($dailyIdentity, $resolved[1]->identityResolver);
-        self::assertSame($burstCondition, $resolved[0]->condition);
-        self::assertSame($dailyCondition, $resolved[1]->condition);
+        self::assertEquals(
+            new Condition($burstCondition::class),
+            $resolved[0]->condition,
+        );
+        self::assertEquals(
+            new Condition($dailyCondition::class),
+            $resolved[1]->condition,
+        );
     }
 
     #[Test]
@@ -586,12 +593,14 @@ final class RateLimitResolverTest extends TestCase
     public function itConditionallyBypassesAllResolvedRateLimits(): void
     {
         $condition = self::createStub(RateLimitConditionInterface::class);
-        $condition->method('shouldApply')->willReturn(true);
+        $condition->method('matches')->willReturn(true);
 
         $resolved = $this->resolver(conditions: [$condition])->resolve(
             operation: new Get(extraProperties: [
                 RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(when: $condition::class),
+                BypassRateLimit::class => new BypassRateLimit(
+                    when: new Condition($condition::class),
+                ),
             ]),
             operationKey: 'product_get',
         );
@@ -603,12 +612,14 @@ final class RateLimitResolverTest extends TestCase
     public function itKeepsLimitsWhenConditionalBypassDoesNotMatch(): void
     {
         $condition = self::createStub(RateLimitConditionInterface::class);
-        $condition->method('shouldApply')->willReturn(false);
+        $condition->method('matches')->willReturn(false);
 
         $resolved = $this->resolver(conditions: [$condition])->resolve(
             operation: new Get(extraProperties: [
                 RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(when: $condition::class),
+                BypassRateLimit::class => new BypassRateLimit(
+                    when: new Condition($condition::class),
+                ),
             ]),
             operationKey: 'product_get',
         );

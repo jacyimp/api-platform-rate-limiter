@@ -8,7 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 
 final class NeverApplyCondition implements RateLimitConditionInterface
 {
-    public function shouldApply(): bool
+    public function matches(): bool
     {
         return false;
     }

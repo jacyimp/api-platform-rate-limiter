@@ -286,6 +286,9 @@ Use `when` to apply a limit conditionally:
 
 ```php
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 final readonly class InternalRequestCondition implements RateLimitConditionInterface
@@ -294,7 +297,7 @@ final readonly class InternalRequestCondition implements RateLimitConditionInter
     {
     }
 
-    public function shouldApply(): bool
+    public function matches(): bool
     {
         $request = $this->requestStack->getCurrentRequest();
 
@@ -305,7 +308,7 @@ final readonly class InternalRequestCondition implements RateLimitConditionInter
 new RateLimit(
     limit: 5,
     interval: '1 minute',
-    when: InternalRequestCondition::class,
+    when: new Condition(InternalRequestCondition::class),
 );
 ```
 
@@ -315,7 +318,7 @@ The same per-operation overrides are available for a configured shared bucket:
 new RateLimit(
     bucket: 'otp',
     identityResolver: ApiKeyIdentityResolver::class,
-    when: InternalRequestCondition::class,
+    when: new Condition(InternalRequestCondition::class),
 );
 ```
 
@@ -324,6 +327,20 @@ bucket.
 
 `true` applies the limit; `false` skips it. Without `when`, the limit always
 applies.
+
+Conditions can be composed with `AllOf`, `AnyOf`, and `Not`. Leaf service
+references always use `Condition`:
+
+```php
+new RateLimit(
+    limit: 5,
+    interval: '1 minute',
+    when: new AllOf([
+        new Condition(AuthenticatedCondition::class),
+        new Not(new Condition(TrustedCrawlerCondition::class)),
+    ]),
+);
+```
 
 Shared buckets support both options:
 
@@ -415,14 +432,14 @@ extraProperties: [
 ]
 ```
 
-Use `when` with a `RateLimitConditionInterface` service to make either form
-conditional:
+Use the same condition expressions with `when` to make either form conditional.
+For bypass metadata, a matching expression means the bypass applies:
 
 ```php
 extraProperties: [
     BypassRateLimit::class => new BypassRateLimit(
         bucket: 'catalog',
-        when: InternalRequestCondition::class,
+        when: new Condition(InternalRequestCondition::class),
     ),
 ]
 ```

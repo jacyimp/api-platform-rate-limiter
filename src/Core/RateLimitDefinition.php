@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
 /**
@@ -17,7 +18,7 @@ final readonly class RateLimitDefinition
         public int $intervalSeconds,
         public RateLimitPolicy $policy,
         public ?string $identityResolver = null,
-        public ?string $when = null,
+        public ?RateLimitCondition $when = null,
     ) {
         if ($limit < 1) {
             throw new InvalidRateLimitException(

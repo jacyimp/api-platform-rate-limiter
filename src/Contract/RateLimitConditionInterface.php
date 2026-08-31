@@ -6,5 +6,5 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 
 interface RateLimitConditionInterface
 {
-    public function shouldApply(): bool;
+    public function matches(): bool;
 }

@@ -6,9 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -21,6 +23,7 @@ final readonly class RateLimitEnforcer
         private IdentityResolverInterface $identityResolver,
         private RateLimitBypassInterface $bypass,
         private EventDispatcherInterface $eventDispatcher,
+        private ?RateLimitConditionEvaluator $conditionEvaluator = null,
     ) {
     }
 
@@ -43,7 +46,7 @@ final readonly class RateLimitEnforcer
 
             if (
                 $rateLimit->condition !== null
-                && !$rateLimit->condition->shouldApply()
+                && !$this->conditionMatches($rateLimit->condition)
             ) {
                 continue;
             }
@@ -99,5 +102,19 @@ final readonly class RateLimitEnforcer
         }
 
         return new RateLimitEnforcementResult($consumptions);
+    }
+
+    private function conditionMatches(
+        RateLimitCondition|RateLimitConditionInterface $condition,
+    ): bool {
+        if ($condition instanceof RateLimitConditionInterface) {
+            return $condition->matches();
+        }
+
+        if ($this->conditionEvaluator === null) {
+            throw new \LogicException('The condition evaluator is required.');
+        }
+
+        return $this->conditionEvaluator->matches($condition);
     }
 }
