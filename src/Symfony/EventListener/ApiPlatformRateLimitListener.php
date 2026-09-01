@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 
 /**
@@ -20,6 +22,7 @@ final readonly class ApiPlatformRateLimitListener
         private RateLimitResolver $rateLimitResolver,
         private RateLimitEnforcer $rateLimitEnforcer,
         private RateLimitRejectionHandlerInterface $rejectionHandler,
+        private ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory,
     ) {
     }
 
@@ -29,12 +32,9 @@ final readonly class ApiPlatformRateLimitListener
             return;
         }
 
-        $operation = $event
-            ->getRequest()
-            ->attributes
-            ->get('_api_operation');
+        $operation = $this->resolveOperation($event->getRequest());
 
-        if (!$operation instanceof Operation) {
+        if ($operation === null) {
             return;
         }
 
@@ -60,5 +60,36 @@ final readonly class ApiPlatformRateLimitListener
                 retryAfter: $rejected->result->retryAfter,
             ),
         );
+    }
+
+    private function resolveOperation(Request $request): ?Operation
+    {
+        $operation = $request->attributes->get('_api_operation');
+
+        if ($operation instanceof Operation) {
+            return $operation;
+        }
+
+        $resourceClass = $request->attributes->get('_api_resource_class');
+        $operationName = $request->attributes->get('_api_operation_name');
+
+        if (
+            !is_string($resourceClass)
+            || $resourceClass === ''
+            || !is_string($operationName)
+            || $operationName === ''
+        ) {
+            return null;
+        }
+
+        $operation = $this
+            ->resourceMetadataCollectionFactory
+            ->create($resourceClass)
+            ->getOperation($operationName);
+
+        // Make it available to anything running after us too.
+        $request->attributes->set('_api_operation', $operation);
+
+        return $operation;
     }
 }
