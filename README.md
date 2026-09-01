@@ -315,6 +315,89 @@ final class Product
 }
 ```
 
+### Limit login attempts by IP
+
+Symfony resolver:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+
+final readonly class IpIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private RequestStack $requestStack,
+    ) {
+    }
+
+    public function resolve(): ?string
+    {
+        $ip = $this->requestStack->getCurrentRequest()?->getClientIp();
+
+        return $ip === null ? null : 'ip:' . $ip;
+    }
+}
+```
+
+Laravel resolver:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use Illuminate\Http\Request;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+
+final readonly class IpIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private Request $request,
+    ) {
+    }
+
+    public function resolve(): string
+    {
+        return 'ip:' . $this->request->ip();
+    }
+}
+```
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Post;
+use App\RateLimit\IpIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new Post(
+            uriTemplate: '/login',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 5,
+                    interval: '1 minute',
+                    identity: new Identity(IpIdentityResolver::class),
+                ),
+            ],
+        ),
+    ],
+)]
+final class LoginAttempt
+{
+    // ...
+}
+```
+
+Symfony autoconfigures the resolver. On Laravel, add it to `resolvers.identity` in the published config.
+
 ### Charge expensive operations more
 
 ```yaml
@@ -492,6 +575,95 @@ final class Product
 
 The default identity is the authenticated user, falling back to client IP.
 
+### Limit per tenant and user
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+
+final readonly class TenantIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private TenantContext $tenant,
+    ) {
+    }
+
+    public function resolve(): string
+    {
+        return 'tenant:' . $this->tenant->id();
+    }
+}
+```
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\TenantIdentityResolver;
+use App\RateLimit\UserIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 1000,
+                    interval: '1 minute',
+                    identity: new CompositeIdentity([
+                        new Identity(TenantIdentityResolver::class),
+                        new Identity(UserIdentityResolver::class),
+                    ]),
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+The same identity can be used by a configured global.
+
+Symfony:
+
+```yaml
+api_platform_rate_limiter:
+    globals:
+        api:
+            limit: 1000
+            interval: '1 minute'
+            identity:
+                composite:
+                    - App\RateLimit\TenantIdentityResolver
+                    - App\RateLimit\UserIdentityResolver
+```
+
+Laravel:
+
+```php
+'globals' => [
+    'api' => [
+        'limit' => 1000,
+        'interval' => '1 minute',
+        'identity' => [
+            'composite' => [
+                App\RateLimit\TenantIdentityResolver::class,
+                App\RateLimit\UserIdentityResolver::class,
+            ],
+        ],
+    ],
+],
+```
+
 ### Apply a limit conditionally
 
 Condition:
@@ -538,6 +710,46 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     interval: '1 minute',
                     when: new Condition(AuthenticatedCondition::class),
                 ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+### Give guests and users different limits
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\AuthenticatedCondition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => [
+                    new RateLimit(
+                        limit: 20,
+                        interval: '1 minute',
+                        when: new Not(
+                            new Condition(AuthenticatedCondition::class),
+                        ),
+                    ),
+                    new RateLimit(
+                        limit: 200,
+                        interval: '1 minute',
+                        when: new Condition(AuthenticatedCondition::class),
+                    ),
+                ],
             ],
         ),
     ],
@@ -908,6 +1120,21 @@ final class Product
 }
 ```
 
+Use `AnyOf` when either condition should match:
+
+```php
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
+
+new RateLimit(
+    limit: 100,
+    interval: '1 minute',
+    when: new AnyOf([
+        new Condition(AuthenticatedCondition::class),
+        new Condition(InternalRequestCondition::class),
+    ]),
+);
+```
+
 Configured bucket:
 
 ```yaml
@@ -1221,7 +1448,47 @@ Or:
 ],
 ```
 
-Use shared storage such as Redis when several application instances must share counters.
+### Redis
+
+Use shared storage when several application instances must share counters.
+
+Symfony:
+
+```yaml
+# config/packages/cache.yaml
+
+framework:
+    cache:
+        pools:
+            cache.rate_limiter:
+                adapter: cache.adapter.redis
+                provider: '%env(REDIS_URL)%'
+
+api_platform_rate_limiter:
+    cache_pool: cache.rate_limiter
+```
+
+Laravel:
+
+```php
+// config/cache.php
+
+'stores' => [
+    'rate_limits' => [
+        'driver' => 'redis',
+        'connection' => 'default',
+    ],
+],
+```
+
+```php
+// config/api-platform-rate-limiter.php
+
+'storage' => [
+    'store' => 'rate_limits',
+    'service' => null,
+],
+```
 
 ## Rejection response
 
