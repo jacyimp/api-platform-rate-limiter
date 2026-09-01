@@ -6,102 +6,33 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
-### Changed
+## [0.1.0] - 2026-09-01
 
-- Kept Illuminate framework packages as development-only dependencies so
-  Symfony consumers are not constrained by Laravel's Symfony component
-  requirements; Laravel applications receive them from their framework/API
-  Platform installation.
-- Formalized persisted counter identity as the collision-safe tuple of final
-  bucket, resolved identity, policy, limit, and normalized interval. Dynamic
-  definition changes select separate state, while request cost does not.
-- Renamed `DynamicCostResolverInterface` to `CostResolverInterface`, matching
-  `BucketResolverInterface` and `LimitResolverInterface`.
-- Reordered advanced `RateLimit` constructor options to `bucket`, `cost`,
-  `identity`, `when`, and `policy` after the common `limit`/`interval` pair.
-- Replaced YAML `limit_resolver`, `bucket_resolver`, and `cost_resolver` options
-  with resolver mappings under `limit`, `bucket`, and `cost`; replaced
-  `identity_resolver` with `identity`.
-- Routed named globals through the same declaration-resolution pipeline as
-  operation and resource limits, including dynamic values, identities,
-  conditions, costs, buckets, and compatible shared-definition lookup.
-- Replaced `RateLimit::$identityResolver` with composable `identity` metadata;
-  identity resolvers may now return `null` when unavailable.
-- Replaced string `when` metadata with composable condition expressions and
-  renamed runtime condition checks from `shouldApply()` to `matches()`.
-- Replaced the singular `global` configuration with named `globals`; every
-  configured global is enforced independently using a `global:<name>` bucket.
-- Merged the unreleased `SharedRateLimit` metadata API into `RateLimit` via its
-  optional `bucket`; combined metadata now accepts a list of `RateLimit` values.
-- Renamed operation metadata from `OperationRateLimit` to `RateLimit`.
-- Simplified bypass rules to `shouldBypass(): bool`.
-- Moved `RateLimiterInterface` into `Core` and marked implementation types as internal.
-- Documented sequential combined-limit consumption without rollback.
-- Defined providers as an additive source of `RateLimit` declarations resolved
-  after operation/resource metadata and before globals. Provider declarations
-  now have explicitly documented common resolution, bypass, ordering, error,
-  and non-deduplication semantics.
+First public release.
 
 ### Added
 
-- Infection mutation testing for all source code, with 100% MSI and covered MSI
-  enforced in a dedicated CI job.
-- A dedicated `composer coverage` quality check that enforces 100% source line
-  coverage and produces a Clover report for CI.
-- Cross-framework CI coverage for supported Symfony/API Platform dependency
-  combinations and real `api-platform/laravel` middleware integration across
-  Laravel 11, 12, and 13.
-- First-class Laravel 11-13 + API Platform integration with package discovery,
-  operation middleware, Laravel identity and rejection adapters, publishable
-  configuration, isolated cache storage, and Laravel event dispatching.
-- A small framework-neutral configuration factory for turning plain framework
-  configuration into the existing metadata model.
-- `Identity`, `CompositeIdentity`, and `FirstAvailableIdentity` expressions,
-  including nested composition and collision-safe composite encoding.
-- `Condition`, `AllOf`, `AnyOf`, and `Not` expressions for composing nested
-  rate-limit and bypass conditions with short-circuit evaluation.
-- Declarative `BypassRateLimit` resource and operation metadata, with optional
-  resolved-bucket matching and conditions.
-- Weighted token consumption through the per-limit `cost` option, including
-  dynamic costs resolved by `CostResolverInterface` services.
-- Dynamic bucket and limit metadata through `DynamicBucket`, `DynamicLimit`,
-  `BucketResolverInterface`, and `LimitResolverInterface`.
-- Optional global rate-limit configuration shared by every API Platform
-  operation.
-- Support for defining `RateLimit` metadata on an `ApiResource`, applying it to
-  all of the resource's operations.
-- A package-specific exception hierarchy with `RateLimiterExceptionInterface`
-  as its common catch point and specific validation, identity, shared-bucket,
-  metadata, and rate-limit rejection exceptions.
-- Immutable PSR-14 `RateLimitChecking`, `RateLimitConsumed`, and
-  `RateLimitRejected` lifecycle events.
-- A replaceable `RateLimitRejectionHandlerInterface` for customizing exception
-  handling when a request exceeds its limit.
-- Per-limit identity resolvers and positive `when` conditions for operation and
-  shared limits.
-- Autoconfiguration and explicit service tags for selectable per-limit
-  strategies.
+- Added API Platform rate limits for individual operations and every operation on a resource.
+- Added multiple limits on one operation, consumed sequentially without rolling back an earlier limit when a later limit rejects the request.
+- Added named global API quotas that can be combined with resource and operation limits.
+- Added shared rate-limit buckets with inline definitions or central Symfony and Laravel configuration.
+- Added fixed-window and sliding-window policies with human-readable intervals, `DateInterval`, and the package `Interval` value object.
+- Added weighted request costs so expensive operations can consume more capacity from a quota.
+- Added dynamic quotas with runtime-resolved limits, shared buckets, and request costs through `DynamicLimit`, `DynamicBucket`, `DynamicCost`, `LimitResolverInterface`, `BucketResolverInterface`, and `CostResolverInterface`.
+- Added authenticated-user identity resolution with a client-IP fallback by default, using each host framework's trusted-proxy-aware request handling.
+- Added composable custom identities with resolver-backed values, fallback chains, and combined identities through `Identity`, `FirstAvailableIdentity`, and `CompositeIdentity`.
+- Added conditional rate limiting with composable `Condition`, `AllOf`, `AnyOf`, and `Not` expressions.
+- Added declarative resource- and operation-level exemptions through `BypassRateLimit`, plus request-wide infrastructure bypasses through `RateLimitBypassInterface`.
+- Added runtime rate-limit declarations through `RateLimitProviderInterface` and custom rejection handling through `RateLimitRejectionHandlerInterface`.
+- Added default `429 Too Many Requests` rejection responses with `Retry-After`, `RateLimit-Limit`, and `RateLimit-Remaining` headers.
+- Added immutable PSR-14 lifecycle events for rate-limit checking, successful consumption, and rejection.
+- Added Symfony bundle integration with dependency-injection autoconfiguration, inline limits that require no package configuration, configurable buckets and globals, and isolated cache-backed storage.
+- Added Laravel 11–13 integration with API Platform for Laravel, including package discovery, operation middleware, framework-native identity and rejection handling, isolated cache storage, and publishable configuration.
+- Added custom storage support and shared cache-backed counters for multi-instance deployments.
+- Added a package exception hierarchy with `RateLimiterExceptionInterface` as the common catch point.
+- Added support for PHP 8.2 through PHP 8.5, API Platform 3.4 and 4.x, and Symfony 6.4, 7.x, and 8.x.
+- Added automated quality gates covering PHPStan at maximum level, coding standards, PHPUnit, Behat behavior tests, 100% source line coverage, 100% Infection MSI and covered MSI, lowest-supported dependencies, Symfony/API Platform compatibility combinations, and Laravel 11–13 integration with API Platform for Laravel.
 
 ### Fixed
 
-- Normalized malformed human-readable intervals to `InvalidIntervalException`
-  on PHP 8.5, matching earlier supported PHP versions.
-
-## [0.1.0] - 2026-08-31
-
-### Added
-
-- Operation-specific API Platform rate limits.
-- Shared rate-limit buckets.
-- Fixed-window and sliding-window policies.
-- Human-readable, `DateInterval`, and value-object interval support.
-- Symfony RateLimiter adapter.
-- Authenticated-user and client-IP identity resolution.
-- Custom identity resolver support.
-- Extensible rate-limit bypass rules.
-- Symfony dependency-injection integration.
-- Central Symfony configuration for shared buckets.
-- `429 Too Many Requests` responses with retry and rate-limit headers.
-- Unit and Symfony kernel integration test coverage.
-- PHP 8.2 through PHP 8.5 compatibility testing.
-- Lowest-supported-dependency CI coverage.
+- Normalized invalid human-readable intervals to `InvalidIntervalException` consistently across supported PHP versions.
