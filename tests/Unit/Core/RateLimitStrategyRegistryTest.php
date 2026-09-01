@@ -71,4 +71,16 @@ final class RateLimitStrategyRegistryTest extends TestCase
 
         $registry->condition('app.missing');
     }
+
+    #[Test]
+    public function itIndexesNumericallyKeyedStrategiesByClass(): void
+    {
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $registry = new RateLimitStrategyRegistry([$identityResolver], []);
+
+        self::assertSame(
+            $identityResolver,
+            $registry->identityResolver($identityResolver::class),
+        );
+    }
 }

@@ -9,6 +9,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\FixedNullableIdentityResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -119,6 +120,18 @@ final class IdentityExpressionEvaluatorTest extends TestCase
         );
 
         self::assertNotSame($first, $second);
+    }
+
+    #[Test]
+    public function itRejectsUnsupportedIdentityExpressions(): void
+    {
+        $expression = new class implements IdentityExpression {
+        };
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Unsupported identity expression');
+
+        $this->evaluator([])->evaluate($expression);
     }
 
     /**

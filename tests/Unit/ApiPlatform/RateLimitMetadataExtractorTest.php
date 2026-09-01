@@ -167,6 +167,19 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
+    public function itRejectsInvalidBypassList(): void
+    {
+        $operation = new Get(extraProperties: [
+            BypassRateLimit::class => [new BypassRateLimit(), 'invalid'],
+        ]);
+
+        $this->expectException(InvalidRateLimitMetadataException::class);
+        $this->expectExceptionMessage('must contain only instances');
+
+        $this->extractor->extractBypasses($operation);
+    }
+
+    #[Test]
     public function itRejectsInvalidRateLimitMetadata(): void
     {
         $operation = new Get(

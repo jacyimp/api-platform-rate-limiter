@@ -11,6 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 #[CoversClass(LimiterStorageKey::class)]
 final class LimiterStorageKeyTest extends TestCase
@@ -81,6 +82,18 @@ final class LimiterStorageKeyTest extends TestCase
             LimiterStorageKey::for($this->rateLimit('a', 100, 60), 'bc'),
             LimiterStorageKey::for($this->rateLimit('ab', 100, 60), 'c'),
         );
+    }
+
+    #[Test]
+    public function itCannotBeConstructedThroughItsPublicApi(): void
+    {
+        $reflection = new ReflectionClass(LimiterStorageKey::class);
+        $constructor = $reflection->getConstructor();
+
+        self::assertNotNull($constructor);
+        self::assertTrue($constructor->isPrivate());
+
+        $constructor->invoke($reflection->newInstanceWithoutConstructor());
     }
 
     private function rateLimit(

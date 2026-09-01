@@ -207,4 +207,20 @@ final class SymfonyIdentityResolverTest extends TestCase
 
         $resolver->resolve();
     }
+
+    #[Test]
+    public function itRejectsMissingClientIp(): void
+    {
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request());
+
+        $resolver = new SymfonyIdentityResolver($requestStack);
+
+        $this->expectException(IdentityResolutionException::class);
+        $this->expectExceptionMessage(
+            'Cannot resolve rate limit identity without a client IP.',
+        );
+
+        $resolver->resolve();
+    }
 }

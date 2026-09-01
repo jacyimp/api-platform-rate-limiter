@@ -66,6 +66,39 @@ jobs:
       - name: Run checks
         run: composer check
 
+  quality:
+    name: Quality
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Audit dependencies
+        run: composer audit
+
+      - name: Enforce 100% source line coverage
+        run: composer coverage
+
+      - name: Upload Clover coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clover-coverage
+          path: coverage.xml
+          if-no-files-found: error
+
   symfony-consumer-compatibility:
     name: Symfony ${{ matrix.symfony }} / API Platform ${{ matrix.api_platform }}
 

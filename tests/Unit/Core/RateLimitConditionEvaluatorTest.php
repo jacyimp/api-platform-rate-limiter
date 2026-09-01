@@ -11,6 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -86,6 +87,18 @@ final class RateLimitConditionEvaluatorTest extends TestCase
             new Condition('true'),
             new Condition('unused'),
         ])));
+    }
+
+    #[Test]
+    public function itRejectsUnsupportedConditionExpressions(): void
+    {
+        $condition = new class implements RateLimitCondition {
+        };
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Unsupported rate limit condition expression');
+
+        $this->evaluator([])->matches($condition);
     }
 
     /**

@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel;
 
+use Generator;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Router;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelCacheStorage;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelIdentityResolver;
@@ -30,6 +33,7 @@ use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\MissingIden
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\PrimaryIdentity;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\SecondaryIdentity;
 use Orchestra\Testbench\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
@@ -99,6 +103,37 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
             LaravelCacheStorage::class,
             $this->application()->make(StorageInterface::class),
         );
+    }
+
+    #[Test]
+    public function itUsesAConfiguredStorageService(): void
+    {
+        $storage = self::createStub(StorageInterface::class);
+        $this->application()->instance('custom.storage', $storage);
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.storage.service',
+            'custom.storage',
+        );
+
+        self::assertSame(
+            $storage,
+            $this->application()->make(StorageInterface::class),
+        );
+    }
+
+    #[Test]
+    public function itRejectsAConfiguredStorageServiceWithTheWrongType(): void
+    {
+        $this->application()->instance('invalid.storage', new \stdClass());
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.storage.service',
+            'invalid.storage',
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must implement');
+
+        $this->application()->make(StorageInterface::class);
     }
 
     #[Test]
@@ -186,6 +221,80 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
 
         $this->getJson('/limited/global-bypass')->assertOk();
         $this->getJson('/limited/global-bypass')->assertOk();
+    }
+
+    #[Test]
+    #[DataProvider('invalidPackageConfigurationProvider')]
+    public function itRejectsInvalidPackageConfiguration(
+        string $key,
+        mixed $value,
+        string $service,
+        string $message,
+        bool $bindInvalidService = false,
+    ): void {
+        if ($bindInvalidService) {
+            $this->application()->instance('invalid.service', new \stdClass());
+        }
+
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.' . $key,
+            $value,
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        $this->application()->make($service);
+    }
+
+    /**
+     * @return Generator<string, array{string, mixed, class-string, string, 4?: bool}>
+     */
+    public static function invalidPackageConfigurationProvider(): Generator
+    {
+        yield 'service collection type' => [
+            'providers',
+            'invalid',
+            RateLimitProviderCollection::class,
+            'configuration "providers" must be an array',
+        ];
+        yield 'service ID type' => [
+            'providers',
+            [123],
+            RateLimitProviderCollection::class,
+            'Configured providers service must be a container ID',
+        ];
+        yield 'service contract' => [
+            'providers',
+            ['invalid.service'],
+            RateLimitProviderCollection::class,
+            'must implement',
+            true,
+        ];
+        yield 'bucket collection type' => [
+            'buckets',
+            'invalid',
+            SharedRateLimitRegistry::class,
+            'configuration "buckets" must be an array',
+        ];
+        yield 'unnamed bucket' => [
+            'buckets',
+            [['limit' => 1, 'interval' => '1 minute']],
+            SharedRateLimitRegistry::class,
+            'must contain named arrays',
+        ];
+        yield 'bucket value type' => [
+            'buckets',
+            ['api' => 'invalid'],
+            SharedRateLimitRegistry::class,
+            'must contain named arrays',
+        ];
+        yield 'unnamed bucket option' => [
+            'buckets',
+            ['api' => [1]],
+            SharedRateLimitRegistry::class,
+            'must use named options',
+        ];
     }
 
     private function application(): Application

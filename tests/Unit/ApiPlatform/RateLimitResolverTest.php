@@ -849,10 +849,64 @@ final class RateLimitResolverTest extends TestCase
         );
     }
 
+    #[Test]
+    public function itRejectsEmptyLegacyIdentityServiceId(): void
+    {
+        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveIdentity');
+
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Identity resolver service ID cannot be empty.');
+
+        $method->invoke($this->resolver(), ' ');
+    }
+
+    #[Test]
+    public function itSupportsLegacyIdentityServiceId(): void
+    {
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveIdentity');
+
+        self::assertInstanceOf(
+            IdentityResolverInterface::class,
+            $method->invoke($this->resolver(
+                identityResolvers: ['app.identity' => $identityResolver],
+            ), 'app.identity'),
+        );
+    }
+
+    #[Test]
+    public function itRejectsResolvingADeclarationWithoutALimit(): void
+    {
+        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveDefinition');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('must have a limit');
+
+        $method->invoke($this->resolver(), new RateLimit(bucket: 'catalog'));
+    }
+
+    #[Test]
+    public function itRejectsResolvingALimitWithoutAnInterval(): void
+    {
+        $reflection = new \ReflectionClass(RateLimit::class);
+        $rateLimit = $reflection->newInstanceWithoutConstructor();
+        $reflection->getProperty('limit')->setValue($rateLimit, 10);
+        $reflection->getProperty('interval')->setValue($rateLimit, null);
+
+        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveDefinition');
+
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Rate limit interval cannot be omitted when a limit is set.',
+        );
+
+        $method->invoke($this->resolver(), $rateLimit);
+    }
+
     /**
      * @param array<string, RateLimit|RateLimitDefinition> $shared
      * @param list<RateLimitProviderInterface> $providers
-     * @param list<IdentityResolverInterface> $identityResolvers
+     * @param array<array-key, IdentityResolverInterface> $identityResolvers
      * @param list<RateLimitConditionInterface> $conditions
      * @param array<string, RateLimit> $globals
      * @param list<BucketResolverInterface> $bucketResolvers

@@ -1,5 +1,8 @@
 # API Platform Rate Limiter
 
+[![CI](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
+
 Rate limiting for API Platform applications on Symfony and Laravel.
 
 > This package is pre-1.0. Its public API may still change between releases.

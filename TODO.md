@@ -26,35 +26,7 @@ Use PHPUnit for implementation edge cases and Behat for externally observable pa
 
 ---
 
-## 2. Reach 100% code coverage
-
-Enforce 100% line coverage for package source code.
-
-Coverage scope:
-
-```text
-src/
-```
-
-Add a dedicated Composer command, for example:
-
-```text
-composer coverage
-```
-
-Generate machine-readable coverage output for CI.
-
-Do not run coverage for every PHP compatibility matrix entry.
-
-Use one dedicated quality job with PCOV or Xdebug.
-
-CI must fail if source line coverage drops below 100%.
-
-Do not achieve 100% by excluding legitimate production code.
-
----
-
-## 3. Add Infection with 100% MSI
+## 2. Add Infection with 100% MSI
 
 Add Infection mutation testing.
 
@@ -93,59 +65,7 @@ The goal is meaningful mutation resistance, not a cosmetic score.
 
 ---
 
-## 4. CI hardening
-
-Separate CI responsibilities.
-
-### Compatibility
-
-Run:
-
-```text
-PHP 8.2
-PHP 8.3
-PHP 8.4
-PHP 8.5
-```
-
-Each runs:
-
-```text
-composer check
-```
-
-### Lowest dependencies
-
-Run PHP 8.2 with:
-
-```bash
-composer update --prefer-lowest --prefer-stable --no-interaction
-composer check
-```
-
-### Quality
-
-Run one dedicated job for:
-
-```text
-composer audit
-100% code coverage
-100% Infection MSI
-```
-
-Keep CI strict on:
-
-* warnings;
-* risky tests;
-* deprecations;
-* PHPStan max;
-* PHPCS;
-* Behat;
-* PHPUnit.
-
----
-
-## 5. Documentation hardening
+## 3. Documentation hardening
 
 Update README after the public API stabilizes.
 

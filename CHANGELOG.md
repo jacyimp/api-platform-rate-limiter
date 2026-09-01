@@ -44,6 +44,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- A dedicated `composer coverage` quality check that enforces 100% source line
+  coverage and produces a Clover report for CI.
 - Cross-framework CI coverage for supported Symfony/API Platform dependency
   combinations and real `api-platform/laravel` middleware integration across
   Laravel 11, 12, and 13.
@@ -77,6 +79,11 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
   shared limits.
 - Autoconfiguration and explicit service tags for selectable per-limit
   strategies.
+
+### Fixed
+
+- Normalized malformed human-readable intervals to `InvalidIntervalException`
+  on PHP 8.5, matching earlier supported PHP versions.
 
 ## [0.1.0] - 2026-08-31
 

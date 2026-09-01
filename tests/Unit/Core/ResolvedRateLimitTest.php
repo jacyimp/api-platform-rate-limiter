@@ -52,4 +52,25 @@ final class ResolvedRateLimitTest extends TestCase
             definition: $definition,
         );
     }
+
+    #[Test]
+    public function itRejectsNonPositiveCost(): void
+    {
+        $definition = new RateLimitDefinition(
+            limit: 100,
+            intervalSeconds: 60,
+            policy: RateLimitPolicy::SLIDING_WINDOW,
+        );
+
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Resolved rate limit cost must be greater than zero.',
+        );
+
+        new ResolvedRateLimit(
+            bucket: 'operation:product_get',
+            definition: $definition,
+            cost: 0,
+        );
+    }
 }

@@ -32,6 +32,10 @@
         "analyse": "phpstan analyse",
         "test": "phpunit",
         "test:behaviour": "behat",
+        "coverage": [
+            "@php -d xdebug.mode=coverage vendor/bin/phpunit --coverage-clover=coverage.xml",
+            "@php tools/check-coverage.php coverage.xml"
+        ],
         "check": [
             "@composer validate --strict",
             "@cs",

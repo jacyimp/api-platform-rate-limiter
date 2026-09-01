@@ -31,7 +31,12 @@ final class IntervalNormalizer
             );
         }
 
-        $dateInterval = DateInterval::createFromDateString($interval);
+        try {
+            /** @throws \Exception PHP 8.5 rejects malformed interval strings. */
+            $dateInterval = DateInterval::createFromDateString($interval);
+        } catch (\Exception) {
+            $dateInterval = false;
+        }
 
         if ($dateInterval === false) {
             throw new InvalidIntervalException(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\DependencyInjection;
 
+use Generator;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
@@ -27,6 +28,7 @@ use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -180,6 +182,85 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
 
         self::assertIsArray($definitions);
         self::assertArrayHasKey('api', $definitions);
+    }
+
+    #[Test]
+    public function itAcceptsDynamicGlobalBucketAndAllExpressionOperators(): void
+    {
+        $container = new ContainerBuilder();
+
+        (new ApiPlatformRateLimiterExtension())->load([[
+            'globals' => [
+                'api' => [
+                    'bucket' => ['resolver' => 'app.bucket_resolver'],
+                    'identity' => [
+                        'composite' => [
+                            ['first_available' => ['app.user', 'app.ip']],
+                        ],
+                    ],
+                    'when' => [
+                        'any_of' => [
+                            ['all_of' => ['app.enabled']],
+                            ['not' => 'app.blocked'],
+                        ],
+                    ],
+                ],
+            ],
+        ]], $container);
+
+        $globals = $container->getDefinition(RateLimitResolver::class)->getArgument(5);
+
+        self::assertIsArray($globals);
+        self::assertArrayHasKey('api', $globals);
+    }
+
+    /** @param array<string, mixed> $expression */
+    #[Test]
+    #[DataProvider('invalidExpressionProvider')]
+    public function itRejectsInvalidGlobalExpressions(
+        string $option,
+        array $expression,
+        string $message,
+    ): void {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        (new ApiPlatformRateLimiterExtension())->load([[
+            'globals' => [
+                'invalid' => [
+                    'limit' => 1,
+                    'interval' => '1 minute',
+                    $option => $expression,
+                ],
+            ],
+        ]], new ContainerBuilder());
+    }
+
+    /** @return Generator<string, array{string, array<string, mixed>, string}> */
+    public static function invalidExpressionProvider(): Generator
+    {
+        yield 'identity shape' => ['identity', [], 'Invalid global identity expression.'];
+        yield 'identity children' => [
+            'identity',
+            ['composite' => 'app.user'],
+            'Global identity expression children must be a list.',
+        ];
+        yield 'identity operator' => [
+            'identity',
+            ['unknown' => ['app.user']],
+            'Unknown global identity operator "unknown".',
+        ];
+        yield 'condition shape' => ['when', [], 'Invalid global condition expression.'];
+        yield 'condition children' => [
+            'when',
+            ['all_of' => 'app.enabled'],
+            'Global condition expression children must be a list.',
+        ];
+        yield 'condition operator' => [
+            'when',
+            ['unknown' => ['app.enabled']],
+            'Unknown global condition operator "unknown".',
+        ];
     }
 
     #[Test]

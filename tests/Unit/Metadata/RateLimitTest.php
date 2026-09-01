@@ -193,4 +193,35 @@ final class RateLimitTest extends TestCase
             interval: '1 minute',
         );
     }
+
+    #[Test]
+    public function itRequiresLimitAndIntervalTogether(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Rate limit and interval must either both be set or both be omitted.',
+        );
+
+        new RateLimit(limit: 10);
+    }
+
+    #[Test]
+    public function itRequiresAnInlineLimitOrBucket(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'An operation-specific rate limit requires a limit and interval.',
+        );
+
+        new RateLimit();
+    }
+
+    #[Test]
+    public function itRejectsAnEmptyBucket(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Rate limit bucket cannot be empty.');
+
+        new RateLimit(bucket: ' ');
+    }
 }

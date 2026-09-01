@@ -5,3 +5,4 @@
 .vscode/
 .phpcs.cache
 /composer.lock
+/coverage.xml

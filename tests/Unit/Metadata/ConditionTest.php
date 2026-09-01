@@ -8,6 +8,7 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AllOf::class)]
 #[CoversClass(AnyOf::class)]
 #[CoversClass(Condition::class)]
+#[CoversClass(Not::class)]
 final class ConditionTest extends TestCase
 {
     #[Test]
@@ -47,5 +49,24 @@ final class ConditionTest extends TestCase
         $this->expectException(InvalidRateLimitException::class);
 
         new AllOf(['condition']);
+    }
+
+    #[Test]
+    public function itAcceptsAnyOfChildrenAndNegation(): void
+    {
+        $condition = new Condition('app.condition');
+        $not = new Not($condition);
+        $anyOf = new AnyOf([$condition, $not]);
+
+        self::assertSame([$condition, $not], $anyOf->conditions);
+        self::assertSame($condition, $not->condition);
+    }
+
+    #[Test]
+    public function itRejectsMixedAnyOfChildren(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+
+        new AnyOf(['condition']);
     }
 }
