@@ -1,7 +1,7 @@
 {
     "name": "jacyimp/api-platform-rate-limiter",
     "description": "Flexible rate limiting for API Platform",
-    "type": "library",
+    "type": "symfony-bundle",
     "license": "MIT",
     "keywords": [
         "api-platform",
