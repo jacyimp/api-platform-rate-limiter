@@ -1,6 +1,7 @@
 # API Platform Rate Limiter
 
 [![CI](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
+[![PHPStan level max](https://img.shields.io/badge/PHPStan-level%20max-brightgreen.svg)](https://phpstan.org/)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
 [![Mutation Score](https://img.shields.io/badge/MSI-100%25-brightgreen)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
 
