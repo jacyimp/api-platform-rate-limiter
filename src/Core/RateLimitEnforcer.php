@@ -31,10 +31,6 @@ final readonly class RateLimitEnforcer
     public function enforce(
         array $rateLimits,
     ): RateLimitEnforcementResult {
-        if ($rateLimits === []) {
-            return new RateLimitEnforcementResult([]);
-        }
-
         $consumptions = [];
 
         foreach ($rateLimits as $rateLimit) {

@@ -29,6 +29,20 @@ final class IntervalNormalizerTest extends TestCase
     }
 
     #[Test]
+    public function itNormalizesEveryPackageIntervalComponent(): void
+    {
+        self::assertSame(
+            93_784,
+            (new IntervalNormalizer())->normalize(new Interval(
+                days: 1,
+                hours: 2,
+                minutes: 3,
+                seconds: 4,
+            )),
+        );
+    }
+
+    #[Test]
     public function itNormalizesPhpDateInterval(): void
     {
         $normalizer = new IntervalNormalizer();
@@ -38,6 +52,24 @@ final class IntervalNormalizerTest extends TestCase
             $normalizer->normalize(
                 new DateInterval('PT1H'),
             ),
+        );
+    }
+
+    #[Test]
+    public function itNormalizesEveryPhpDateIntervalComponent(): void
+    {
+        self::assertSame(
+            93_784,
+            (new IntervalNormalizer())->normalize(new DateInterval('P1DT2H3M4S')),
+        );
+    }
+
+    #[Test]
+    public function itAcceptsAOneSecondPhpInterval(): void
+    {
+        self::assertSame(
+            1,
+            (new IntervalNormalizer())->normalize(new DateInterval('PT1S')),
         );
     }
 
@@ -97,6 +129,40 @@ final class IntervalNormalizerTest extends TestCase
         $this->expectExceptionMessage('Rate limit interval cannot be negative.');
 
         (new IntervalNormalizer())->normalize($interval);
+    }
+
+    #[Test]
+    public function itRejectsEveryNegativePhpIntervalComponent(): void
+    {
+        $setters = [
+            'days' => static function (DateInterval $interval): void {
+                $interval->d = -1;
+            },
+            'hours' => static function (DateInterval $interval): void {
+                $interval->h = -1;
+            },
+            'minutes' => static function (DateInterval $interval): void {
+                $interval->i = -1;
+            },
+            'seconds' => static function (DateInterval $interval): void {
+                $interval->s = -1;
+            },
+        ];
+
+        foreach ($setters as $component => $setNegative) {
+            $interval = new DateInterval('PT1S');
+            $setNegative($interval);
+
+            try {
+                (new IntervalNormalizer())->normalize($interval);
+                self::fail(sprintf('Negative DateInterval::%s was accepted.', $component));
+            } catch (InvalidIntervalException $exception) {
+                self::assertSame(
+                    'Rate limit interval cannot be negative.',
+                    $exception->getMessage(),
+                );
+            }
+        }
     }
 
     #[Test]

@@ -1,4 +1,6 @@
 /vendor/
+/vendor-bin/**/composer.lock
+/vendor-bin/**/vendor/
 .phpunit.result.cache
 .phpunit.cache/
 .idea/
@@ -6,3 +8,4 @@
 .phpcs.cache
 /composer.lock
 /coverage.xml
+/infection.log

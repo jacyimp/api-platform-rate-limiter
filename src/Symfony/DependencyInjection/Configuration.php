@@ -21,7 +21,6 @@ final class Configuration implements ConfigurationInterface
         $rootChildren = $rootNode->children();
 
         $globalsNode = $rootChildren->arrayNode('globals');
-        $globalsNode->defaultValue([])->useAttributeAsKey('name');
         $globalNode = $globalsNode->arrayPrototype();
         $this->configureRateLimit($globalNode, false);
         $globalNode
@@ -34,7 +33,6 @@ final class Configuration implements ConfigurationInterface
             );
 
         $bucketsNode = $rootChildren->arrayNode('buckets');
-        $bucketsNode->defaultValue([])->useAttributeAsKey('name');
         $bucketNode = $bucketsNode->arrayPrototype();
         $this->configureRateLimit($bucketNode, true);
 

@@ -204,10 +204,10 @@ final class RateLimitConfigurationFactory
             throw new \InvalidArgumentException('Condition expression children must be a list.');
         }
 
-        $conditions = array_map(
-            fn (mixed $child): RateLimitCondition => $this->condition($child),
-            array_values($operand),
-        );
+        $conditions = [];
+        foreach ($operand as $child) {
+            $conditions[] = $this->condition($child);
+        }
 
         return match ($operator) {
             'all_of' => new AllOf($conditions),

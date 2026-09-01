@@ -155,6 +155,20 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
+    public function itExtractsEveryBypassInAList(): void
+    {
+        $first = new BypassRateLimit(bucket: 'catalog');
+        $second = new BypassRateLimit(bucket: 'checkout');
+
+        self::assertSame(
+            [$first, $second],
+            $this->extractor->extractBypasses(new Get(extraProperties: [
+                BypassRateLimit::class => [$first, $second],
+            ])),
+        );
+    }
+
+    #[Test]
     public function itRejectsInvalidBypassMetadata(): void
     {
         $operation = new Get(extraProperties: [

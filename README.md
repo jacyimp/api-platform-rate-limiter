@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
+[![Mutation Score](https://img.shields.io/badge/MSI-100%25-brightgreen)](https://github.com/jacyimp/api-platform-rate-limiter/actions/workflows/ci.yml)
 
 Rate limiting for API Platform applications on Symfony and Laravel.
 
@@ -421,6 +422,7 @@ composer cs
 composer analyse
 composer test
 composer test:behaviour
+composer mutation
 ```
 
 ## License

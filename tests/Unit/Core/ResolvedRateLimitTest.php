@@ -31,6 +31,7 @@ final class ResolvedRateLimitTest extends TestCase
 
         self::assertSame('operation:product_get', $resolved->bucket);
         self::assertSame($definition, $resolved->definition);
+        self::assertSame(1, $resolved->cost);
     }
 
     #[Test]
@@ -50,6 +51,22 @@ final class ResolvedRateLimitTest extends TestCase
         new ResolvedRateLimit(
             bucket: '',
             definition: $definition,
+        );
+    }
+
+    #[Test]
+    public function itRejectsBlankBucket(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Rate limit bucket cannot be empty.');
+
+        new ResolvedRateLimit(
+            bucket: ' ',
+            definition: new RateLimitDefinition(
+                limit: 100,
+                intervalSeconds: 60,
+                policy: RateLimitPolicy::SLIDING_WINDOW,
+            ),
         );
     }
 

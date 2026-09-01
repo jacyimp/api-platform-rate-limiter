@@ -31,6 +31,33 @@ final class IntervalTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('positiveIntervals')]
+    public function itAcceptsEachPositiveComponent(
+        int $days,
+        int $hours,
+        int $minutes,
+        int $seconds,
+    ): void {
+        $interval = new Interval($days, $hours, $minutes, $seconds);
+
+        self::assertSame([$days, $hours, $minutes, $seconds], [
+            $interval->days,
+            $interval->hours,
+            $interval->minutes,
+            $interval->seconds,
+        ]);
+    }
+
+    /** @return iterable<string, array{int, int, int, int}> */
+    public static function positiveIntervals(): iterable
+    {
+        yield 'days' => [1, 0, 0, 0];
+        yield 'hours' => [0, 1, 0, 0];
+        yield 'minutes' => [0, 0, 1, 0];
+        yield 'seconds' => [0, 0, 0, 1];
+    }
+
+    #[Test]
     public function itRejectsZeroInterval(): void
     {
         $this->expectException(InvalidIntervalException::class);

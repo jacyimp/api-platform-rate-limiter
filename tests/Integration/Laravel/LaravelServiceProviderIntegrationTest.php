@@ -9,13 +9,22 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Foundation\Application;
 use Illuminate\Routing\Router;
+use Illuminate\Support\ServiceProvider;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
+use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConfigurationFactory;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelCacheStorage;
+use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelEventDispatcher;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelRateLimitRejectionHandler;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelServiceProvider;
@@ -106,6 +115,58 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itRegistersTheExpectedSingletonAndScopedServices(): void
+    {
+        $application = $this->application();
+        $singletons = [
+            RateLimitConfigurationFactory::class,
+            RateLimitMetadataExtractor::class,
+            IntervalNormalizer::class,
+            SymfonyRateLimiter::class,
+            LaravelRateLimitRejectionHandler::class,
+            LaravelEventDispatcher::class,
+        ];
+
+        foreach ($singletons as $service) {
+            self::assertSame($application->make($service), $application->make($service));
+        }
+
+        $scopedServices = [
+            RateLimitConditionEvaluator::class,
+            IdentityExpressionEvaluator::class,
+            LaravelIdentityResolver::class,
+            RateLimitEnforcer::class,
+            ApiPlatformRateLimitMiddleware::class,
+        ];
+        $resolved = [];
+        foreach ($scopedServices as $service) {
+            $resolved[$service] = $application->make($service);
+            self::assertSame($resolved[$service], $application->make($service));
+        }
+
+        $application->forgetScopedInstances();
+
+        foreach ($scopedServices as $service) {
+            self::assertNotSame($resolved[$service], $application->make($service));
+        }
+    }
+
+    #[Test]
+    public function itMergesDefaultsAndPublishesThePackageConfiguration(): void
+    {
+        $config = $this->application()->make(Repository::class);
+        self::assertSame([], $config->get('api-platform-rate-limiter.bypasses'));
+
+        self::assertSame([
+            dirname(__DIR__, 3) . '/config/api-platform-rate-limiter.php'
+                => $this->application()->configPath('api-platform-rate-limiter.php'),
+        ], ServiceProvider::pathsToPublish(
+            LaravelServiceProvider::class,
+            'api-platform-rate-limiter-config',
+        ));
+    }
+
+    #[Test]
     public function itUsesAConfiguredStorageService(): void
     {
         $storage = self::createStub(StorageInterface::class);
@@ -119,6 +180,68 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
             $storage,
             $this->application()->make(StorageInterface::class),
         );
+    }
+
+    #[Test]
+    public function itIgnoresBlankStorageServicesAndNonStringStoreNames(): void
+    {
+        $config = $this->application()->make(Repository::class);
+        $config->set('api-platform-rate-limiter.storage.service', ' ');
+        $config->set('api-platform-rate-limiter.storage.store', ['invalid']);
+        $this->application()->forgetInstance(StorageInterface::class);
+
+        self::assertInstanceOf(
+            LaravelCacheStorage::class,
+            $this->application()->make(StorageInterface::class),
+        );
+    }
+
+    #[Test]
+    public function itPreservesScalarApiPlatformMiddlewareConfiguration(): void
+    {
+        $config = $this->application()->make(Repository::class);
+        $config->set('api-platform.defaults.middleware', 'existing.middleware');
+
+        (new LaravelServiceProvider($this->application()))->register();
+
+        self::assertSame([
+            'existing.middleware',
+            LaravelServiceProvider::MIDDLEWARE,
+        ], $config->get('api-platform.defaults.middleware'));
+    }
+
+    #[Test]
+    public function itPreservesNamedResolverAliases(): void
+    {
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.resolvers.identity',
+            ['primary' => PrimaryIdentity::class],
+        );
+        $this->application()->forgetScopedInstances();
+
+        self::assertInstanceOf(
+            PrimaryIdentity::class,
+            $this->application()
+                ->make(RateLimitStrategyRegistry::class)
+                ->identityResolver('primary'),
+        );
+    }
+
+    #[Test]
+    public function itPreservesEveryConfiguredBucket(): void
+    {
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.buckets',
+            [
+                'first' => ['limit' => 10, 'interval' => '1 minute'],
+                'second' => ['limit' => 20, 'interval' => '2 minutes'],
+            ],
+        );
+        $this->application()->forgetInstance(SharedRateLimitRegistry::class);
+        $registry = $this->application()->make(SharedRateLimitRegistry::class);
+
+        self::assertSame(10, $registry->get('first')->limit);
+        self::assertSame(20, $registry->get('second')->limit);
     }
 
     #[Test]

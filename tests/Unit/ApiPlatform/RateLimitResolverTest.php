@@ -14,6 +14,7 @@ use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitProviderInterface;
+use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitDefinition;
@@ -263,6 +264,34 @@ final class RateLimitResolverTest extends TestCase
             'shared:catalog',
             $resolved[1]->bucket,
         );
+    }
+
+    #[Test]
+    public function itContinuesAfterAnOperationConditionDoesNotMatch(): void
+    {
+        $disabled = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return false;
+            }
+        };
+
+        $resolved = $this->resolver(conditions: [$disabled])->resolve(
+            new Get(extraProperties: [
+                RateLimit::class => [
+                    new RateLimit(
+                        10,
+                        '1 minute',
+                        when: new Condition($disabled::class),
+                    ),
+                    new RateLimit(20, '1 minute'),
+                ],
+            ]),
+            'product_get',
+        );
+
+        self::assertCount(1, $resolved);
+        self::assertSame(20, $resolved[0]->definition->limit);
     }
 
     #[Test]
@@ -523,6 +552,42 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itContinuesResolvingGlobalsAfterAConditionDoesNotMatch(): void
+    {
+        $disabled = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return false;
+            }
+        };
+        $enabled = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return true;
+            }
+        };
+
+        $resolved = $this->resolver(
+            conditions: [$disabled, $enabled],
+            globals: [
+                'disabled' => new RateLimit(
+                    10,
+                    '1 minute',
+                    when: new Condition($disabled::class),
+                ),
+                'enabled' => new RateLimit(
+                    20,
+                    '1 minute',
+                    when: new Condition($enabled::class),
+                ),
+            ],
+        )->resolve(new Get(), 'product_get');
+
+        self::assertCount(1, $resolved);
+        self::assertSame('global:enabled', $resolved[0]->bucket);
+    }
+
+    #[Test]
     public function itResolvesDifferentIdentitiesAndConditionsForEachGlobal(): void
     {
         $burstIdentity = new class implements IdentityResolverInterface {
@@ -676,6 +741,119 @@ final class RateLimitResolverTest extends TestCase
         self::assertSame('global:api:customers', $resolved[0]->bucket);
         self::assertSame(20, $resolved[0]->definition->limit);
         self::assertSame(2, $resolved[0]->cost);
+    }
+
+    #[Test]
+    public function itUsesAReferenceConditionWhenTheSharedDefinitionHasNone(): void
+    {
+        $condition = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return false;
+            }
+        };
+
+        $resolved = $this->resolver(
+            shared: ['catalog' => new RateLimit(10, '1 minute')],
+            conditions: [$condition],
+        )->resolve(new Get(extraProperties: [
+            RateLimit::class => new RateLimit(
+                bucket: 'catalog',
+                when: new Condition($condition::class),
+            ),
+        ]), 'product_get');
+
+        self::assertSame([], $resolved);
+    }
+
+    #[Test]
+    public function itUsesAnExplicitConditionEvaluator(): void
+    {
+        $condition = new class implements RateLimitConditionInterface {
+            public function matches(): bool
+            {
+                return true;
+            }
+        };
+        $customRegistry = new RateLimitStrategyRegistry([], [$condition]);
+
+        $resolved = $this->resolver(
+            globals: ['api' => new RateLimit(
+                10,
+                '1 minute',
+                when: new Condition($condition::class),
+            )],
+            conditionEvaluator: new RateLimitConditionEvaluator($customRegistry),
+        )->resolve(new Get(), 'product_get');
+
+        self::assertCount(1, $resolved);
+    }
+
+    #[Test]
+    public function itUsesAnExplicitIdentityExpressionEvaluator(): void
+    {
+        $identityResolver = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'custom';
+            }
+        };
+        $customRegistry = new RateLimitStrategyRegistry([$identityResolver], []);
+
+        $resolved = $this->resolver(
+            globals: ['api' => new RateLimit(
+                10,
+                '1 minute',
+                identity: new Identity($identityResolver::class),
+            )],
+            identityExpressionEvaluator: new IdentityExpressionEvaluator($customRegistry),
+        )->resolve(new Get(), 'product_get');
+
+        self::assertSame('custom', $resolved[0]->identityResolver?->resolve());
+    }
+
+    #[Test]
+    public function itEvaluatesConfiguredAndReferenceConditionsForASharedLimit(): void
+    {
+        $configuredCondition = new class implements RateLimitConditionInterface {
+            public int $calls = 0;
+
+            public function matches(): bool
+            {
+                ++$this->calls;
+
+                return true;
+            }
+        };
+        $referenceCondition = new class implements RateLimitConditionInterface {
+            public int $calls = 0;
+
+            public function matches(): bool
+            {
+                ++$this->calls;
+
+                return true;
+            }
+        };
+        $resolver = $this->resolver(
+            shared: ['catalog' => new RateLimit(
+                10,
+                '1 minute',
+                when: new Condition($configuredCondition::class),
+            )],
+            conditions: [$configuredCondition, $referenceCondition],
+        );
+
+        $resolved = $resolver->resolve(new Get(extraProperties: [
+            RateLimit::class => new RateLimit(
+                bucket: 'catalog',
+                when: new Condition($referenceCondition::class),
+            ),
+        ]), 'product_get');
+
+        self::assertCount(1, $resolved);
+        self::assertSame(1, $configuredCondition->calls);
+        self::assertSame(1, $referenceCondition->calls);
     }
 
     #[Test]
@@ -850,6 +1028,17 @@ final class RateLimitResolverTest extends TestCase
     }
 
     #[Test]
+    public function itRejectsBlankOperationKeyForRateLimit(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Operation key cannot be empty.');
+
+        $this->resolver()->resolve(new Get(extraProperties: [
+            RateLimit::class => new RateLimit(100, '1 minute'),
+        ]), ' ');
+    }
+
+    #[Test]
     public function itRejectsEmptyLegacyIdentityServiceId(): void
     {
         $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveIdentity');
@@ -922,6 +1111,8 @@ final class RateLimitResolverTest extends TestCase
         array $bucketResolvers = [],
         array $limitResolvers = [],
         array $costResolvers = [],
+        ?IdentityExpressionEvaluator $identityExpressionEvaluator = null,
+        ?RateLimitConditionEvaluator $conditionEvaluator = null,
     ): RateLimitResolver {
         $strategyRegistry = new RateLimitStrategyRegistry(
             $identityResolvers,
@@ -950,7 +1141,9 @@ final class RateLimitResolverTest extends TestCase
             )),
             strategyRegistry: $strategyRegistry,
             globalRateLimits: $globals,
-            conditionEvaluator: new RateLimitConditionEvaluator($strategyRegistry),
+            identityExpressionEvaluator: $identityExpressionEvaluator,
+            conditionEvaluator: $conditionEvaluator
+                ?? new RateLimitConditionEvaluator($strategyRegistry),
         );
     }
 }

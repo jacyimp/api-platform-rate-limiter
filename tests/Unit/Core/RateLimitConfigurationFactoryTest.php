@@ -31,6 +31,7 @@ final class RateLimitConfigurationFactoryTest extends TestCase
         $factory = new RateLimitConfigurationFactory();
         $buckets = $factory->buckets([
             'catalog' => [
+                'bucket' => 'ignored-for-configured-buckets',
                 'limit' => ['resolver' => 'app.limit'],
                 'interval' => new Interval(minutes: 1),
                 'cost' => ['resolver' => 'app.cost'],
@@ -63,6 +64,46 @@ final class RateLimitConfigurationFactoryTest extends TestCase
         self::assertInstanceOf(AnyOf::class, $rateLimit->when->conditions[1]);
         self::assertInstanceOf(Not::class, $rateLimit->when->conditions[1]->conditions[0]);
         self::assertSame(RateLimitPolicy::FIXED_WINDOW, $rateLimit->policy);
+    }
+
+    #[Test]
+    public function itPreservesEveryConfiguredBucket(): void
+    {
+        $buckets = (new RateLimitConfigurationFactory())->buckets([
+            'first' => ['limit' => 10, 'interval' => '1 minute'],
+            'second' => ['limit' => 20, 'interval' => '2 minutes'],
+        ]);
+
+        self::assertSame(['first', 'second'], array_keys($buckets));
+        self::assertSame(20, $buckets['second']->limit);
+    }
+
+    #[Test]
+    public function itNormalizesExpressionChildrenToLists(): void
+    {
+        $bucket = (new RateLimitConfigurationFactory())->buckets([
+            'catalog' => [
+                'limit' => 10,
+                'interval' => '1 minute',
+                'identity' => [
+                    'composite' => [
+                        'primary' => 'tenant',
+                        'secondary' => 'user',
+                    ],
+                ],
+                'when' => [
+                    'all_of' => [
+                        'first' => 'authenticated',
+                        'second' => 'premium',
+                    ],
+                ],
+            ],
+        ])['catalog'];
+
+        self::assertInstanceOf(CompositeIdentity::class, $bucket->identity);
+        self::assertSame([0, 1], array_keys($bucket->identity->identities));
+        self::assertInstanceOf(AllOf::class, $bucket->when);
+        self::assertSame([0, 1], array_keys($bucket->when->conditions));
     }
 
     #[Test]

@@ -44,6 +44,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Added
 
+- Infection mutation testing for all source code, with 100% MSI and covered MSI
+  enforced in a dedicated CI job.
 - A dedicated `composer coverage` quality check that enforces 100% source line
   coverage and produces a Clover report for CI.
 - Cross-framework CI coverage for supported Symfony/API Platform dependency

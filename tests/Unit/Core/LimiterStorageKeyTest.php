@@ -29,6 +29,18 @@ final class LimiterStorageKeyTest extends TestCase
     }
 
     #[Test]
+    public function itUsesTheVersionedStorageKeyFormat(): void
+    {
+        self::assertSame(
+            '260dbe3f87ad087d65b39c7107225930f9a2038fb436e10e287b221ced4086a6',
+            LimiterStorageKey::for(
+                $this->rateLimit('shared:catalog', 100, 60),
+                'user:123',
+            ),
+        );
+    }
+
+    #[Test]
     public function itIncludesEveryEffectiveStateComponent(): void
     {
         $baseline = LimiterStorageKey::for(

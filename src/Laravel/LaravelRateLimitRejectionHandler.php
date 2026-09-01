@@ -24,8 +24,8 @@ final class LaravelRateLimitRejectionHandler implements RateLimitRejectionHandle
             data: ['message' => 'Rate limit exceeded.'],
             status: 429,
             headers: [
-                'RateLimit-Limit' => (string) $rejection->limit,
-                'RateLimit-Remaining' => (string) $rejection->remaining,
+                'RateLimit-Limit' => $rejection->limit,
+                'RateLimit-Remaining' => $rejection->remaining,
                 'Retry-After' => $retryAfter,
             ],
         ));

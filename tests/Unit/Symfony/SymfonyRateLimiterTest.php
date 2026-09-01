@@ -281,6 +281,18 @@ final class SymfonyRateLimiterTest extends TestCase
     }
 
     #[Test]
+    public function itRejectsBlankIdentity(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Rate limit identity cannot be empty.');
+
+        $this->limiter->consume(
+            rateLimit: $this->rateLimit('operation:product_get', 10),
+            identity: ' ',
+        );
+    }
+
+    #[Test]
     public function itRejectsZeroTokens(): void
     {
         $this->expectException(InvalidRateLimitException::class);

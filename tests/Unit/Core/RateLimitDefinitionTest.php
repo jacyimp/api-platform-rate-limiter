@@ -32,6 +32,18 @@ final class RateLimitDefinitionTest extends TestCase
     }
 
     #[Test]
+    public function itAcceptsAOneSecondInterval(): void
+    {
+        $definition = new RateLimitDefinition(
+            limit: 1,
+            intervalSeconds: 1,
+            policy: RateLimitPolicy::FIXED_WINDOW,
+        );
+
+        self::assertSame(1, $definition->intervalSeconds);
+    }
+
+    #[Test]
     public function itRejectsZeroLimit(): void
     {
         $this->expectException(InvalidRateLimitException::class);

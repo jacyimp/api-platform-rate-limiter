@@ -22,6 +22,15 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyIdentityResolver;
@@ -34,6 +43,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
 
@@ -195,13 +205,18 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
                     'bucket' => ['resolver' => 'app.bucket_resolver'],
                     'identity' => [
                         'composite' => [
-                            ['first_available' => ['app.user', 'app.ip']],
+                            'preferred' => [
+                                'first_available' => [
+                                    'user' => 'app.user',
+                                    'ip' => 'app.ip',
+                                ],
+                            ],
                         ],
                     ],
                     'when' => [
                         'any_of' => [
-                            ['all_of' => ['app.enabled']],
-                            ['not' => 'app.blocked'],
+                            'enabled' => ['all_of' => ['primary' => 'app.enabled']],
+                            'allowed' => ['not' => 'app.blocked'],
                         ],
                     ],
                 ],
@@ -212,6 +227,54 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
 
         self::assertIsArray($globals);
         self::assertArrayHasKey('api', $globals);
+
+        $global = $globals['api'];
+        self::assertInstanceOf(Definition::class, $global);
+        self::assertSame(RateLimit::class, $global->getClass());
+
+        $bucket = $global->getArgument(2);
+        self::assertInstanceOf(Definition::class, $bucket);
+        self::assertSame(DynamicBucket::class, $bucket->getClass());
+        self::assertSame('app.bucket_resolver', $bucket->getArgument(0));
+
+        $identity = $global->getArgument(4);
+        self::assertInstanceOf(Definition::class, $identity);
+        self::assertSame(CompositeIdentity::class, $identity->getClass());
+        $compositeChildren = $identity->getArgument(0);
+        self::assertIsArray($compositeChildren);
+        self::assertSame([0], array_keys($compositeChildren));
+        $fallback = $compositeChildren[0];
+        self::assertInstanceOf(Definition::class, $fallback);
+        self::assertSame(FirstAvailableIdentity::class, $fallback->getClass());
+        $fallbackChildren = $fallback->getArgument(0);
+        self::assertIsArray($fallbackChildren);
+        self::assertSame([0, 1], array_keys($fallbackChildren));
+        self::assertInstanceOf(Definition::class, $fallbackChildren[0]);
+        self::assertSame(Identity::class, $fallbackChildren[0]->getClass());
+        self::assertSame('app.user', $fallbackChildren[0]->getArgument(0));
+        self::assertInstanceOf(Definition::class, $fallbackChildren[1]);
+        self::assertSame(Identity::class, $fallbackChildren[1]->getClass());
+        self::assertSame('app.ip', $fallbackChildren[1]->getArgument(0));
+
+        $condition = $global->getArgument(5);
+        self::assertInstanceOf(Definition::class, $condition);
+        self::assertSame(AnyOf::class, $condition->getClass());
+        $anyChildren = $condition->getArgument(0);
+        self::assertIsArray($anyChildren);
+        self::assertSame([0, 1], array_keys($anyChildren));
+        self::assertInstanceOf(Definition::class, $anyChildren[0]);
+        self::assertSame(AllOf::class, $anyChildren[0]->getClass());
+        $allChildren = $anyChildren[0]->getArgument(0);
+        self::assertIsArray($allChildren);
+        self::assertInstanceOf(Definition::class, $allChildren[0]);
+        self::assertSame(Condition::class, $allChildren[0]->getClass());
+        self::assertSame('app.enabled', $allChildren[0]->getArgument(0));
+        self::assertInstanceOf(Definition::class, $anyChildren[1]);
+        self::assertSame(Not::class, $anyChildren[1]->getClass());
+        $negated = $anyChildren[1]->getArgument(0);
+        self::assertInstanceOf(Definition::class, $negated);
+        self::assertSame(Condition::class, $negated->getClass());
+        self::assertSame('app.blocked', $negated->getArgument(0));
     }
 
     /** @param array<string, mixed> $expression */
@@ -392,6 +455,20 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             ApiPlatformRateLimiterExtension::PROVIDER_TAG,
             $argument->getTag(),
         );
+    }
+
+    #[Test]
+    public function itIndexesEveryTaggedRuntimeResolverCollection(): void
+    {
+        $arguments = $this->container()
+            ->getDefinition(RateLimitStrategyRegistry::class)
+            ->getArguments();
+
+        self::assertCount(5, $arguments);
+        foreach ($arguments as $argument) {
+            self::assertInstanceOf(TaggedIteratorArgument::class, $argument);
+            self::assertTrue($argument->needsIndexes());
+        }
     }
 
     #[Test]

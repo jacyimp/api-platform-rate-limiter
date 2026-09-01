@@ -86,10 +86,10 @@ final readonly class RateLimitResolver
             ];
         }
 
-        $bypasses = array_values(array_filter(
+        $bypasses = array_filter(
             $this->metadataExtractor->extractBypasses($operation),
             fn (BypassRateLimit $bypass): bool => $this->conditionMatches($bypass->when),
-        ));
+        );
 
         return array_values(array_map(
             static fn (array $item): ResolvedRateLimit => $item['rateLimit'],
@@ -105,7 +105,7 @@ final readonly class RateLimitResolver
 
     /**
      * @param list<string> $aliases
-     * @param list<BypassRateLimit> $bypasses
+     * @param array<array-key, BypassRateLimit> $bypasses
      */
     private function isBypassed(array $aliases, array $bypasses): bool
     {
@@ -208,12 +208,6 @@ final readonly class RateLimitResolver
         }
 
         if (is_string($identity)) {
-            if (trim($identity) === '') {
-                throw new InvalidRateLimitException(
-                    'Identity resolver service ID cannot be empty.',
-                );
-            }
-
             $identity = new Identity($identity);
         }
 

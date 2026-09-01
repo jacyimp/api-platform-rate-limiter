@@ -99,6 +99,28 @@ jobs:
           path: coverage.xml
           if-no-files-found: error
 
+  mutation-quality:
+    name: Mutation Quality
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Enforce 100% mutation score
+        run: composer mutation
+
   symfony-consumer-compatibility:
     name: Symfony ${{ matrix.symfony }} / API Platform ${{ matrix.api_platform }}
 

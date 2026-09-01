@@ -148,6 +148,39 @@ final class RateLimitEnforcerTest extends TestCase
     }
 
     #[Test]
+    public function itContinuesAfterAnIndividuallyBypassedLimit(): void
+    {
+        $first = $this->rateLimit('operation:bypassed');
+        $second = $this->rateLimit('operation:enforced');
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $identityResolver->method('resolve')->willReturn('user:123');
+        $bypass = self::createMock(RateLimitBypassInterface::class);
+        $bypass->expects(self::exactly(2))
+            ->method('shouldBypass')
+            ->willReturnOnConsecutiveCalls(true, false);
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::once())
+            ->method('consume')
+            ->with($second, 'user:123', 1)
+            ->willReturn(new RateLimitResult(
+                accepted: true,
+                remaining: 9,
+                retryAfter: new DateTimeImmutable('+1 minute'),
+            ));
+
+        $result = (new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $bypass,
+            eventDispatcher: new EventDispatcher(),
+        ))->enforce([$first, $second]);
+
+        self::assertTrue($result->isAccepted());
+        self::assertCount(1, $result->consumptions);
+        self::assertSame($second, $result->consumptions[0]->rateLimit);
+    }
+
+    #[Test]
     public function itUsesStrategiesConfiguredForEachLimit(): void
     {
         $globalIdentityResolver = self::createMock(
@@ -451,6 +484,27 @@ final class RateLimitEnforcerTest extends TestCase
         $this->expectException(IdentityResolutionException::class);
 
         $enforcer->enforce([$this->rateLimit()]);
+    }
+
+    #[Test]
+    public function itRejectsABlankFinalIdentityBeforeConsumption(): void
+    {
+        $identityResolver = self::createStub(IdentityResolverInterface::class);
+        $identityResolver->method('resolve')->willReturn(' ');
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::never())->method('consume');
+        $bypass = self::createStub(RateLimitBypassInterface::class);
+        $bypass->method('shouldBypass')->willReturn(false);
+
+        $this->expectException(IdentityResolutionException::class);
+        $this->expectExceptionMessage('non-empty string');
+
+        (new RateLimitEnforcer(
+            rateLimiter: $rateLimiter,
+            identityResolver: $identityResolver,
+            bypass: $bypass,
+            eventDispatcher: new EventDispatcher(),
+        ))->enforce([$this->rateLimit()]);
     }
 
     private function rateLimit(
