@@ -141,6 +141,62 @@ final class Product
 }
 ```
 
+### Limit the whole API
+
+Symfony:
+
+```yaml
+# config/packages/api_platform_rate_limiter.yaml
+
+api_platform_rate_limiter:
+    globals:
+        burst:
+            limit: 100
+            interval: '1 minute'
+
+        daily:
+            limit: 10000
+            interval: '1 day'
+```
+
+Laravel:
+
+```php
+// config/api-platform-rate-limiter.php
+
+'globals' => [
+    'burst' => [
+        'limit' => 100,
+        'interval' => '1 minute',
+    ],
+    'daily' => [
+        'limit' => 10000,
+        'interval' => '1 day',
+    ],
+],
+```
+
+A resource can still add a tighter local limit:
+
+```php
+#[ApiResource(
+    operations: [
+        new Get(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 20,
+                    interval: '1 minute',
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
 ### Share one quota across operations
 
 Configure the bucket once:
@@ -229,62 +285,6 @@ Laravel:
 ],
 ```
 
-### Limit the whole API
-
-Symfony:
-
-```yaml
-# config/packages/api_platform_rate_limiter.yaml
-
-api_platform_rate_limiter:
-    globals:
-        burst:
-            limit: 100
-            interval: '1 minute'
-
-        daily:
-            limit: 10000
-            interval: '1 day'
-```
-
-Laravel:
-
-```php
-// config/api-platform-rate-limiter.php
-
-'globals' => [
-    'burst' => [
-        'limit' => 100,
-        'interval' => '1 minute',
-    ],
-    'daily' => [
-        'limit' => 10000,
-        'interval' => '1 day',
-    ],
-],
-```
-
-A resource can still add a tighter local limit:
-
-```php
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 20,
-                    interval: '1 minute',
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
 ### Combine several limits on one operation
 
 ```php
@@ -350,6 +350,193 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 RateLimit::class => new RateLimit(
                     bucket: 'catalog',
                     cost: 10,
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+### Bypass rate limiting on an operation
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(),
+        new Get(
+            extraProperties: [
+                BypassRateLimit::class => new BypassRateLimit(),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+Bypass only one shared bucket:
+
+```php
+#[ApiResource(
+    operations: [
+        new Get(
+            extraProperties: [
+                BypassRateLimit::class => new BypassRateLimit(
+                    bucket: 'catalog',
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+Bypass one global:
+
+```php
+#[ApiResource(
+    operations: [
+        new Get(
+            extraProperties: [
+                BypassRateLimit::class => new BypassRateLimit(
+                    bucket: 'global:burst',
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+### Use a custom identity
+
+Resolver:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
+
+final readonly class ApiKeyIdentityResolver implements IdentityResolverInterface
+{
+    public function __construct(
+        private RequestStack $requestStack,
+    ) {
+    }
+
+    public function resolve(): ?string
+    {
+        $apiKey = $this->requestStack
+            ->getCurrentRequest()
+            ?->headers
+            ->get('X-Api-Key');
+
+        return is_string($apiKey) && $apiKey !== ''
+            ? 'api-key:' . $apiKey
+            : null;
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\ApiKeyIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 100,
+                    interval: '1 minute',
+                    identity: new Identity(ApiKeyIdentityResolver::class),
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+The default identity is the authenticated user, falling back to client IP.
+
+### Apply a limit conditionally
+
+Condition:
+
+```php
+<?php
+
+namespace App\RateLimit;
+
+use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+
+final readonly class AuthenticatedCondition implements RateLimitConditionInterface
+{
+    public function __construct(
+        private TokenStorageInterface $tokenStorage,
+    ) {
+    }
+
+    public function matches(): bool
+    {
+        return $this->tokenStorage->getToken()?->getUser() !== null;
+    }
+}
+```
+
+API Platform resource:
+
+```php
+<?php
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use App\RateLimit\AuthenticatedCondition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 100,
+                    interval: '1 minute',
+                    when: new Condition(AuthenticatedCondition::class),
                 ),
             ],
         ),
@@ -656,62 +843,6 @@ final class Product
 }
 ```
 
-### Apply a limit conditionally
-
-Condition:
-
-```php
-<?php
-
-namespace App\RateLimit;
-
-use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-
-final readonly class AuthenticatedCondition implements RateLimitConditionInterface
-{
-    public function __construct(
-        private TokenStorageInterface $tokenStorage,
-    ) {
-    }
-
-    public function matches(): bool
-    {
-        return $this->tokenStorage->getToken()?->getUser() !== null;
-    }
-}
-```
-
-API Platform resource:
-
-```php
-<?php
-
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GetCollection;
-use App\RateLimit\AuthenticatedCondition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-
-#[ApiResource(
-    operations: [
-        new GetCollection(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 100,
-                    interval: '1 minute',
-                    when: new Condition(AuthenticatedCondition::class),
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
 ### Combine conditions
 
 Second condition:
@@ -802,71 +933,6 @@ api_platform_rate_limiter:
                     - not: App\RateLimit\InternalRequestCondition
 ```
 
-### Use a custom identity
-
-Resolver:
-
-```php
-<?php
-
-namespace App\RateLimit;
-
-use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-
-final readonly class ApiKeyIdentityResolver implements IdentityResolverInterface
-{
-    public function __construct(
-        private RequestStack $requestStack,
-    ) {
-    }
-
-    public function resolve(): ?string
-    {
-        $apiKey = $this->requestStack
-            ->getCurrentRequest()
-            ?->headers
-            ->get('X-Api-Key');
-
-        return is_string($apiKey) && $apiKey !== ''
-            ? 'api-key:' . $apiKey
-            : null;
-    }
-}
-```
-
-API Platform resource:
-
-```php
-<?php
-
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\GetCollection;
-use App\RateLimit\ApiKeyIdentityResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
-
-#[ApiResource(
-    operations: [
-        new GetCollection(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 100,
-                    interval: '1 minute',
-                    identity: new Identity(ApiKeyIdentityResolver::class),
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-The default identity is the authenticated user, falling back to client IP.
-
 ### Use identity fallback
 
 Resolvers:
@@ -940,72 +1006,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                         new Identity(UserIdentityResolver::class),
                         new Identity(IpIdentityResolver::class),
                     ]),
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-### Bypass rate limiting on an operation
-
-```php
-<?php
-
-use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\GetCollection;
-use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
-
-#[ApiResource(
-    operations: [
-        new GetCollection(),
-        new Get(
-            extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Bypass only one shared bucket:
-
-```php
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(
-                    bucket: 'catalog',
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Bypass one global:
-
-```php
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(
-                    bucket: 'global:burst',
                 ),
             ],
         ),
@@ -1181,59 +1181,6 @@ Symfony autoconfigures providers. Laravel:
 ],
 ```
 
-## Intervals
-
-```php
-#[ApiResource(
-    operations: [
-        new GetCollection(
-            extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 1000,
-                    interval: '1 hour',
-                ),
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-`DateInterval` and the package `Interval` value object are also supported:
-
-```php
-use DateInterval;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
-
-#[ApiResource(
-    operations: [
-        new Get(
-            extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(
-                        limit: 100,
-                        interval: new DateInterval('PT1M'),
-                    ),
-                    new RateLimit(
-                        limit: 1000,
-                        interval: new Interval(hours: 1),
-                    ),
-                ],
-            ],
-        ),
-    ],
-)]
-final class Product
-{
-    // ...
-}
-```
-
-Intervals must be at least one second. Months, years, negative values, and fractional seconds are not supported.
-
 ## Storage
 
 ### Symfony
@@ -1395,6 +1342,59 @@ RateLimitRejected
 ```
 
 Laravel receives the same event classes through Laravel's event dispatcher.
+
+## Intervals
+
+```php
+#[ApiResource(
+    operations: [
+        new GetCollection(
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 1000,
+                    interval: '1 hour',
+                ),
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+`DateInterval` and the package `Interval` value object are also supported:
+
+```php
+use DateInterval;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
+
+#[ApiResource(
+    operations: [
+        new Get(
+            extraProperties: [
+                RateLimit::class => [
+                    new RateLimit(
+                        limit: 100,
+                        interval: new DateInterval('PT1M'),
+                    ),
+                    new RateLimit(
+                        limit: 1000,
+                        interval: new Interval(hours: 1),
+                    ),
+                ],
+            ],
+        ),
+    ],
+)]
+final class Product
+{
+    // ...
+}
+```
+
+Intervals must be at least one second. Months, years, negative values, and fractional seconds are not supported.
 
 ## Development
 
