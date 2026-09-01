@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\EventListener;
 
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use DateTimeImmutable;
 use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
@@ -276,6 +277,9 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             ),
             rejectionHandler: $rejectionHandler
                 ?? new SymfonyRateLimitRejectionHandler(),
+            resourceMetadataCollectionFactory: self::createStub(
+                ResourceMetadataCollectionFactoryInterface::class,
+            ),
         );
     }
 

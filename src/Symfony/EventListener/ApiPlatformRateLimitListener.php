@@ -22,7 +22,7 @@ final readonly class ApiPlatformRateLimitListener
         private RateLimitResolver $rateLimitResolver,
         private RateLimitEnforcer $rateLimitEnforcer,
         private RateLimitRejectionHandlerInterface $rejectionHandler,
-        private ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory,
+        private ?ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory = null,
     ) {
     }
 
@@ -74,7 +74,8 @@ final readonly class ApiPlatformRateLimitListener
         $operationName = $request->attributes->get('_api_operation_name');
 
         if (
-            !is_string($resourceClass)
+            $this->resourceMetadataCollectionFactory === null
+            || !is_string($resourceClass)
             || $resourceClass === ''
             || !is_string($operationName)
             || $operationName === ''

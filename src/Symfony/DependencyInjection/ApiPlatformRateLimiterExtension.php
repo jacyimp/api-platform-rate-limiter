@@ -253,7 +253,10 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 new Reference(RateLimitResolver::class),
                 new Reference(RateLimitEnforcer::class),
                 new Reference(RateLimitRejectionHandlerInterface::class),
-                new Reference(ResourceMetadataCollectionFactoryInterface::class),
+                new Reference(
+                    ResourceMetadataCollectionFactoryInterface::class,
+                    ContainerInterface::NULL_ON_INVALID_REFERENCE,
+                ),
             ])
             ->addTag(
                 'kernel.event_listener',
