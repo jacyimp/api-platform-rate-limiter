@@ -141,6 +141,7 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
             ApiPlatformRateLimitMiddleware::class,
         ];
         foreach ($transientServices as $service) {
+            self::assertTrue($application->bound($service));
             self::assertNotSame($application->make($service), $application->make($service));
         }
     }
