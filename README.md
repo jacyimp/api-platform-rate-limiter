@@ -24,7 +24,7 @@ Define quotas next to API Platform operations, share a quota across endpoints, o
 composer require jacyimp/api-platform-rate-limiter
 ```
 
-Enable the bundle:
+If Symfony Flex is not available, register the bundle manually in `config/bundles.php`:
 
 ```php
 <?php
