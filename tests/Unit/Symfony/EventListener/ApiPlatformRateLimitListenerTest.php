@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\EventListener;
 
+use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use DateTimeImmutable;
 use DateTimeZone;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
@@ -26,6 +28,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimitRejectionHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -97,6 +100,97 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             ->onKernelRequest(
                 $this->requestEvent($request),
             );
+    }
+
+    #[Test]
+    public function itResolvesAndStoresOperationFromLegacyRequestAttributes(): void
+    {
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter
+            ->expects(self::once())
+            ->method('consume')
+            ->willReturn(new RateLimitResult(
+                accepted: true,
+                remaining: 9,
+                retryAfter: new DateTimeImmutable('2030-01-01 00:01:00 UTC'),
+            ));
+
+        $operation = new Get(
+            name: 'product_get',
+            extraProperties: [
+                RateLimit::class => new RateLimit(
+                    limit: 10,
+                    interval: '1 minute',
+                ),
+            ],
+        );
+        $metadata = new ResourceMetadataCollection(
+            self::class,
+            [new ApiResource(operations: [$operation])],
+        );
+        $resolvedOperation = $metadata->getOperation('product_get');
+        $metadataFactory = self::createMock(ResourceMetadataCollectionFactoryInterface::class);
+        $metadataFactory
+            ->expects(self::once())
+            ->method('create')
+            ->with(self::class)
+            ->willReturn($metadata);
+
+        $request = new Request(attributes: [
+            '_api_resource_class' => self::class,
+            '_api_operation_name' => 'product_get',
+        ]);
+
+        $this->listener($rateLimiter, resourceMetadataCollectionFactory: $metadataFactory)
+            ->onKernelRequest($this->requestEvent($request));
+
+        self::assertSame($resolvedOperation, $request->attributes->get('_api_operation'));
+    }
+
+    #[Test]
+    public function itIgnoresLegacyRequestAttributesWithoutMetadataFactory(): void
+    {
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::never())->method('consume');
+
+        $request = new Request(attributes: [
+            '_api_resource_class' => self::class,
+            '_api_operation_name' => 'product_get',
+        ]);
+
+        $this->listener($rateLimiter, withResourceMetadataCollectionFactory: false)
+            ->onKernelRequest($this->requestEvent($request));
+    }
+
+    #[Test]
+    #[DataProvider('invalidLegacyRequestAttributes')]
+    public function itIgnoresInvalidLegacyRequestAttributes(
+        mixed $resourceClass,
+        mixed $operationName,
+    ): void {
+        $rateLimiter = self::createMock(RateLimiterInterface::class);
+        $rateLimiter->expects(self::never())->method('consume');
+
+        $metadataFactory = self::createMock(ResourceMetadataCollectionFactoryInterface::class);
+        $metadataFactory->expects(self::never())->method('create');
+
+        $request = new Request(attributes: [
+            '_api_resource_class' => $resourceClass,
+            '_api_operation_name' => $operationName,
+        ]);
+
+        $this->listener($rateLimiter, resourceMetadataCollectionFactory: $metadataFactory)
+            ->onKernelRequest($this->requestEvent($request));
+    }
+
+    /**
+     * @return iterable<string, array{mixed, mixed}>
+     */
+    public static function invalidLegacyRequestAttributes(): iterable
+    {
+        yield 'non-string resource class' => [123, 'product_get'];
+        yield 'empty resource class' => ['', 'product_get'];
+        yield 'non-string operation name' => [self::class, 123];
     }
 
     #[Test]
@@ -244,6 +338,8 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
         RateLimiterInterface $rateLimiter,
         ?RateLimitRejectionHandlerInterface $rejectionHandler = null,
         ?EventDispatcherInterface $eventDispatcher = null,
+        ?ResourceMetadataCollectionFactoryInterface $resourceMetadataCollectionFactory = null,
+        bool $withResourceMetadataCollectionFactory = true,
     ): ApiPlatformRateLimitListener {
         $identityResolver = self::createStub(
             IdentityResolverInterface::class,
@@ -277,9 +373,10 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             ),
             rejectionHandler: $rejectionHandler
                 ?? new SymfonyRateLimitRejectionHandler(),
-            resourceMetadataCollectionFactory: self::createStub(
-                ResourceMetadataCollectionFactoryInterface::class,
-            ),
+            resourceMetadataCollectionFactory: $withResourceMetadataCollectionFactory
+                ? $resourceMetadataCollectionFactory
+                    ?? self::createStub(ResourceMetadataCollectionFactoryInterface::class)
+                : null,
         );
     }
 
