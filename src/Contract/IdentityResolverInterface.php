@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Contract;
 
+/**
+ * Resolves the identity used to separate rate-limit counters.
+ *
+ * Reference an implementation with `new Identity(ApiKeyIdentityResolver::class)`.
+ */
 interface IdentityResolverInterface
 {
     /**

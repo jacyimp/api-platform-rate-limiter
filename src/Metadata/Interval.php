@@ -6,6 +6,12 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
 
+/**
+ * Defines a programmatic rate-limit duration with whole time units.
+ *
+ * Human-readable strings such as `1 minute` are simpler for most metadata.
+ * Example: `new Interval(hours: 1)`.
+ */
 final readonly class Interval
 {
     public function __construct(

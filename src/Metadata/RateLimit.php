@@ -9,6 +9,12 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 
+/**
+ * Declares a quota for an API Platform operation or resource.
+ *
+ * Omit limit and interval only when referencing a configured bucket.
+ * Example: `new RateLimit(limit: 100, interval: '1 minute')`.
+ */
 final readonly class RateLimit
 {
     public function __construct(

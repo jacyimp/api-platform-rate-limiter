@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Identity;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Uses the first child identity that resolves to a non-null value.
+ *
+ * Example: `new FirstAvailableIdentity([new Identity(User::class), new Identity(Ip::class)])`.
+ */
 final readonly class FirstAvailableIdentity implements IdentityExpression
 {
     /** @var non-empty-list<IdentityExpression> */

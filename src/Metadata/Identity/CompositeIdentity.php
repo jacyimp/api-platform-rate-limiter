@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Identity;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Combines every child value into one identity for the rate-limit counter.
+ *
+ * Example: `new CompositeIdentity([new Identity(Tenant::class), new Identity(User::class)])`.
+ */
 final readonly class CompositeIdentity implements IdentityExpression
 {
     /** @var non-empty-list<IdentityExpression> */

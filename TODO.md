@@ -64,26 +64,3 @@ If a genuinely equivalent mutant cannot be killed:
 The goal is meaningful mutation resistance, not a cosmetic score.
 
 ---
-
-## 3. Documentation hardening
-
-Update README after the public API stabilizes.
-
-Document:
-
-* simplest operation-specific usage first;
-* shared buckets;
-* combined limits;
-* identity resolution;
-* bypass behavior;
-* per-limit resolvers and bypasses;
-* dynamic rate-limit providers;
-* manual service tags;
-* public events;
-* exception hierarchy;
-* multi-instance cache requirements;
-* sequential multi-limit consumption behavior.
-
-Keep advanced customization below the basic quick-start.
-
-Do not document internal classes as supported extension points.

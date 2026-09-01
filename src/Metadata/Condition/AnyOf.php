@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Condition;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Matches when at least one child condition matches.
+ *
+ * Example: `new AnyOf([new Condition(IsUser::class), new Condition(IsGuest::class)])`.
+ */
 final readonly class AnyOf implements RateLimitCondition
 {
     /** @var list<RateLimitCondition> */

@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Resolves a rate-limit allowance from application state at request time.
+ *
+ * Example: `new DynamicLimit(PlanLimitResolver::class)`.
+ */
 final readonly class DynamicLimit
 {
     /** @param non-empty-string|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface> $resolver */

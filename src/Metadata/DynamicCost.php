@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Resolves the current request's token cost at request time.
+ *
+ * Example: `new DynamicCost(SearchCostResolver::class)`.
+ */
 final readonly class DynamicCost
 {
     /** @param non-empty-string|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> $resolver */

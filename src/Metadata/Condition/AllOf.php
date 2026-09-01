@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Condition;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Matches when every child condition matches.
+ *
+ * Example: `new AllOf([new Condition(IsUser::class), new Condition(IsPaid::class)])`.
+ */
 final readonly class AllOf implements RateLimitCondition
 {
     /** @var list<RateLimitCondition> */

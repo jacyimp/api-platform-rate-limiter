@@ -6,6 +6,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata;
 
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 
+/**
+ * Resolves a rate-limit bucket name from application state at request time.
+ *
+ * Example: `new DynamicBucket(TenantBucketResolver::class)`.
+ */
 final readonly class DynamicBucket
 {
     /** @param non-empty-string|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface> $resolver */
