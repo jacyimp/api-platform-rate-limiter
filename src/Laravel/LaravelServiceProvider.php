@@ -50,13 +50,13 @@ final class LaravelServiceProvider extends ServiceProvider
         $this->app->singleton(RateLimitMetadataExtractor::class);
         $this->app->singleton(IntervalNormalizer::class);
 
-        $this->app->scoped(
+        $this->app->bind(
             RateLimitProviderCollection::class,
             fn (Application $app): RateLimitProviderCollection => new RateLimitProviderCollection(
                 $this->services($app, 'providers', RateLimitProviderInterface::class),
             ),
         );
-        $this->app->scoped(
+        $this->app->bind(
             RateLimitStrategyRegistry::class,
             fn (Application $app): RateLimitStrategyRegistry => new RateLimitStrategyRegistry(
                 $this->services($app, 'resolvers.identity', IdentityResolverInterface::class),
@@ -73,19 +73,20 @@ final class LaravelServiceProvider extends ServiceProvider
                 $this->rateLimitConfiguration($app, 'buckets'),
             ));
         });
-        $this->app->scoped(
+        $this->app->bind(
             RateLimitConditionEvaluator::class,
             static fn (Application $app): RateLimitConditionEvaluator => new RateLimitConditionEvaluator(
                 $app->make(RateLimitStrategyRegistry::class),
             ),
         );
-        $this->app->scoped(
+        $this->app->bind(
             IdentityExpressionEvaluator::class,
             static fn (Application $app): IdentityExpressionEvaluator => new IdentityExpressionEvaluator(
                 $app->make(RateLimitStrategyRegistry::class),
             ),
         );
-        $this->app->scoped(RateLimitResolver::class, function (Application $app): RateLimitResolver {
+        $this->app->bind(RateLimitResolver::class, function (Application $app): RateLimitResolver {
+
             $factory = $app->make(RateLimitConfigurationFactory::class);
 
             return new RateLimitResolver(
@@ -129,14 +130,14 @@ final class LaravelServiceProvider extends ServiceProvider
         );
         $this->app->alias(SymfonyRateLimiter::class, RateLimiterInterface::class);
 
-        $this->app->scoped(LaravelIdentityResolver::class);
+        $this->app->bind(LaravelIdentityResolver::class);
         $this->app->alias(LaravelIdentityResolver::class, IdentityResolverInterface::class);
         $this->app->singleton(LaravelRateLimitRejectionHandler::class);
         $this->app->alias(
             LaravelRateLimitRejectionHandler::class,
             RateLimitRejectionHandlerInterface::class,
         );
-        $this->app->scoped(
+        $this->app->bind(
             RateLimitBypassChecker::class,
             fn (Application $app): RateLimitBypassChecker => new RateLimitBypassChecker(
                 $this->services($app, 'bypasses', RateLimitBypassInterface::class),
@@ -145,7 +146,7 @@ final class LaravelServiceProvider extends ServiceProvider
         $this->app->alias(RateLimitBypassChecker::class, RateLimitBypassInterface::class);
         $this->app->singleton(LaravelEventDispatcher::class);
         $this->app->alias(LaravelEventDispatcher::class, EventDispatcherInterface::class);
-        $this->app->scoped(
+        $this->app->bind(
             RateLimitEnforcer::class,
             static fn (Application $app): RateLimitEnforcer => new RateLimitEnforcer(
                 $app->make(RateLimiterInterface::class),
@@ -154,7 +155,7 @@ final class LaravelServiceProvider extends ServiceProvider
                 $app->make(EventDispatcherInterface::class),
             ),
         );
-        $this->app->scoped(ApiPlatformRateLimitMiddleware::class);
+        $this->app->bind(ApiPlatformRateLimitMiddleware::class);
     }
 
     public function boot(Router $router): void

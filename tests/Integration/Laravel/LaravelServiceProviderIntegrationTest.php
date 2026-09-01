@@ -115,7 +115,7 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
     }
 
     #[Test]
-    public function itRegistersTheExpectedSingletonAndScopedServices(): void
+    public function itRegistersTheExpectedSingletonAndTransientServices(): void
     {
         $application = $this->application();
         $singletons = [
@@ -131,23 +131,17 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
             self::assertSame($application->make($service), $application->make($service));
         }
 
-        $scopedServices = [
+        $transientServices = [
+            RateLimitProviderCollection::class,
+            RateLimitStrategyRegistry::class,
             RateLimitConditionEvaluator::class,
             IdentityExpressionEvaluator::class,
             LaravelIdentityResolver::class,
             RateLimitEnforcer::class,
             ApiPlatformRateLimitMiddleware::class,
         ];
-        $resolved = [];
-        foreach ($scopedServices as $service) {
-            $resolved[$service] = $application->make($service);
-            self::assertSame($resolved[$service], $application->make($service));
-        }
-
-        $application->forgetScopedInstances();
-
-        foreach ($scopedServices as $service) {
-            self::assertNotSame($resolved[$service], $application->make($service));
+        foreach ($transientServices as $service) {
+            self::assertNotSame($application->make($service), $application->make($service));
         }
     }
 

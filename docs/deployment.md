@@ -228,21 +228,20 @@ Laravel:
 namespace App\RateLimit;
 
 use DateTimeZone;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejection;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitRejectionHandlerInterface;
 
 final class ApiRateLimitRejectionHandler implements RateLimitRejectionHandlerInterface
 {
-    public function reject(RateLimitRejection $rejection): never
+    public function reject(RateLimitRejection $rejection): JsonResponse
     {
         $retryAfter = $rejection
             ->retryAfter
             ->setTimezone(new DateTimeZone('GMT'))
             ->format('D, d M Y H:i:s \\G\\M\\T');
 
-        throw new HttpResponseException(new JsonResponse(
+        return new JsonResponse(
             data: [
                 'message' => 'API quota exceeded.',
                 'retryAt' => $rejection->retryAfter->format(DATE_ATOM),
@@ -253,7 +252,7 @@ final class ApiRateLimitRejectionHandler implements RateLimitRejectionHandlerInt
                 'RateLimit-Limit' => (string) $rejection->limit,
                 'RateLimit-Remaining' => (string) $rejection->remaining,
             ],
-        ));
+        );
     }
 }
 ```

@@ -44,7 +44,7 @@ final readonly class ApiPlatformRateLimitMiddleware
             return $next($request);
         }
 
-        $this->rejectionHandler->reject(new RateLimitRejection(
+        return $this->rejectionHandler->reject(new RateLimitRejection(
             limit: $rejected->rateLimit->definition->limit,
             remaining: $rejected->result->remaining,
             retryAfter: $rejected->result->retryAfter,
