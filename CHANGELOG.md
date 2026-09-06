@@ -6,6 +6,10 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
+### Changed
+
+- Declared `RateLimit` and `BypassRateLimit` directly as numeric `extraProperties` entries. Resource and operation declarations now compose in order; the previous class-keyed syntax is no longer supported.
+
 ### Fixed
 
 - Returned Laravel rejection responses directly so API Platform's exception renderer cannot convert valid 429 responses into 500 errors.

@@ -7,7 +7,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Resource\Factory\AttributesResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
-use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitMetadataException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationBypassedResource;
@@ -29,60 +28,24 @@ final class RateLimitMetadataExtractorTest extends TestCase
     }
 
     #[Test]
-    public function itExtractsRateLimit(): void
+    public function itExtractsOneRateLimit(): void
     {
-        $rateLimit = new RateLimit(
-            limit: 100,
-            interval: '1 minute',
-        );
+        $rateLimit = new RateLimit(limit: 100, interval: '1 minute');
 
-        $operation = new Get(
-            extraProperties: [
-                RateLimit::class => $rateLimit,
-            ],
-        );
-
-        self::assertSame(
-            [$rateLimit],
-            $this->extractor->extract($operation),
-        );
+        self::assertSame([$rateLimit], $this->extractor->extract(new Get(
+            extraProperties: [$rateLimit],
+        )));
     }
 
     #[Test]
-    public function itExtractsBucketRateLimit(): void
+    public function itExtractsEveryRateLimitInOrder(): void
     {
-        $rateLimit = new RateLimit(bucket: 'catalog');
-        $operation = new Get(
-            extraProperties: [
-                RateLimit::class => $rateLimit,
-            ],
-        );
+        $first = new RateLimit(limit: 100, interval: '1 minute');
+        $second = new RateLimit(bucket: 'catalog');
 
-        self::assertSame(
-            [$rateLimit],
-            $this->extractor->extract($operation),
-        );
-    }
-
-    #[Test]
-    public function itExtractsBothRateLimits(): void
-    {
-        $rateLimit = new RateLimit(
-            limit: 100,
-            interval: '1 minute',
-        );
-
-        $sharedRateLimit = new RateLimit(bucket: 'catalog');
-        $operation = new Get(
-            extraProperties: [
-                RateLimit::class => [$rateLimit, $sharedRateLimit],
-            ],
-        );
-
-        self::assertSame(
-            [$rateLimit, $sharedRateLimit],
-            $this->extractor->extract($operation),
-        );
+        self::assertSame([$first, $second], $this->extractor->extract(new Get(
+            extraProperties: [$first, 'unrelated', $second],
+        )));
     }
 
     #[Test]
@@ -90,40 +53,64 @@ final class RateLimitMetadataExtractorTest extends TestCase
     {
         $metadata = (new AttributesResourceMetadataCollectionFactory())
             ->create(ResourceLimitedResource::class);
-        $operation = $metadata->getOperation('resource_limited_get');
 
-        self::assertEquals(
-            [
-                new RateLimit(limit: 100, interval: '1 minute'),
-                new RateLimit(bucket: 'catalog'),
-            ],
-            $this->extractor->extract($operation),
-        );
+        self::assertEquals([
+            new RateLimit(limit: 100, interval: '1 minute'),
+            new RateLimit(bucket: 'catalog'),
+        ], $this->extractor->extract($metadata->getOperation('resource_limited_get')));
     }
 
     #[Test]
-    public function itPrefersOperationRateLimitsOverResourceRateLimits(): void
+    public function itCombinesOperationAndResourceRateLimitsInMergedOrder(): void
     {
         $metadata = (new AttributesResourceMetadataCollectionFactory())
             ->create(OperationLimitedResource::class);
-        $operation = $metadata->getOperation('operation_limited_get');
 
-        self::assertEquals(
-            [
-                new RateLimit(limit: 10, interval: '1 second'),
-                new RateLimit(bucket: 'operation'),
-            ],
-            $this->extractor->extract($operation),
-        );
+        self::assertEquals([
+            new RateLimit(limit: 100, interval: '1 minute'),
+            new RateLimit(bucket: 'resource'),
+            new RateLimit(limit: 10, interval: '1 second'),
+            new RateLimit(bucket: 'operation'),
+        ], $this->extractor->extract($metadata->getOperation('operation_limited_get')));
     }
 
     #[Test]
     public function itReturnsEmptyListWhenOperationHasNoRateLimit(): void
     {
-        self::assertSame(
-            [],
-            $this->extractor->extract(new Get()),
-        );
+        self::assertSame([], $this->extractor->extract(new Get()));
+    }
+
+    #[Test]
+    public function itExtractsOneBypass(): void
+    {
+        $bypass = new BypassRateLimit(bucket: 'catalog');
+
+        self::assertSame([$bypass], $this->extractor->extractBypasses(new Get(
+            extraProperties: [$bypass],
+        )));
+    }
+
+    #[Test]
+    public function itExtractsEveryBypassInOrder(): void
+    {
+        $first = new BypassRateLimit(bucket: 'catalog');
+        $second = new BypassRateLimit(bucket: 'checkout');
+
+        self::assertSame([$first, $second], $this->extractor->extractBypasses(new Get(
+            extraProperties: [$first, $second],
+        )));
+    }
+
+    #[Test]
+    public function itExtractsMixedRateLimitsAndBypasses(): void
+    {
+        $first = new RateLimit(limit: 10, interval: '1 minute');
+        $bypass = new BypassRateLimit(bucket: 'catalog');
+        $second = new RateLimit(bucket: 'catalog');
+        $operation = new Get(extraProperties: [$first, $bypass, $second]);
+
+        self::assertSame([$first, $second], $this->extractor->extract($operation));
+        self::assertSame([$bypass], $this->extractor->extractBypasses($operation));
     }
 
     #[Test]
@@ -134,93 +121,31 @@ final class RateLimitMetadataExtractorTest extends TestCase
 
         self::assertEquals(
             [new BypassRateLimit(bucket: 'resource')],
-            $this->extractor->extractBypasses(
-                $metadata->getOperation('resource_bypassed_get'),
-            ),
+            $this->extractor->extractBypasses($metadata->getOperation('resource_bypassed_get')),
         );
     }
 
     #[Test]
-    public function itPrefersOperationBypassesOverResourceBypasses(): void
+    public function itCombinesOperationAndResourceBypasses(): void
     {
         $metadata = (new AttributesResourceMetadataCollectionFactory())
             ->create(OperationBypassedResource::class);
 
-        self::assertEquals(
-            [new BypassRateLimit(bucket: 'operation')],
-            $this->extractor->extractBypasses(
-                $metadata->getOperation('operation_bypassed_get'),
-            ),
-        );
+        self::assertEquals([
+            new BypassRateLimit(bucket: 'resource'),
+            new BypassRateLimit(bucket: 'operation'),
+        ], $this->extractor->extractBypasses($metadata->getOperation('operation_bypassed_get')));
     }
 
     #[Test]
-    public function itExtractsEveryBypassInAList(): void
-    {
-        $first = new BypassRateLimit(bucket: 'catalog');
-        $second = new BypassRateLimit(bucket: 'checkout');
-
-        self::assertSame(
-            [$first, $second],
-            $this->extractor->extractBypasses(new Get(extraProperties: [
-                BypassRateLimit::class => [$first, $second],
-            ])),
-        );
-    }
-
-    #[Test]
-    public function itRejectsInvalidBypassMetadata(): void
+    public function itIgnoresOldClassKeyedMetadata(): void
     {
         $operation = new Get(extraProperties: [
-            BypassRateLimit::class => 'invalid',
+            RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
+            BypassRateLimit::class => new BypassRateLimit(),
         ]);
 
-        $this->expectException(InvalidRateLimitMetadataException::class);
-
-        $this->extractor->extractBypasses($operation);
-    }
-
-    #[Test]
-    public function itRejectsInvalidBypassList(): void
-    {
-        $operation = new Get(extraProperties: [
-            BypassRateLimit::class => [new BypassRateLimit(), 'invalid'],
-        ]);
-
-        $this->expectException(InvalidRateLimitMetadataException::class);
-        $this->expectExceptionMessage('must contain only instances');
-
-        $this->extractor->extractBypasses($operation);
-    }
-
-    #[Test]
-    public function itRejectsInvalidRateLimitMetadata(): void
-    {
-        $operation = new Get(
-            extraProperties: [
-                RateLimit::class => 'invalid',
-            ],
-        );
-
-        $this->expectException(InvalidRateLimitMetadataException::class);
-
-        $this->extractor->extract($operation);
-    }
-
-    #[Test]
-    public function itRejectsInvalidRateLimitList(): void
-    {
-        $operation = new Get(
-            extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(limit: 1, interval: '1 minute'),
-                    'invalid',
-                ],
-            ],
-        );
-
-        $this->expectException(InvalidRateLimitMetadataException::class);
-
-        $this->extractor->extract($operation);
+        self::assertSame([], $this->extractor->extract($operation));
+        self::assertSame([], $this->extractor->extractBypasses($operation));
     }
 }

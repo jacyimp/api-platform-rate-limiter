@@ -41,7 +41,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'limited_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 2,
                     interval: '1 minute',
                 ),
@@ -67,13 +67,13 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $firstOperation = new Get(
             name: 'shared_limited_first_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'shared_api'),
+                new RateLimit(bucket: 'shared_api'),
             ],
         );
         $secondOperation = new Get(
             name: 'shared_limited_second_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'shared_api'),
+                new RateLimit(bucket: 'shared_api'),
             ],
         );
 
@@ -91,13 +91,13 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $firstOperation = new Get(
             name: 'local_first_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(1, '1 minute'),
+                new RateLimit(1, '1 minute'),
             ],
         );
         $secondOperation = new Get(
             name: 'local_second_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(1, '1 minute'),
+                new RateLimit(1, '1 minute'),
             ],
         );
 
@@ -112,7 +112,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $lowerCostOperation = new Get(
             name: 'weighted_shared_lower_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'weighted_shared',
                     cost: 2,
                 ),
@@ -121,7 +121,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $dynamicCostOperation = new Get(
             name: 'weighted_shared_dynamic_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'weighted_shared',
                     cost: new DynamicCost(FixedCostResolver::class),
                 ),
@@ -199,7 +199,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $this->assertRateLimited(new Get(
             name: 'burst_rejects_get',
             extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'global:daily'),
+                new BypassRateLimit(bucket: 'global:daily'),
             ],
         ));
     }
@@ -210,7 +210,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'identity_limited_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 1,
                     interval: '1 minute',
                     identity: new Identity(FixedIdentityResolver::class),
@@ -237,7 +237,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'conditional_shared_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'conditional_shared',),
+                new RateLimit(bucket: 'conditional_shared',),
             ],
         );
 
@@ -251,7 +251,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
         $operation = new Get(
             name: 'conditional_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 1,
                     interval: '1 minute',
                     when: new Condition('test.never_apply'),

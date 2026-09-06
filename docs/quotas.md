@@ -17,7 +17,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -51,7 +51,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new Post(),
     ],
     extraProperties: [
-        RateLimit::class => new RateLimit(
+        new RateLimit(
             limit: 100,
             interval: '1 minute',
         ),
@@ -63,7 +63,10 @@ final class Product
 }
 ```
 
-API Platform supplies the resource metadata to each operation. Add operation-level metadata when one operation needs a different declaration.
+API Platform supplies the resource metadata to each operation. Resource limits are baselines:
+operation-level entries are appended and all of them are enforced. For example, if the resource
+declares `10000/day` and `POST` declares `100/minute`, `GET` uses the daily limit while `POST`
+uses the daily limit followed by the minute limit.
 
 ## Limit the whole API
 
@@ -157,12 +160,12 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
     ],
@@ -191,7 +194,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
@@ -200,7 +203,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         ),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
@@ -219,7 +222,7 @@ Keep `bucket`, `limit`, `interval`, and `policy` identical when the declarations
 
 ## Multiple limits on one operation
 
-Use a list for burst and sustained quotas, or for local and shared quotas together:
+Add several metadata entries for burst and sustained quotas, or for local and shared quotas together:
 
 ```php
 <?php
@@ -232,17 +235,15 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new Post(
             extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(
-                        limit: 5,
-                        interval: '1 minute',
-                    ),
-                    new RateLimit(
-                        limit: 100,
-                        interval: '1 hour',
-                    ),
-                    new RateLimit(bucket: 'catalog'),
-                ],
+                new RateLimit(
+                    limit: 5,
+                    interval: '1 minute',
+                ),
+                new RateLimit(
+                    limit: 100,
+                    interval: '1 hour',
+                ),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
     ],
@@ -271,7 +272,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             name: 'product_list',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     cost: 1,
                 ),
@@ -281,7 +282,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
             uriTemplate: '/products/export',
             name: 'product_export',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     cost: 10,
                 ),
@@ -312,7 +313,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new Post(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                 ),
@@ -340,7 +341,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
     operations: [
         new Post(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                     policy: RateLimitPolicy::FIXED_WINDOW,
@@ -372,7 +373,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 1000,
                     interval: '1 hour',
                 ),
@@ -401,16 +402,14 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new Get(
             extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(
-                        limit: 100,
-                        interval: new DateInterval('PT1M'),
-                    ),
-                    new RateLimit(
-                        limit: 1000,
-                        interval: new Interval(hours: 1),
-                    ),
-                ],
+                new RateLimit(
+                    limit: 100,
+                    interval: new DateInterval('PT1M'),
+                ),
+                new RateLimit(
+                    limit: 1000,
+                    interval: new Interval(hours: 1),
+                ),
             ],
         ),
     ],

@@ -76,7 +76,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new Post(
             uriTemplate: '/login',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 5,
                     interval: '1 minute',
                     identity: new Identity(IpIdentityResolver::class),
@@ -183,7 +183,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             security: "is_granted('IS_AUTHENTICATED_FULLY')",
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 500,
                     interval: '1 minute',
                     identity: new Identity(UserIdentityResolver::class),
@@ -278,7 +278,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                     identity: new Identity(ApiKeyIdentityResolver::class),
@@ -315,7 +315,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                     identity: new FirstAvailableIdentity([
@@ -418,7 +418,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 1000,
                     interval: '1 minute',
                     identity: new CompositeIdentity([

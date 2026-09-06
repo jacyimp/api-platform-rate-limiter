@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Resource\Factory\AttributesResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
@@ -33,6 +34,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationLimitedResource;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -41,6 +43,28 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 #[CoversClass(RateLimitResolver::class)]
 final class ProviderRateLimitResolutionTest extends TestCase
 {
+    #[Test]
+    public function itResolvesResourceAndOperationLimitsInMergedOrder(): void
+    {
+        $metadata = (new AttributesResourceMetadataCollectionFactory())
+            ->create(OperationLimitedResource::class);
+        $operation = $metadata->getOperation('operation_limited_get');
+
+        $resolved = $this->resolver(shared: [
+            'resource' => new RateLimit(limit: 1_000, interval: '1 day'),
+            'operation' => new RateLimit(limit: 50, interval: '1 minute'),
+        ])->resolve($operation, 'operation_limited_get');
+
+        self::assertSame(
+            [100, 1_000, 10, 50],
+            array_map(static fn ($limit): int => $limit->definition->limit, $resolved),
+        );
+        self::assertSame(
+            [60, 86_400, 1, 60],
+            array_map(static fn ($limit): int => $limit->definition->intervalSeconds, $resolved),
+        );
+    }
+
     #[Test]
     public function itResolvesEveryProviderCapabilityThroughTheCommonPipeline(): void
     {
@@ -197,7 +221,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
             $this->provider([]),
             $this->provider([$second]),
         ])->resolve(new Get(extraProperties: [
-            RateLimit::class => $metadata,
+            $metadata,
         ]), 'orders_get');
 
         self::assertSame(
@@ -214,7 +238,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
         $resolved = $this->resolver(
             providers: [$this->provider([$duplicate])],
         )->resolve(new Get(extraProperties: [
-            RateLimit::class => $duplicate,
+            $duplicate,
         ]), 'orders_get');
 
         self::assertCount(2, $resolved);
@@ -240,7 +264,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
             providers: [$this->provider([$provided])],
             bucketResolvers: [$bucketResolver],
         )->resolve(new Get(extraProperties: [
-            BypassRateLimit::class => new BypassRateLimit(bucket: 'shared:customer:premium'),
+            new BypassRateLimit(bucket: 'shared:customer:premium'),
         ]), 'orders_get');
 
         self::assertSame([], $resolved);
@@ -252,7 +276,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
         $resolved = $this->resolver(providers: [
             $this->provider([new RateLimit(limit: 10, interval: '1 minute')]),
         ])->resolve(new Get(extraProperties: [
-            BypassRateLimit::class => new BypassRateLimit(),
+            new BypassRateLimit(),
         ]), 'orders_get');
 
         self::assertSame([], $resolved);

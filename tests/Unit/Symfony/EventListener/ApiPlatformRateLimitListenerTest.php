@@ -87,7 +87,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    RateLimit::class => new RateLimit(
+                    new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),
@@ -118,7 +118,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
         $operation = new Get(
             name: 'product_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                 ),
@@ -206,11 +206,11 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
         $request->attributes->set('_api_operation', new Get(
             name: 'product_get',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                 ),
-                BypassRateLimit::class => new BypassRateLimit(),
+                new BypassRateLimit(),
             ],
         ));
 
@@ -247,7 +247,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    RateLimit::class => new RateLimit(
+                    new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),
@@ -313,7 +313,7 @@ final class ApiPlatformRateLimitListenerTest extends TestCase
             new Get(
                 name: 'product_get',
                 extraProperties: [
-                    RateLimit::class => new RateLimit(
+                    new RateLimit(
                         limit: 10,
                         interval: '1 minute',
                     ),

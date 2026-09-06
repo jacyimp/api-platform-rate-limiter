@@ -13,18 +13,14 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new Get(
             name: 'operation_limited_get',
             extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(limit: 10, interval: '1 second'),
-                    new RateLimit(bucket: 'operation'),
-                ],
+                new RateLimit(limit: 10, interval: '1 second'),
+                new RateLimit(bucket: 'operation'),
             ],
         ),
     ],
     extraProperties: [
-        RateLimit::class => [
-            new RateLimit(limit: 100, interval: '1 minute'),
-            new RateLimit(bucket: 'resource'),
-        ],
+        new RateLimit(limit: 100, interval: '1 minute'),
+        new RateLimit(bucket: 'resource'),
     ],
 )]
 final class OperationLimitedResource

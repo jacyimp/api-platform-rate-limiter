@@ -72,7 +72,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -117,7 +117,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new Post(),
     ],
     extraProperties: [
-        RateLimit::class => new RateLimit(
+        new RateLimit(
             limit: 100,
             interval: '1 minute',
         ),
@@ -129,26 +129,27 @@ final class Product
 }
 ```
 
-Operation metadata can override the resource-wide value:
+Resource limits are baseline limits. Operation metadata is appended to them, so an operation
+enforces both the resource limits and its own limits:
 
 ```php
 #[ApiResource(
     operations: [
         new GetCollection(),
-        new Get(
+        new Get(),
+        new Post(
             extraProperties: [
-                RateLimit::class => new RateLimit(
-                    limit: 500,
+                new RateLimit(
+                    limit: 100,
                     interval: '1 minute',
                 ),
             ],
         ),
-        new Post(),
     ],
     extraProperties: [
-        RateLimit::class => new RateLimit(
-            limit: 100,
-            interval: '1 minute',
+        new RateLimit(
+            limit: 10000,
+            interval: '1 day',
         ),
     ],
 )]
@@ -157,6 +158,9 @@ final class Product
     // ...
 }
 ```
+
+`GET` uses the `10000/day` resource limit. `POST` uses both `10000/day` and
+`100/minute`, in that order.
 
 ## Limit the whole API
 
@@ -250,12 +254,12 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
     ],
@@ -282,7 +286,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
@@ -291,7 +295,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         ),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
@@ -310,7 +314,7 @@ Prefer a configured bucket when the definition is used widely or should be chang
 
 ## Combine several limits
 
-Use a list to enforce several quotas on one operation:
+Add multiple metadata entries to enforce several quotas on one operation:
 
 ```php
 <?php
@@ -323,13 +327,11 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new Get(
             extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(
-                        limit: 20,
-                        interval: '1 minute',
-                    ),
-                    new RateLimit(bucket: 'catalog'),
-                ],
+                new RateLimit(
+                    limit: 20,
+                    interval: '1 minute',
+                ),
+                new RateLimit(bucket: 'catalog'),
             ],
         ),
     ],
@@ -358,7 +360,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             name: 'product_list',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     cost: 1,
                 ),
@@ -368,7 +370,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
             uriTemplate: '/products/export',
             name: 'product_export',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog',
                     cost: 10,
                 ),

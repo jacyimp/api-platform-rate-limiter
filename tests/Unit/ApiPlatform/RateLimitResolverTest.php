@@ -45,7 +45,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -87,7 +87,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ],
         );
 
@@ -114,7 +114,7 @@ final class RateLimitResolverTest extends TestCase
         );
         $resolved = $this->resolver(['catalog' => $definition])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'catalog'),
+                new RateLimit(bucket: 'catalog'),
             ]),
             operationKey: 'product_get',
         );
@@ -128,7 +128,7 @@ final class RateLimitResolverTest extends TestCase
     {
         $resolved = $this->resolver()->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 50,
                     interval: '1 minute',
                     bucket: 'catalog',
@@ -161,7 +161,7 @@ final class RateLimitResolverTest extends TestCase
             limitResolvers: [$limitResolver],
         )->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: new DynamicLimit($limitResolver::class),
                     interval: '1 minute',
                     bucket: new DynamicBucket($bucketResolver::class),
@@ -186,14 +186,12 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(costResolvers: [$costResolver])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => [
                     new RateLimit(limit: 10, interval: '1 minute', cost: 2,),
                     new RateLimit(
                         limit: 20,
                         interval: '1 minute',
                         cost: new DynamicCost($costResolver::class),
                     ),
-                ],
             ]),
             operationKey: 'product_get',
         );
@@ -219,7 +217,7 @@ final class RateLimitResolverTest extends TestCase
 
         $this->resolver(costResolvers: [$costResolver])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                     cost: new DynamicCost($costResolver::class),
@@ -243,10 +241,8 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => [
                     new RateLimit(limit: 100, interval: '1 minute',),
                     new RateLimit(bucket: 'catalog'),
-                ],
             ],
         );
 
@@ -278,14 +274,12 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(conditions: [$disabled])->resolve(
             new Get(extraProperties: [
-                RateLimit::class => [
                     new RateLimit(
                         10,
                         '1 minute',
                         when: new Condition($disabled::class),
                     ),
                     new RateLimit(20, '1 minute'),
-                ],
             ]),
             'product_get',
         );
@@ -350,7 +344,7 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $resolver->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 5,
                     interval: '1 minute',
                     identity: new Identity($identityResolver::class),
@@ -392,7 +386,7 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $resolver->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(bucket: 'otp'),
+                new RateLimit(bucket: 'otp'),
             ]),
             operationKey: 'otp_post',
         );
@@ -429,7 +423,7 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $resolver->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'otp',
                     identity: new Identity($identityResolver::class),
                     when: new Condition($condition::class),
@@ -475,7 +469,7 @@ final class RateLimitResolverTest extends TestCase
 
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -718,7 +712,7 @@ final class RateLimitResolverTest extends TestCase
             )],
             bucketResolvers: [$bucketResolver],
         )->resolve(new Get(extraProperties: [
-            BypassRateLimit::class => new BypassRateLimit(bucket: 'global:api:free'),
+            new BypassRateLimit(bucket: 'global:api:free'),
         ]), 'product_get');
 
         self::assertSame([], $resolved);
@@ -757,7 +751,7 @@ final class RateLimitResolverTest extends TestCase
             shared: ['catalog' => new RateLimit(10, '1 minute')],
             conditions: [$condition],
         )->resolve(new Get(extraProperties: [
-            RateLimit::class => new RateLimit(
+            new RateLimit(
                 bucket: 'catalog',
                 when: new Condition($condition::class),
             ),
@@ -845,7 +839,7 @@ final class RateLimitResolverTest extends TestCase
         );
 
         $resolved = $resolver->resolve(new Get(extraProperties: [
-            RateLimit::class => new RateLimit(
+            new RateLimit(
                 bucket: 'catalog',
                 when: new Condition($referenceCondition::class),
             ),
@@ -865,8 +859,8 @@ final class RateLimitResolverTest extends TestCase
             policy: RateLimitPolicy::FIXED_WINDOW,
         )])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(),
+                new RateLimit(limit: 10, interval: '1 minute'),
+                new BypassRateLimit(),
             ]),
             operationKey: 'product_get',
         );
@@ -882,8 +876,8 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(conditions: [$condition])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(
+                new RateLimit(limit: 10, interval: '1 minute'),
+                new BypassRateLimit(
                     when: new Condition($condition::class),
                 ),
             ]),
@@ -901,8 +895,8 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(conditions: [$condition])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(
+                new RateLimit(limit: 10, interval: '1 minute'),
+                new BypassRateLimit(
                     when: new Condition($condition::class),
                 ),
             ]),
@@ -917,11 +911,9 @@ final class RateLimitResolverTest extends TestCase
     {
         $resolved = $this->resolver()->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => [
                     new RateLimit(limit: 10, interval: '1 minute', bucket: 'catalog'),
                     new RateLimit(limit: 20, interval: '1 minute', bucket: 'checkout'),
-                ],
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+                new BypassRateLimit(bucket: 'catalog'),
             ]),
             operationKey: 'product_get',
         );
@@ -935,8 +927,8 @@ final class RateLimitResolverTest extends TestCase
     {
         $resolved = $this->resolver()->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+                new RateLimit(limit: 10, interval: '1 minute'),
+                new BypassRateLimit(bucket: 'catalog'),
             ]),
             operationKey: 'product_get',
         );
@@ -950,8 +942,8 @@ final class RateLimitResolverTest extends TestCase
     {
         $resolved = $this->resolver()->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(limit: 10, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'product_get'),
+                new RateLimit(limit: 10, interval: '1 minute'),
+                new BypassRateLimit(bucket: 'product_get'),
             ]),
             operationKey: 'product_get',
         );
@@ -971,12 +963,12 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(bucketResolvers: [$bucketResolver])->resolve(
             operation: new Get(extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 10,
                     interval: '1 minute',
                     bucket: new DynamicBucket($bucketResolver::class),
                 ),
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'catalog'),
+                new BypassRateLimit(bucket: 'catalog'),
             ]),
             operationKey: 'product_get',
         );
@@ -992,7 +984,7 @@ final class RateLimitResolverTest extends TestCase
             'daily' => new RateLimit(10_000, '1 day'),
         ])->resolve(
             operation: new Get(extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(bucket: 'global:burst'),
+                new BypassRateLimit(bucket: 'global:burst'),
             ]),
             operationKey: 'product_get',
         );
@@ -1006,7 +998,7 @@ final class RateLimitResolverTest extends TestCase
     {
         $operation = new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 100,
                     interval: '1 minute',
                 ),
@@ -1034,7 +1026,7 @@ final class RateLimitResolverTest extends TestCase
         $this->expectExceptionMessage('Operation key cannot be empty.');
 
         $this->resolver()->resolve(new Get(extraProperties: [
-            RateLimit::class => new RateLimit(100, '1 minute'),
+            new RateLimit(100, '1 minute'),
         ]), ' ');
     }
 

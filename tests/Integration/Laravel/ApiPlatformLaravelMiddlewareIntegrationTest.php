@@ -60,7 +60,7 @@ final class ApiPlatformLaravelMiddlewareIntegrationTest extends TestCase
             name: $operationName,
             uriTemplate: '/api-platform-limited',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 1,
                     interval: '1 minute',
                 ),

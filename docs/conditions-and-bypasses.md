@@ -72,7 +72,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 200,
                     interval: '1 minute',
                     when: new Condition(AuthenticatedCondition::class),
@@ -162,25 +162,23 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => [
-                    new RateLimit(
-                        limit: 20,
-                        interval: '1 minute',
-                        when: new Not(
-                            new Condition(AuthenticatedCondition::class),
+                new RateLimit(
+                    limit: 20,
+                    interval: '1 minute',
+                    when: new Not(
+                        new Condition(AuthenticatedCondition::class),
+                    ),
+                ),
+                new RateLimit(
+                    limit: 200,
+                    interval: '1 minute',
+                    when: new AllOf([
+                        new Condition(AuthenticatedCondition::class),
+                        new Not(
+                            new Condition(InternalRequestCondition::class),
                         ),
-                    ),
-                    new RateLimit(
-                        limit: 200,
-                        interval: '1 minute',
-                        when: new AllOf([
-                            new Condition(AuthenticatedCondition::class),
-                            new Not(
-                                new Condition(InternalRequestCondition::class),
-                            ),
-                        ]),
-                    ),
-                ],
+                    ]),
+                ),
             ],
         ),
     ],
@@ -208,7 +206,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: 500,
                     interval: '1 minute',
                     when: new AnyOf([
@@ -276,7 +274,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
         new GetCollection(),
         new Get(
             extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(),
+                new BypassRateLimit(),
             ],
         ),
     ],
@@ -303,7 +301,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
         new Get(),
     ],
     extraProperties: [
-        BypassRateLimit::class => new BypassRateLimit(),
+        new BypassRateLimit(),
     ],
 )]
 final class PublicStatus
@@ -327,7 +325,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
     operations: [
         new Get(
             extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(
+                new BypassRateLimit(
                     bucket: 'catalog',
                 ),
             ],
@@ -353,7 +351,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
     operations: [
         new Get(
             extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(
+                new BypassRateLimit(
                     bucket: 'global:burst',
                 ),
             ],
@@ -385,7 +383,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
     operations: [
         new Get(
             extraProperties: [
-                BypassRateLimit::class => new BypassRateLimit(
+                new BypassRateLimit(
                     bucket: 'catalog',
                     when: new Condition(InternalRequestCondition::class),
                 ),

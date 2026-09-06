@@ -11,7 +11,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 #[ApiResource(
     operations: [new Get(name: 'resource_bypassed_get')],
     extraProperties: [
-        BypassRateLimit::class => new BypassRateLimit(bucket: 'resource'),
+        new BypassRateLimit(bucket: 'resource'),
     ],
 )]
 final class ResourceBypassedResource

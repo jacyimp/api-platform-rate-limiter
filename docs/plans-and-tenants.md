@@ -89,7 +89,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     limit: new DynamicLimit(PlanLimitResolver::class),
                     interval: '1 minute',
                 ),
@@ -218,7 +218,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: new DynamicBucket(TenantBucketResolver::class),
                     limit: 1000,
                     interval: '1 minute',
@@ -227,7 +227,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         ),
         new Get(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: new DynamicBucket(TenantBucketResolver::class),
                     limit: 1000,
                     interval: '1 minute',
@@ -368,7 +368,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
     operations: [
         new GetCollection(
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: new DynamicBucket(PlanBucketResolver::class),
                 ),
             ],
@@ -453,7 +453,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             uriTemplate: '/products/search',
             extraProperties: [
-                RateLimit::class => new RateLimit(
+                new RateLimit(
                     bucket: 'catalog-search',
                     limit: 1000,
                     interval: '1 minute',

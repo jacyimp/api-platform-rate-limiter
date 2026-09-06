@@ -30,20 +30,20 @@ final class ApiPlatformOperationMiddleware
         }
         $extraProperties = match ($scenario) {
             'plain' => [],
-            'configured' => [RateLimit::class => new RateLimit(bucket: 'configured')],
-            'dynamic-limit' => [RateLimit::class => new RateLimit(
+            'configured' => [new RateLimit(bucket: 'configured')],
+            'dynamic-limit' => [new RateLimit(
                 limit: new DynamicLimit(FixedLimit::class),
                 interval: '1 minute',
             )],
-            'dynamic-bucket' => [RateLimit::class => new RateLimit(
+            'dynamic-bucket' => [new RateLimit(
                 bucket: new DynamicBucket(FixedBucket::class),
             )],
-            'dynamic-cost' => [RateLimit::class => new RateLimit(
+            'dynamic-cost' => [new RateLimit(
                 limit: 2,
                 interval: '1 minute',
                 cost: new DynamicCost(FixedCost::class),
             )],
-            'composite' => [RateLimit::class => new RateLimit(
+            'composite' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 identity: new CompositeIdentity([
@@ -51,7 +51,7 @@ final class ApiPlatformOperationMiddleware
                     new Identity(SecondaryIdentity::class),
                 ]),
             )],
-            'fallback' => [RateLimit::class => new RateLimit(
+            'fallback' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 identity: new FirstAvailableIdentity([
@@ -59,7 +59,7 @@ final class ApiPlatformOperationMiddleware
                     new Identity(SecondaryIdentity::class),
                 ]),
             )],
-            'condition' => [RateLimit::class => new RateLimit(
+            'condition' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 when: new AllOf([
@@ -68,10 +68,10 @@ final class ApiPlatformOperationMiddleware
                 ]),
             )],
             'declarative-bypass' => [
-                RateLimit::class => new RateLimit(limit: 1, interval: '1 minute'),
-                BypassRateLimit::class => new BypassRateLimit(),
+                new RateLimit(limit: 1, interval: '1 minute'),
+                new BypassRateLimit(),
             ],
-            default => [RateLimit::class => new RateLimit(limit: 1, interval: '1 minute')],
+            default => [new RateLimit(limit: 1, interval: '1 minute')],
         };
 
         $request->attributes->set('_api_operation', new Get(
