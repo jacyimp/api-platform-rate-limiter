@@ -25,7 +25,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -193,7 +192,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         $definition = $definitions['api'];
         self::assertInstanceOf(Definition::class, $definition);
         self::assertSame('app.limit_resolver', $definition->getArgument(0));
-        self::assertSame('app.cost_resolver', $definition->getArgument(3));
+        self::assertSame('app.cost_resolver', $definition->getArgument(4));
     }
 
     #[Test]
@@ -234,12 +233,10 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertInstanceOf(Definition::class, $global);
         self::assertSame(RateLimit::class, $global->getClass());
 
-        $bucket = $global->getArgument(2);
-        self::assertInstanceOf(Definition::class, $bucket);
-        self::assertSame(DynamicBucket::class, $bucket->getClass());
-        self::assertSame('app.bucket_resolver', $bucket->getArgument(0));
+        self::assertNull($global->getArgument(2));
+        self::assertSame('app.bucket_resolver', $global->getArgument(3));
 
-        $identity = $global->getArgument(4);
+        $identity = $global->getArgument(5);
         self::assertInstanceOf(Definition::class, $identity);
         self::assertSame(CompositeIdentity::class, $identity->getClass());
         $compositeChildren = $identity->getArgument(0);
@@ -254,7 +251,7 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertSame('app.user', $fallbackChildren[0]);
         self::assertSame('app.ip', $fallbackChildren[1]);
 
-        $condition = $global->getArgument(5);
+        $condition = $global->getArgument(6);
         self::assertInstanceOf(Definition::class, $condition);
         self::assertSame(AnyOf::class, $condition->getClass());
         $anyChildren = $condition->getArgument(0);

@@ -75,7 +75,7 @@ return [
 
 Metadata declarations are resolved first, provider declarations next, and configured globals last. Providers are additive; returning a matching declaration does not replace metadata.
 
-For a dynamic limit or cost inside otherwise ordinary metadata, prefer a resolver class name. Use [`DynamicBucket`](plans-and-tenants.md) for a dynamic bucket because literal bucket names and resolver class names are both strings.
+For a dynamic limit or cost inside otherwise ordinary metadata, use a resolver class name. Dynamic bucket selection uses the explicit `bucketResolver` parameter because literal bucket names and resolver class names are both strings.
 
 ## Application-wide bypass services
 
@@ -169,7 +169,7 @@ RateLimitProviderInterface
 RateLimitBypassInterface
 ```
 
-The class name can then be used directly for limit, cost, identity, or condition metadata. Dynamic buckets remain wrapped in `DynamicBucket` to distinguish them from literal bucket names.
+The class name can then be used directly for limit, cost, identity, or condition metadata. Use `bucketResolver` for a bucket resolver class name and `bucket` for a literal bucket name.
 
 The rejection handler is replaceable through its service alias rather than this selectable-strategy autoconfiguration. See [Custom rejection handler](deployment.md#custom-rejection-handler).
 
@@ -201,7 +201,6 @@ return [
             App\RateLimit\InternalRequestCondition::class,
         ],
         'bucket' => [
-            App\RateLimit\TenantBucketResolver::class,
             App\RateLimit\PlanBucketResolver::class,
         ],
         'limit' => [

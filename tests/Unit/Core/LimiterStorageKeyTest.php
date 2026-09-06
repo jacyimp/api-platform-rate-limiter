@@ -76,6 +76,41 @@ final class LimiterStorageKeyTest extends TestCase
     }
 
     #[Test]
+    public function itKeepsUsersSeparateWhenTheyUseTheSameDynamicallySelectedBucket(): void
+    {
+        $rateLimit = $this->rateLimit('shared:tenant:123', 1000, 60);
+
+        self::assertNotSame(
+            LimiterStorageKey::for($rateLimit, 'user:A'),
+            LimiterStorageKey::for($rateLimit, 'user:B'),
+        );
+    }
+
+    #[Test]
+    public function itSharesATenantCounterWhenUsersResolveToTheSameTenantIdentity(): void
+    {
+        $rateLimit = $this->rateLimit('shared:catalog', 1000, 60);
+        $identityResolvedForUserA = 'tenant:123';
+        $identityResolvedForUserB = 'tenant:123';
+
+        self::assertSame(
+            LimiterStorageKey::for($rateLimit, $identityResolvedForUserA),
+            LimiterStorageKey::for($rateLimit, $identityResolvedForUserB),
+        );
+    }
+
+    #[Test]
+    public function itSeparatesCompositeTenantAndUserIdentities(): void
+    {
+        $rateLimit = $this->rateLimit('shared:catalog', 1000, 60);
+
+        self::assertNotSame(
+            LimiterStorageKey::for($rateLimit, 'tenant:123/user:A'),
+            LimiterStorageKey::for($rateLimit, 'tenant:123/user:B'),
+        );
+    }
+
+    #[Test]
     public function itDoesNotIncludeRequestCost(): void
     {
         $first = $this->rateLimit('shared:catalog', 100, 60, cost: 1);

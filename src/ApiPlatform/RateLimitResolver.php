@@ -18,7 +18,6 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
@@ -152,6 +151,7 @@ final readonly class RateLimitResolver
             identity: $rateLimit->identity ?? $configured->identity,
             when: $this->composeConditions($configured->when, $rateLimit->when),
             bucket: $rateLimit->bucket,
+            bucketResolver: $rateLimit->bucketResolver,
             cost: $this->resolveCost($configured) * $this->resolveCost($rateLimit),
         );
     }
@@ -195,12 +195,12 @@ final readonly class RateLimitResolver
         ?string $globalName,
     ): string {
         if ($globalName !== null) {
-            return $rateLimit->bucket === null
+            return $rateLimit->bucket === null && $rateLimit->bucketResolver === null
                 ? sprintf('global:%s', $globalName)
                 : sprintf('global:%s:%s', $globalName, $bucket);
         }
 
-        return $rateLimit->bucket === null
+        return $rateLimit->bucket === null && $rateLimit->bucketResolver === null
             ? sprintf('operation:%s', $bucket)
             : sprintf('shared:%s', $bucket);
     }
@@ -231,16 +231,16 @@ final readonly class RateLimitResolver
 
     private function resolveBucket(RateLimit $rateLimit, string $operationKey,): string
     {
-        if ($rateLimit->bucket instanceof DynamicBucket) {
+        if ($rateLimit->bucketResolver !== null) {
             $bucket = $this->strategyRegistry
-                ->bucketResolver($rateLimit->bucket->resolver)
+                ->bucketResolver($rateLimit->bucketResolver)
                 ->resolve();
         } else {
             $bucket = $rateLimit->bucket ?? $operationKey;
         }
 
         if (trim($bucket) === '') {
-            throw new InvalidRateLimitException($rateLimit->bucket === null
+            throw new InvalidRateLimitException($rateLimit->bucket === null && $rateLimit->bucketResolver === null
                     ? 'Operation key cannot be empty.'
                     : 'Resolved rate limit bucket cannot be empty.',);
         }

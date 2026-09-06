@@ -25,7 +25,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -103,7 +102,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
         $provided = new RateLimit(
             limit: $limitResolver::class,
             interval: '2 minutes',
-            bucket: new DynamicBucket($bucketResolver::class),
+            bucketResolver: $bucketResolver::class,
             cost: $costResolver::class,
             identity: new CompositeIdentity([
                 $firstIdentity::class,
@@ -253,7 +252,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
         $provided = new RateLimit(
             limit: 10,
             interval: '1 minute',
-            bucket: new DynamicBucket($bucketResolver::class),
+            bucketResolver: $bucketResolver::class,
         );
 
         $resolved = $this->resolver(

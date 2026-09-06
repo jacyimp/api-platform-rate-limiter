@@ -4,6 +4,8 @@ Resolve limits, bucket names, and request cost from the current application cont
 
 The examples read trusted request attributes populated by your authentication, billing, or tenancy middleware. Do not take plan or tenant values directly from untrusted client input.
 
+Bucket and identity have separate roles. A bucket selects the quota namespace or configured definition; identity decides who shares and consumes its counter. The effective counter includes bucket, identity, policy, limit, and interval. Unless metadata supplies a custom identity, the identity is the authenticated user and falls back to the client IP.
+
 ## Different quotas by subscription plan
 
 Implement `LimitResolverInterface` to return the current plan's allowance.
@@ -134,9 +136,9 @@ Laravel:
 
 Because the limit is part of counter identity, changing the resolved limit selects a new counter.
 
-## Give each tenant a runtime bucket
+## Share a quota by tenant
 
-Use `DynamicBucket` when the bucket name itself depends on the current tenant.
+Use an identity resolver when every user in a tenant should consume the same counter.
 
 Symfony:
 
@@ -145,10 +147,10 @@ Symfony:
 
 namespace App\RateLimit;
 
-use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-final readonly class TenantBucketResolver implements BucketResolverInterface
+final readonly class TenantIdentityResolver implements IdentityResolverInterface
 {
     public function __construct(
         private RequestStack $requestStack,
@@ -179,9 +181,9 @@ Laravel:
 namespace App\RateLimit;
 
 use Illuminate\Http\Request;
-use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
+use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 
-final readonly class TenantBucketResolver implements BucketResolverInterface
+final readonly class TenantIdentityResolver implements IdentityResolverInterface
 {
     public function __construct(
         private Request $request,
@@ -201,7 +203,7 @@ final readonly class TenantBucketResolver implements BucketResolverInterface
 }
 ```
 
-Use the same resolver on every operation that should share the tenant quota:
+Use a stable bucket and the same tenant identity on every operation that should share the quota:
 
 ```php
 <?php
@@ -209,8 +211,7 @@ Use the same resolver on every operation that should share the tenant quota:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use App\RateLimit\TenantBucketResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
+use App\RateLimit\TenantIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -218,18 +219,20 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             extraProperties: [
                 new RateLimit(
-                    bucket: new DynamicBucket(TenantBucketResolver::class),
+                    bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
+                    identity: TenantIdentityResolver::class,
                 ),
             ],
         ),
         new Get(
             extraProperties: [
                 new RateLimit(
-                    bucket: new DynamicBucket(TenantBucketResolver::class),
+                    bucket: 'catalog',
                     limit: 1000,
                     interval: '1 minute',
+                    identity: TenantIdentityResolver::class,
                 ),
             ],
         ),
@@ -241,9 +244,34 @@ final class Product
 }
 ```
 
-All users and both operations consume the current tenant's shared bucket. Add a [tenant + user composite identity](identities.md#composite-identities) when each user should have a separate counter inside that bucket.
+All users and both operations in tenant `123` consume `catalog + tenant:123`; tenant `456` consumes a separate `catalog + tenant:456` counter.
 
-## Select a configured bucket by plan
+## Per-user quotas within a tenant
+
+Combine tenant and user identities when each user should have a separate counter inside the tenant namespace:
+
+```php
+<?php
+
+use App\RateLimit\TenantIdentityResolver;
+use App\RateLimit\UserIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
+use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
+
+new RateLimit(
+    bucket: 'catalog',
+    limit: 1000,
+    interval: '1 minute',
+    identity: new CompositeIdentity([
+        TenantIdentityResolver::class,
+        UserIdentityResolver::class,
+    ]),
+);
+```
+
+This produces distinct counters such as `catalog + tenant:123/user:A` and `catalog + tenant:123/user:B`.
+
+## Select a configured bucket dynamically
 
 A dynamic bucket can select a centrally configured definition. First define the plan quotas.
 
@@ -360,7 +388,6 @@ Reference the dynamic bucket without `limit` or `interval`; the resolved configu
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\PlanBucketResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -368,7 +395,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             extraProperties: [
                 new RateLimit(
-                    bucket: new DynamicBucket(PlanBucketResolver::class),
+                    bucketResolver: PlanBucketResolver::class,
                 ),
             ],
         ),
@@ -379,6 +406,8 @@ final class Product
     // ...
 }
 ```
+
+`bucketResolver` answers: “Which bucket/quota definition should this request use?” It does not decide who shares the counter. Identity does that. With the default identity, users A and B remain separate even when both resolve to the same plan bucket.
 
 Use this approach when plan definitions should live in configuration. Use a limit resolver class name when the calculation belongs in application code or does not map cleanly to named plans.
 
@@ -478,8 +507,11 @@ Laravel requires selectable resolvers in the published config:
 ```php
 'resolvers' => [
     // ...
+    'identity' => [
+        App\RateLimit\TenantIdentityResolver::class,
+        App\RateLimit\UserIdentityResolver::class,
+    ],
     'bucket' => [
-        App\RateLimit\TenantBucketResolver::class,
         App\RateLimit\PlanBucketResolver::class,
     ],
     'limit' => [

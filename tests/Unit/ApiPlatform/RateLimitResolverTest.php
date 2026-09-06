@@ -24,7 +24,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -160,7 +159,7 @@ final class RateLimitResolverTest extends TestCase
                 new RateLimit(
                     limit: $limitResolver::class,
                     interval: '1 minute',
-                    bucket: new DynamicBucket($bucketResolver::class),
+                    bucketResolver: $bucketResolver::class,
                 ),
             ]),
             operationKey: 'product_get',
@@ -168,6 +167,41 @@ final class RateLimitResolverTest extends TestCase
 
         self::assertSame('shared:customer-tier', $resolved[0]->bucket);
         self::assertSame(75, $resolved[0]->definition->limit);
+    }
+
+    #[Test]
+    public function itKeepsDynamicBucketSelectionIndependentFromIdentity(): void
+    {
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return 'tenant:123';
+            }
+        };
+        $identityResolver = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'user:A';
+            }
+        };
+
+        $resolved = $this->resolver(
+            bucketResolvers: [$bucketResolver],
+            identityResolvers: [$identityResolver],
+        )->resolve(
+            operation: new Get(extraProperties: [
+                new RateLimit(
+                    limit: 1000,
+                    interval: '1 minute',
+                    bucketResolver: $bucketResolver::class,
+                    identity: $identityResolver::class,
+                ),
+            ]),
+            operationKey: 'product_get',
+        );
+
+        self::assertSame('shared:tenant:123', $resolved[0]->bucket);
+        self::assertSame('user:A', $resolved[0]->identityResolver?->resolve());
     }
 
     #[Test]
@@ -677,7 +711,7 @@ final class RateLimitResolverTest extends TestCase
                     $condition::class,
                     $condition::class,
                 ]),
-                bucket: new DynamicBucket($bucketResolver::class),
+                bucketResolver: $bucketResolver::class,
                 cost: $costResolver::class,
             )],
             identityResolvers: [$identityResolver],
@@ -707,7 +741,7 @@ final class RateLimitResolverTest extends TestCase
             globals: ['api' => new RateLimit(
                 limit: 10,
                 interval: '1 minute',
-                bucket: new DynamicBucket($bucketResolver::class),
+                bucketResolver: $bucketResolver::class,
             )],
             bucketResolvers: [$bucketResolver],
         )->resolve(new Get(extraProperties: [
@@ -965,7 +999,7 @@ final class RateLimitResolverTest extends TestCase
                 new RateLimit(
                     limit: 10,
                     interval: '1 minute',
-                    bucket: new DynamicBucket($bucketResolver::class),
+                    bucketResolver: $bucketResolver::class,
                 ),
                 new BypassRateLimit(bucket: 'catalog'),
             ]),

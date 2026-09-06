@@ -10,7 +10,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConfigurationFactory;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
@@ -116,8 +115,9 @@ final class RateLimitConfigurationFactoryTest extends TestCase
         ]);
 
         self::assertSame('catalog', $globals['static']->bucket);
-        self::assertInstanceOf(DynamicBucket::class, $globals['dynamic']->bucket);
-        self::assertSame('app.bucket', $globals['dynamic']->bucket->resolver);
+        self::assertNull($globals['dynamic']->bucket);
+        self::assertSame('app.bucket', $globals['dynamic']->bucketResolver);
+        self::assertNull($globals['static']->bucketResolver);
         self::assertSame(10, $globals['inline']->limit);
         self::assertSame(1, $globals['inline']->cost);
         self::assertSame(RateLimitPolicy::FIXED_WINDOW, $globals['inline']->policy);

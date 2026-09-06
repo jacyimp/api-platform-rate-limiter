@@ -402,7 +402,7 @@ RateLimit-Remaining
 
 - [Quotas and shared limits](docs/quotas.md) — endpoint, resource, global, and shared quotas.
 - [Choosing who gets rate limited](docs/identities.md) — users, IPs, API keys, tenants, fallback, and composite identities.
-- [Plans, tenants, and dynamic quotas](docs/plans-and-tenants.md) — subscription tiers, dynamic limits, tenant buckets, and dynamic request costs.
+- [Plans, tenants, and dynamic quotas](docs/plans-and-tenants.md) — subscription tiers, tenant identities, dynamic bucket selection, and request costs.
 - [Conditional limits and bypasses](docs/conditions-and-bypasses.md) — conditional rules, exempt endpoints, internal traffic, and trusted crawlers.
 - [Storage and production deployment](docs/deployment.md) — storage, Redis/shared counters, framework configuration, and rejection responses.
 - [Extending the rate limiter](docs/extending.md) — providers, events, custom handlers, framework registration, and counter internals.

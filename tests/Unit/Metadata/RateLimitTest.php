@@ -6,9 +6,9 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataBucketResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCondition;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCostResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataIdentityResolver;
@@ -82,10 +82,14 @@ final class RateLimitTest extends TestCase
     public function itAcceptsDynamicValues(): void
     {
         $limit = MetadataLimitResolver::class;
-        $bucket = new DynamicBucket('app.bucket_resolver');
-        $rateLimit = new RateLimit(limit: $limit, interval: '1 minute', bucket: $bucket,);
+        $bucketResolver = MetadataBucketResolver::class;
+        $rateLimit = new RateLimit(
+            limit: $limit,
+            interval: '1 minute',
+            bucketResolver: $bucketResolver,
+        );
         self::assertSame($limit, $rateLimit->limit);
-        self::assertSame($bucket, $rateLimit->bucket);
+        self::assertSame($bucketResolver, $rateLimit->bucketResolver);
     }
 
     #[Test]
@@ -177,5 +181,29 @@ final class RateLimitTest extends TestCase
         $this->expectExceptionMessage('Rate limit bucket cannot be empty.');
 
         new RateLimit(bucket: ' ');
+    }
+
+    #[Test]
+    public function itRejectsABucketAndBucketResolverTogether(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage(
+            'Rate limit cannot define both a bucket and a bucket resolver.',
+        );
+
+        new RateLimit(
+            bucket: 'catalog',
+            bucketResolver: MetadataBucketResolver::class,
+        );
+    }
+
+    #[Test]
+    public function itRejectsAnEmptyBucketResolver(): void
+    {
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Rate limit bucket resolver cannot be empty.');
+
+        /** @phpstan-ignore argument.type */
+        new RateLimit(bucketResolver: ' ');
     }
 }

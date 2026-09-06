@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 /**
  * Resolves the bucket name used by a dynamic rate-limit declaration.
  *
- * Reference an implementation with `new DynamicBucket(TenantBucketResolver::class)`.
+ * Reference an implementation with `new RateLimit(bucketResolver: PlanBucketResolver::class)`.
  */
 interface BucketResolverInterface
 {

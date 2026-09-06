@@ -11,11 +11,12 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 ### Changed
 
 - Declared `RateLimit` and `BypassRateLimit` directly as numeric `extraProperties` entries. Resource and operation declarations now compose in order; the previous class-keyed syntax is no longer supported.
-- Replaced the `DynamicLimit`, `DynamicCost`, `Identity`, and `Condition` metadata wrappers with statically checked resolver class names for limits, costs, identities, and conditions. `DynamicBucket` remains available because resolver-backed and literal bucket values would otherwise both be strings.
+- Replaced resolver-backed metadata wrappers with statically checked resolver class names. Dynamic buckets now use the explicit `RateLimit::bucketResolver` parameter, while `bucket` accepts only literal bucket names. Removed `DynamicBucket` without a compatibility shim.
 - Removed the package-specific `Interval` metadata value object. `RateLimit` intervals now accept human-readable strings or native `DateInterval` instances.
 
 ### Fixed
 
+- Corrected tenant-quota documentation to use tenant identity resolution when users in one tenant must share a counter. Dynamic bucket selection and identity remain independent parts of the counter key.
 - Returned Laravel rejection responses directly so API Platform's exception renderer cannot convert valid 429 responses into 500 errors.
 - Rebuilt request-sensitive Laravel resolver, provider, bypass, and enforcement services per middleware resolution to prevent stale request state in long-lived applications and multi-request tests.
 

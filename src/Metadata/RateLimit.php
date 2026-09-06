@@ -22,6 +22,7 @@ final readonly class RateLimit
 {
     /**
      * @param int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface>|null $limit
+     * @param class-string<\JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface>|null $bucketResolver
      * @param int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> $cost
      * @param IdentityResolverClass|IdentityExpression|null $identity
      * @param ConditionClass|RateLimitCondition|null $when
@@ -29,7 +30,8 @@ final readonly class RateLimit
     public function __construct(
         public int|string|null $limit = null,
         public string|DateInterval|null $interval = null,
-        public string|DynamicBucket|null $bucket = null,
+        public ?string $bucket = null,
+        public ?string $bucketResolver = null,
         public int|string $cost = 1,
         public string|IdentityExpression|null $identity = null,
         public string|RateLimitCondition|null $when = null,
@@ -47,15 +49,27 @@ final readonly class RateLimit
             );
         }
 
-        if ($limit === null && $bucket === null) {
+        if ($limit === null && $bucket === null && $bucketResolver === null) {
             throw new InvalidRateLimitException(
                 'An operation-specific rate limit requires a limit and interval.',
             );
         }
 
-        if (is_string($bucket) && trim($bucket) === '') {
+        if ($bucket !== null && $bucketResolver !== null) {
+            throw new InvalidRateLimitException(
+                'Rate limit cannot define both a bucket and a bucket resolver.',
+            );
+        }
+
+        if ($bucket !== null && trim($bucket) === '') {
             throw new InvalidRateLimitException(
                 'Rate limit bucket cannot be empty.',
+            );
+        }
+
+        if ($bucketResolver !== null && trim($bucketResolver) === '') {
+            throw new InvalidRateLimitException(
+                'Rate limit bucket resolver cannot be empty.',
             );
         }
 

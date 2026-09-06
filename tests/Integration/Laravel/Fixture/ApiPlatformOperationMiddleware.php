@@ -9,7 +9,6 @@ use Closure;
 use Illuminate\Http\Request;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -32,7 +31,7 @@ final class ApiPlatformOperationMiddleware
                 interval: '1 minute',
             )],
             'dynamic-bucket' => [new RateLimit(
-                bucket: new DynamicBucket(FixedBucket::class),
+                bucketResolver: FixedBucket::class,
             )],
             'dynamic-cost' => [new RateLimit(
                 limit: 2,

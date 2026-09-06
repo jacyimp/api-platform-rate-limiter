@@ -9,7 +9,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
@@ -55,7 +54,9 @@ final class RateLimitConfigurationFactory
     private function rateLimit(array $values, bool $allowBucket): RateLimit
     {
         $limit = $this->limit($values['limit'] ?? null);
-        $bucket = $this->bucket($allowBucket ? ($values['bucket'] ?? null) : null);
+        [$bucket, $bucketResolver] = $this->bucket(
+            $allowBucket ? ($values['bucket'] ?? null) : null,
+        );
         $cost = $this->cost($values['cost'] ?? 1);
         $policy = $this->policy($values['policy'] ?? RateLimitPolicy::SLIDING_WINDOW);
         $interval = $values['interval'] ?? null;
@@ -70,6 +71,7 @@ final class RateLimitConfigurationFactory
             limit: $limit,
             interval: $interval,
             bucket: $bucket,
+            bucketResolver: $bucketResolver,
             cost: $cost,
             identity: isset($values['identity'])
                 ? $this->identity($values['identity'])
@@ -110,17 +112,23 @@ final class RateLimitConfigurationFactory
         return $value;
     }
 
-    private function bucket(mixed $value): string|DynamicBucket|null
+    /**
+     * @return array{?string, class-string<\JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface>|null}
+     */
+    private function bucket(mixed $value): array
     {
         if (is_array($value)) {
-            return new DynamicBucket($this->resolver($value));
+            /** @var class-string<\JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface> $resolver */
+            $resolver = $this->resolver($value);
+
+            return [null, $resolver];
         }
 
         if (!is_string($value) && $value !== null) {
             throw new \InvalidArgumentException('Rate limit bucket must be a string or resolver mapping.');
         }
 
-        return $value;
+        return [$value, null];
     }
 
     /** @return int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> */

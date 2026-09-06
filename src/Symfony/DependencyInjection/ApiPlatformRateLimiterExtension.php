@@ -27,7 +27,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -306,13 +305,17 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
         foreach ($rateLimits as $name => $rateLimit) {
             $limit = $this->resolverValue($rateLimit['limit']);
-            $bucket = $this->dynamicValue($rateLimit['bucket'], DynamicBucket::class);
+            $bucket = is_string($rateLimit['bucket']) ? $rateLimit['bucket'] : null;
+            $bucketResolver = is_array($rateLimit['bucket'])
+                ? $rateLimit['bucket']['resolver']
+                : null;
             $cost = $this->resolverValue($rateLimit['cost']);
 
             $definitions[$name] = new Definition(RateLimit::class, [
                 $limit,
                 $rateLimit['interval'],
                 $bucket,
+                $bucketResolver,
                 $cost,
                 $rateLimit['identity'] === null
                     ? null
@@ -346,6 +349,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
             $limit,
             $rateLimit['interval'],
             null,
+            null,
             $cost,
             $rateLimit['identity'] === null
                 ? null
@@ -355,18 +359,6 @@ final class ApiPlatformRateLimiterExtension extends Extension
                 : $this->conditionExpression($rateLimit['when']),
             RateLimitPolicy::from($rateLimit['policy']),
         ]);
-    }
-
-    /**
-     * @param class-string<DynamicBucket> $metadataClass
-     */
-    private function dynamicValue(mixed $value, string $metadataClass): mixed
-    {
-        if (!is_array($value)) {
-            return $value;
-        }
-
-        return new Definition($metadataClass, [$value['resolver']]);
     }
 
     private function resolverValue(mixed $value): mixed
