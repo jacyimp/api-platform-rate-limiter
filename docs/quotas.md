@@ -387,7 +387,7 @@ final class Product
 }
 ```
 
-PHP `DateInterval` and the package `Interval` value object are available for programmatic metadata:
+Native PHP `DateInterval` is available when programmatic interval construction is useful:
 
 ```php
 <?php
@@ -395,7 +395,6 @@ PHP `DateInterval` and the package `Interval` value object are available for pro
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use DateInterval;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -405,10 +404,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 new RateLimit(
                     limit: 100,
                     interval: new DateInterval('PT1M'),
-                ),
-                new RateLimit(
-                    limit: 1000,
-                    interval: new Interval(hours: 1),
                 ),
             ],
         ),
@@ -420,7 +415,7 @@ final class Product
 }
 ```
 
-Intervals must resolve to at least one second. Months, years, negative values, and fractional seconds are not supported. Symfony YAML configuration accepts interval strings; Laravel configuration also accepts `DateInterval` and `Interval` values at runtime.
+Human-readable strings are the normal interval API. Intervals must resolve to at least one second. Months, years, negative values, and fractional seconds are not supported. Symfony YAML configuration accepts interval strings; Laravel configuration also accepts native `DateInterval` values at runtime.
 
 ## See also
 

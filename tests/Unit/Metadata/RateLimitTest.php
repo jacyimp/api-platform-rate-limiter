@@ -7,7 +7,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCondition;
@@ -41,19 +40,6 @@ final class RateLimitTest extends TestCase
     public function itAcceptsDateInterval(): void
     {
         $interval = new DateInterval('PT1M');
-
-        $rateLimit = new RateLimit(
-            limit: 100,
-            interval: $interval,
-        );
-
-        self::assertSame($interval, $rateLimit->interval);
-    }
-
-    #[Test]
-    public function itAcceptsCustomInterval(): void
-    {
-        $interval = new Interval(minutes: 1);
 
         $rateLimit = new RateLimit(
             limit: 100,

@@ -12,6 +12,7 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 - Declared `RateLimit` and `BypassRateLimit` directly as numeric `extraProperties` entries. Resource and operation declarations now compose in order; the previous class-keyed syntax is no longer supported.
 - Replaced the `DynamicLimit`, `DynamicCost`, `Identity`, and `Condition` metadata wrappers with statically checked resolver class names for limits, costs, identities, and conditions. `DynamicBucket` remains available because resolver-backed and literal bucket values would otherwise both be strings.
+- Removed the package-specific `Interval` metadata value object. `RateLimit` intervals now accept human-readable strings or native `DateInterval` instances.
 
 ### Fixed
 
@@ -28,7 +29,7 @@ First public release.
 - Added multiple limits on one operation, consumed sequentially without rolling back an earlier limit when a later limit rejects the request.
 - Added named global API quotas that can be combined with resource and operation limits.
 - Added shared rate-limit buckets with inline definitions or central Symfony and Laravel configuration.
-- Added fixed-window and sliding-window policies with human-readable intervals, `DateInterval`, and the package `Interval` value object.
+- Added fixed-window and sliding-window policies with human-readable intervals and `DateInterval`.
 - Added weighted request costs so expensive operations can consume more capacity from a quota.
 - Added dynamic quotas with runtime-resolved limits, shared buckets, and request costs through `DynamicLimit`, `DynamicBucket`, `DynamicCost`, `LimitResolverInterface`, `BucketResolverInterface`, and `CostResolverInterface`.
 - Added authenticated-user identity resolution with a client-IP fallback by default, using each host framework's trusted-proxy-aware request handling.

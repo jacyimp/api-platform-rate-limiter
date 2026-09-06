@@ -6,7 +6,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 
 /**
  * @internal
@@ -14,13 +13,11 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 final class IntervalNormalizer
 {
     public function normalize(
-        string|DateInterval|Interval $interval,
+        string|DateInterval $interval,
     ): int {
-        return match (true) {
-            is_string($interval) => $this->fromString($interval),
-            $interval instanceof Interval => $this->fromInterval($interval),
-            $interval instanceof DateInterval => $this->fromDateInterval($interval),
-        };
+        return is_string($interval)
+            ? $this->fromString($interval)
+            : $this->fromDateInterval($interval);
     }
 
     private function fromString(string $interval): int
@@ -45,14 +42,6 @@ final class IntervalNormalizer
         }
 
         return $this->fromDateInterval($dateInterval);
-    }
-
-    private function fromInterval(Interval $interval): int
-    {
-        return ($interval->days * 86_400)
-            + ($interval->hours * 3_600)
-            + ($interval->minutes * 60)
-            + $interval->seconds;
     }
 
     private function fromDateInterval(DateInterval $interval): int

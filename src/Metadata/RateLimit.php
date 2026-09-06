@@ -28,7 +28,7 @@ final readonly class RateLimit
      */
     public function __construct(
         public int|string|null $limit = null,
-        public string|DateInterval|Interval|null $interval = null,
+        public string|DateInterval|null $interval = null,
         public string|DynamicBucket|null $bucket = null,
         public int|string $cost = 1,
         public string|IdentityExpression|null $identity = null,

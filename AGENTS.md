@@ -30,7 +30,6 @@ Expected consumer-facing types include:
 - `Metadata\RateLimit`
 - `Metadata\BypassRateLimit`
 - `Metadata\RateLimitPolicy`
-- `Metadata\Interval`
 - identity and condition metadata expressions
 - dynamic value metadata
 - resolver/provider/bypass contracts
@@ -50,7 +49,7 @@ Prefer obvious APIs:
         interval: '1 minute',
     );
 
-Human-readable interval strings are the primary API. `DateInterval` and `Interval` are advanced alternatives.
+Human-readable interval strings are the primary API. `DateInterval` is the programmatic alternative.
 
 Inline rate limiting should work with no additional configuration after framework registration/package discovery.
 

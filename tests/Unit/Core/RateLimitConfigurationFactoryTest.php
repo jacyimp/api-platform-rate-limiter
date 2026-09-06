@@ -13,7 +13,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -31,7 +30,7 @@ final class RateLimitConfigurationFactoryTest extends TestCase
             'catalog' => [
                 'bucket' => 'ignored-for-configured-buckets',
                 'limit' => ['resolver' => 'app.limit'],
-                'interval' => new Interval(minutes: 1),
+                'interval' => '1 minute',
                 'cost' => ['resolver' => 'app.cost'],
                 'identity' => [
                     'composite' => [
@@ -154,7 +153,7 @@ final class RateLimitConfigurationFactoryTest extends TestCase
         yield 'interval type' => [
             ['limit' => 10, 'interval' => 60],
             false,
-            'Rate limit interval must be a string or interval object.',
+            'Rate limit interval must be a string or DateInterval.',
         ];
         yield 'missing dynamic resolver' => [
             ['limit' => [], 'interval' => '1 minute'],

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Core;
 
 use DateInterval;
+use Generator;
 use JacyImp\ApiPlatformRateLimiter\Core\IntervalNormalizer;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidIntervalException;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -16,30 +17,20 @@ use PHPUnit\Framework\TestCase;
 final class IntervalNormalizerTest extends TestCase
 {
     #[Test]
-    public function itNormalizesPackageInterval(): void
+    #[DataProvider('stringIntervals')]
+    public function itNormalizesStringIntervals(string $interval, int $seconds): void
     {
-        $normalizer = new IntervalNormalizer();
-
-        self::assertSame(
-            90,
-            $normalizer->normalize(
-                new Interval(minutes: 1, seconds: 30),
-            ),
-        );
+        self::assertSame($seconds, (new IntervalNormalizer())->normalize($interval));
     }
 
-    #[Test]
-    public function itNormalizesEveryPackageIntervalComponent(): void
+    /** @return Generator<string, array{string, int}> */
+    public static function stringIntervals(): Generator
     {
-        self::assertSame(
-            93_784,
-            (new IntervalNormalizer())->normalize(new Interval(
-                days: 1,
-                hours: 2,
-                minutes: 3,
-                seconds: 4,
-            )),
-        );
+        yield 'second' => ['1 second', 1];
+        yield 'minute' => ['1 minute', 60];
+        yield 'hour' => ['1 hour', 3_600];
+        yield 'day' => ['1 day', 86_400];
+        yield 'combination' => ['1 day 2 hours 3 minutes 4 seconds', 93_784];
     }
 
     #[Test]
@@ -74,17 +65,6 @@ final class IntervalNormalizerTest extends TestCase
     }
 
     #[Test]
-    public function itNormalizesStringInterval(): void
-    {
-        $normalizer = new IntervalNormalizer();
-
-        self::assertSame(
-            300,
-            $normalizer->normalize('5 minutes'),
-        );
-    }
-
-    #[Test]
     public function itRejectsAnEmptyString(): void
     {
         $this->expectException(InvalidIntervalException::class);
@@ -109,14 +89,22 @@ final class IntervalNormalizerTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsMonthsAndYears(): void
+    #[DataProvider('variableLengthIntervals')]
+    public function itRejectsMonthsAndYears(string $interval): void
     {
         $this->expectException(InvalidIntervalException::class);
         $this->expectExceptionMessage(
             'Rate limit intervals cannot contain months or years.',
         );
 
-        (new IntervalNormalizer())->normalize(new DateInterval('P1M'));
+        (new IntervalNormalizer())->normalize(new DateInterval($interval));
+    }
+
+    /** @return Generator<string, array{string}> */
+    public static function variableLengthIntervals(): Generator
+    {
+        yield 'month' => ['P1M'];
+        yield 'year' => ['P1Y'];
     }
 
     #[Test]

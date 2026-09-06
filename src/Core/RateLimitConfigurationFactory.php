@@ -13,7 +13,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 
@@ -62,10 +61,9 @@ final class RateLimitConfigurationFactory
         $interval = $values['interval'] ?? null;
 
         if (
-            !is_string($interval) && !$interval instanceof DateInterval
-            && !$interval instanceof Interval && $interval !== null
+            !is_string($interval) && !$interval instanceof DateInterval && $interval !== null
         ) {
-            throw new \InvalidArgumentException('Rate limit interval must be a string or interval object.');
+            throw new \InvalidArgumentException('Rate limit interval must be a string or DateInterval.');
         }
 
         return new RateLimit(
