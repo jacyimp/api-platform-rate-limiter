@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Condition;
 /**
  * Marks a declarative condition accepted by rate-limit metadata.
  *
- * For example, `Condition` references one service and `AllOf` composes several.
+ * Resolver class names select one condition; expressions compose several.
  */
 interface RateLimitCondition
 {

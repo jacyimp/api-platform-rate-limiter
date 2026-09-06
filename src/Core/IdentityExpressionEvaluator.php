@@ -6,7 +6,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 
 /** @internal */
@@ -16,11 +15,11 @@ final readonly class IdentityExpressionEvaluator
     {
     }
 
-    public function evaluate(IdentityExpression $expression): ?string
+    public function evaluate(string|IdentityExpression $expression): ?string
     {
-        if ($expression instanceof Identity) {
+        if (is_string($expression)) {
             return $this->strategyRegistry
-                ->identityResolver($expression->resolver)
+                ->identityResolver($expression)
                 ->resolve();
         }
 

@@ -9,14 +9,14 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 /**
  * Combines every child value into one identity for the rate-limit counter.
  *
- * Example: `new CompositeIdentity([new Identity(Tenant::class), new Identity(User::class)])`.
+ * Example: `new CompositeIdentity([Tenant::class, User::class])`.
  */
 final readonly class CompositeIdentity implements IdentityExpression
 {
-    /** @var non-empty-list<IdentityExpression> */
+    /** @var non-empty-list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>|IdentityExpression> */
     public array $identities;
 
-    /** @param list<IdentityExpression> $identities */
+    /** @param list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>|IdentityExpression> $identities */
     public function __construct(array $identities)
     {
         if ($identities === []) {

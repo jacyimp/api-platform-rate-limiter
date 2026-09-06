@@ -9,9 +9,11 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitConditionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\MatchingCondition;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\NonMatchingCondition;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\UnusedCondition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -25,8 +27,8 @@ final class RateLimitConditionEvaluatorTest extends TestCase
         $condition = self::createMock(RateLimitConditionInterface::class);
         $condition->expects(self::once())->method('matches')->willReturn(true);
 
-        self::assertTrue($this->evaluator(['condition' => $condition])->matches(
-            new Condition('condition'),
+        self::assertTrue($this->evaluator([MatchingCondition::class => $condition])->matches(
+            MatchingCondition::class,
         ));
     }
 
@@ -39,19 +41,19 @@ final class RateLimitConditionEvaluatorTest extends TestCase
         $false->method('matches')->willReturn(false);
 
         $expression = new AllOf([
-            new Condition('true'),
+            MatchingCondition::class,
             new Not(new AnyOf([
-                new Condition('false'),
+                NonMatchingCondition::class,
                 new AllOf([
-                    new Condition('true'),
-                    new Condition('false'),
+                    MatchingCondition::class,
+                    NonMatchingCondition::class,
                 ]),
             ])),
         ]);
 
         self::assertTrue($this->evaluator([
-            'true' => $true,
-            'false' => $false,
+            MatchingCondition::class => $true,
+            NonMatchingCondition::class => $false,
         ])->matches($expression));
     }
 
@@ -64,11 +66,11 @@ final class RateLimitConditionEvaluatorTest extends TestCase
         $unused->expects(self::never())->method('matches');
 
         self::assertFalse($this->evaluator([
-            'false' => $false,
-            'unused' => $unused,
+            NonMatchingCondition::class => $false,
+            UnusedCondition::class => $unused,
         ])->matches(new AllOf([
-            new Condition('false'),
-            new Condition('unused'),
+            NonMatchingCondition::class,
+            UnusedCondition::class,
         ])));
     }
 
@@ -81,11 +83,11 @@ final class RateLimitConditionEvaluatorTest extends TestCase
         $unused->expects(self::never())->method('matches');
 
         self::assertTrue($this->evaluator([
-            'true' => $true,
-            'unused' => $unused,
+            MatchingCondition::class => $true,
+            UnusedCondition::class => $unused,
         ])->matches(new AnyOf([
-            new Condition('true'),
-            new Condition('unused'),
+            MatchingCondition::class,
+            UnusedCondition::class,
         ])));
     }
 

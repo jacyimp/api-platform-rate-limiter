@@ -9,14 +9,14 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 /**
  * Uses the first child identity that resolves to a non-null value.
  *
- * Example: `new FirstAvailableIdentity([new Identity(User::class), new Identity(Ip::class)])`.
+ * Example: `new FirstAvailableIdentity([User::class, Ip::class])`.
  */
 final readonly class FirstAvailableIdentity implements IdentityExpression
 {
-    /** @var non-empty-list<IdentityExpression> */
+    /** @var non-empty-list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>|IdentityExpression> */
     public array $identities;
 
-    /** @param list<IdentityExpression> $identities */
+    /** @param list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>|IdentityExpression> $identities */
     public function __construct(array $identities)
     {
         if ($identities === []) {

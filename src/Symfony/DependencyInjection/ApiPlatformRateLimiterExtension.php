@@ -26,14 +26,10 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
@@ -309,9 +305,9 @@ final class ApiPlatformRateLimiterExtension extends Extension
         $definitions = [];
 
         foreach ($rateLimits as $name => $rateLimit) {
-            $limit = $this->dynamicValue($rateLimit['limit'], DynamicLimit::class);
+            $limit = $this->resolverValue($rateLimit['limit']);
             $bucket = $this->dynamicValue($rateLimit['bucket'], DynamicBucket::class);
-            $cost = $this->dynamicValue($rateLimit['cost'], DynamicCost::class);
+            $cost = $this->resolverValue($rateLimit['cost']);
 
             $definitions[$name] = new Definition(RateLimit::class, [
                 $limit,
@@ -343,8 +339,8 @@ final class ApiPlatformRateLimiterExtension extends Extension
      */
     private function rateLimitDeclaration(array $rateLimit): Definition
     {
-        $limit = $this->dynamicValue($rateLimit['limit'], DynamicLimit::class);
-        $cost = $this->dynamicValue($rateLimit['cost'], DynamicCost::class);
+        $limit = $this->resolverValue($rateLimit['limit']);
+        $cost = $this->resolverValue($rateLimit['cost']);
 
         return new Definition(RateLimit::class, [
             $limit,
@@ -362,7 +358,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
     }
 
     /**
-     * @param class-string<DynamicBucket|DynamicCost|DynamicLimit> $metadataClass
+     * @param class-string<DynamicBucket> $metadataClass
      */
     private function dynamicValue(mixed $value, string $metadataClass): mixed
     {
@@ -373,10 +369,15 @@ final class ApiPlatformRateLimiterExtension extends Extension
         return new Definition($metadataClass, [$value['resolver']]);
     }
 
-    private function identityExpression(mixed $value): Definition
+    private function resolverValue(mixed $value): mixed
+    {
+        return is_array($value) ? $value['resolver'] : $value;
+    }
+
+    private function identityExpression(mixed $value): string|Definition
     {
         if (is_string($value)) {
-            return new Definition(Identity::class, [$value]);
+            return $value;
         }
 
         if (!is_array($value) || count($value) !== 1) {
@@ -390,7 +391,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
         }
 
         $expressions = array_map(
-            fn (mixed $child): Definition => $this->identityExpression($child),
+            fn (mixed $child): string|Definition => $this->identityExpression($child),
             array_values($children),
         );
 
@@ -404,10 +405,10 @@ final class ApiPlatformRateLimiterExtension extends Extension
         };
     }
 
-    private function conditionExpression(mixed $value): Definition
+    private function conditionExpression(mixed $value): string|Definition
     {
         if (is_string($value)) {
-            return new Definition(Condition::class, [$value]);
+            return $value;
         }
 
         if (!is_array($value) || count($value) !== 1) {
@@ -425,7 +426,7 @@ final class ApiPlatformRateLimiterExtension extends Extension
         }
 
         $conditions = array_map(
-            fn (mixed $child): Definition => $this->conditionExpression($child),
+            fn (mixed $child): string|Definition => $this->conditionExpression($child),
             array_values($operand),
         );
 

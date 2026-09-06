@@ -65,7 +65,6 @@ Reference the condition with `Condition`:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\AuthenticatedCondition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -75,7 +74,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 new RateLimit(
                     limit: 200,
                     interval: '1 minute',
-                    when: new Condition(AuthenticatedCondition::class),
+                    when: AuthenticatedCondition::class,
                 ),
             ],
         ),
@@ -154,7 +153,6 @@ use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\AuthenticatedCondition;
 use App\RateLimit\InternalRequestCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
@@ -166,16 +164,16 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     limit: 20,
                     interval: '1 minute',
                     when: new Not(
-                        new Condition(AuthenticatedCondition::class),
+                        AuthenticatedCondition::class,
                     ),
                 ),
                 new RateLimit(
                     limit: 200,
                     interval: '1 minute',
                     when: new AllOf([
-                        new Condition(AuthenticatedCondition::class),
+                        AuthenticatedCondition::class,
                         new Not(
-                            new Condition(InternalRequestCondition::class),
+                            InternalRequestCondition::class,
                         ),
                     ]),
                 ),
@@ -199,7 +197,6 @@ use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\AuthenticatedCondition;
 use App\RateLimit\InternalRequestCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -210,8 +207,8 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     limit: 500,
                     interval: '1 minute',
                     when: new AnyOf([
-                        new Condition(AuthenticatedCondition::class),
-                        new Condition(InternalRequestCondition::class),
+                        AuthenticatedCondition::class,
+                        InternalRequestCondition::class,
                     ]),
                 ),
             ],
@@ -377,7 +374,6 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use App\RateLimit\InternalRequestCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 
 #[ApiResource(
     operations: [
@@ -385,7 +381,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
             extraProperties: [
                 new BypassRateLimit(
                     bucket: 'catalog',
-                    when: new Condition(InternalRequestCondition::class),
+                    when: InternalRequestCondition::class,
                 ),
             ],
         ),

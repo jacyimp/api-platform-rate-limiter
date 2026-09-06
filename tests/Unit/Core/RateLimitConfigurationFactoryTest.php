@@ -11,8 +11,6 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
@@ -53,10 +51,8 @@ final class RateLimitConfigurationFactoryTest extends TestCase
 
         $rateLimit = $buckets['catalog'];
 
-        self::assertInstanceOf(DynamicLimit::class, $rateLimit->limit);
-        self::assertSame('app.limit', $rateLimit->limit->resolver);
-        self::assertInstanceOf(DynamicCost::class, $rateLimit->cost);
-        self::assertSame('app.cost', $rateLimit->cost->resolver);
+        self::assertSame('app.limit', $rateLimit->limit);
+        self::assertSame('app.cost', $rateLimit->cost);
         self::assertNull($rateLimit->bucket);
         self::assertInstanceOf(CompositeIdentity::class, $rateLimit->identity);
         self::assertInstanceOf(FirstAvailableIdentity::class, $rateLimit->identity->identities[1]);

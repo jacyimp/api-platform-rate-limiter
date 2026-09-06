@@ -25,13 +25,9 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\ApiPlatform\Fixture\OperationLimitedResource;
@@ -105,17 +101,17 @@ final class ProviderRateLimitResolutionTest extends TestCase
             }
         };
         $provided = new RateLimit(
-            limit: new DynamicLimit($limitResolver::class),
+            limit: $limitResolver::class,
             interval: '2 minutes',
             bucket: new DynamicBucket($bucketResolver::class),
-            cost: new DynamicCost($costResolver::class),
+            cost: $costResolver::class,
             identity: new CompositeIdentity([
-                new Identity($firstIdentity::class),
-                new Identity($secondIdentity::class),
+                $firstIdentity::class,
+                $secondIdentity::class,
             ]),
             when: new AllOf([
-                new Condition($condition::class),
-                new Condition($condition::class),
+                $condition::class,
+                $condition::class,
             ]),
             policy: RateLimitPolicy::FIXED_WINDOW,
         );
@@ -196,8 +192,8 @@ final class ProviderRateLimitResolutionTest extends TestCase
             limit: 10,
             interval: '1 minute',
             identity: new FirstAvailableIdentity([
-                new Identity($unavailable::class),
-                new Identity($available::class),
+                $unavailable::class,
+                $available::class,
             ]),
         );
 
@@ -330,7 +326,7 @@ final class ProviderRateLimitResolutionTest extends TestCase
             }
         };
         $provided = new RateLimit(
-            limit: new DynamicLimit($limitResolver::class),
+            limit: $limitResolver::class,
             interval: '1 minute',
         );
 

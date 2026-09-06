@@ -6,9 +6,12 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-06
+
 ### Changed
 
 - Declared `RateLimit` and `BypassRateLimit` directly as numeric `extraProperties` entries. Resource and operation declarations now compose in order; the previous class-keyed syntax is no longer supported.
+- Replaced the `DynamicLimit`, `DynamicCost`, `Identity`, and `Condition` metadata wrappers with statically checked resolver class names for limits, costs, identities, and conditions. `DynamicBucket` remains available because resolver-backed and literal bucket values would otherwise both be strings.
 
 ### Fixed
 

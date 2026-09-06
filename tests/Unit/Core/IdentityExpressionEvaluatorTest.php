@@ -8,9 +8,12 @@ use JacyImp\ApiPlatformRateLimiter\Core\IdentityExpressionEvaluator;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\FixedNullableIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\IdentityA;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\IdentityB;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\IdentityC;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Core\Fixture\IdentityD;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -21,21 +24,21 @@ final class IdentityExpressionEvaluatorTest extends TestCase
     #[Test]
     public function itResolvesSingleIdentity(): void
     {
-        $evaluator = $this->evaluator(['user' => 'user:1']);
+        $evaluator = $this->evaluator([IdentityB::class => 'user:1']);
 
-        self::assertSame('user:1', $evaluator->evaluate(new Identity('user')));
+        self::assertSame('user:1', $evaluator->evaluate(IdentityB::class));
     }
 
     #[Test]
     public function itResolvesCompositeIdentityDeterministically(): void
     {
         $evaluator = $this->evaluator([
-            'tenant' => 'tenant:12',
-            'user' => 'user:34',
+            IdentityA::class => 'tenant:12',
+            IdentityB::class => 'user:34',
         ]);
         $identity = new CompositeIdentity([
-            new Identity('tenant'),
-            new Identity('user'),
+            IdentityA::class,
+            IdentityB::class,
         ]);
 
         self::assertSame(
@@ -52,16 +55,16 @@ final class IdentityExpressionEvaluatorTest extends TestCase
     public function itUsesFirstAvailableIdentity(): void
     {
         $evaluator = $this->evaluator([
-            'api_key' => null,
-            'user' => 'user:1',
-            'ip' => 'ip:127.0.0.1',
+            IdentityC::class => null,
+            IdentityB::class => 'user:1',
+            IdentityD::class => 'ip:127.0.0.1',
         ]);
 
         self::assertSame('user:1', $evaluator->evaluate(
             new FirstAvailableIdentity([
-                new Identity('api_key'),
-                new Identity('user'),
-                new Identity('ip'),
+                IdentityC::class,
+                IdentityB::class,
+                IdentityD::class,
             ]),
         ));
     }
@@ -70,18 +73,18 @@ final class IdentityExpressionEvaluatorTest extends TestCase
     public function itSupportsNestedExpressions(): void
     {
         $evaluator = $this->evaluator([
-            'api_key' => null,
-            'user' => 'user:1',
-            'tenant' => 'tenant:2',
+            IdentityC::class => null,
+            IdentityB::class => 'user:1',
+            IdentityA::class => 'tenant:2',
         ]);
 
         self::assertSame(
             'composite:8:tenant:26:user:1',
             $evaluator->evaluate(new CompositeIdentity([
-                new Identity('tenant'),
+                IdentityA::class,
                 new FirstAvailableIdentity([
-                    new Identity('api_key'),
-                    new Identity('user'),
+                    IdentityC::class,
+                    IdentityB::class,
                 ]),
             ])),
         );
@@ -90,33 +93,33 @@ final class IdentityExpressionEvaluatorTest extends TestCase
     #[Test]
     public function itMakesCompositeUnavailableWhenAnyChildIsUnavailable(): void
     {
-        $evaluator = $this->evaluator(['tenant' => 'tenant:1', 'user' => null]);
+        $evaluator = $this->evaluator([IdentityA::class => 'tenant:1', IdentityB::class => null]);
 
         self::assertNull($evaluator->evaluate(new CompositeIdentity([
-            new Identity('tenant'),
-            new Identity('user'),
+            IdentityA::class,
+            IdentityB::class,
         ])));
     }
 
     #[Test]
     public function itReturnsNullWhenAllFallbacksAreUnavailable(): void
     {
-        $evaluator = $this->evaluator(['user' => null, 'ip' => null]);
+        $evaluator = $this->evaluator([IdentityB::class => null, IdentityD::class => null]);
 
         self::assertNull($evaluator->evaluate(new FirstAvailableIdentity([
-            new Identity('user'),
-            new Identity('ip'),
+            IdentityB::class,
+            IdentityD::class,
         ])));
     }
 
     #[Test]
     public function itUsesCollisionSafeCompositeEncoding(): void
     {
-        $first = $this->evaluator(['a' => 'a', 'b' => 'bc'])->evaluate(
-            new CompositeIdentity([new Identity('a'), new Identity('b')]),
+        $first = $this->evaluator([IdentityA::class => 'a', IdentityB::class => 'bc'])->evaluate(
+            new CompositeIdentity([IdentityA::class, IdentityB::class]),
         );
-        $second = $this->evaluator(['a' => 'ab', 'b' => 'c'])->evaluate(
-            new CompositeIdentity([new Identity('a'), new Identity('b')]),
+        $second = $this->evaluator([IdentityA::class => 'ab', IdentityB::class => 'c'])->evaluate(
+            new CompositeIdentity([IdentityA::class, IdentityB::class]),
         );
 
         self::assertNotSame($first, $second);

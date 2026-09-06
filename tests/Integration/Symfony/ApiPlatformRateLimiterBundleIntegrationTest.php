@@ -8,12 +8,10 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Operation;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedCostResolver;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\FixedIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\NeverApplyCondition;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture\TestKernel;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\Test;
@@ -123,7 +121,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
             extraProperties: [
                 new RateLimit(
                     bucket: 'weighted_shared',
-                    cost: new DynamicCost(FixedCostResolver::class),
+                    cost: FixedCostResolver::class,
                 ),
             ],
         );
@@ -213,7 +211,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
                 new RateLimit(
                     limit: 1,
                     interval: '1 minute',
-                    identity: new Identity(FixedIdentityResolver::class),
+                    identity: FixedIdentityResolver::class,
                 ),
             ],
         );
@@ -254,7 +252,7 @@ final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
                 new RateLimit(
                     limit: 1,
                     interval: '1 minute',
-                    when: new Condition('test.never_apply'),
+                    when: NeverApplyCondition::class,
                 ),
             ],
         );

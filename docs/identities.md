@@ -68,7 +68,6 @@ Reference the resolver from a login operation:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
 use App\RateLimit\IpIdentityResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -79,7 +78,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 new RateLimit(
                     limit: 5,
                     interval: '1 minute',
-                    identity: new Identity(IpIdentityResolver::class),
+                    identity: IpIdentityResolver::class,
                 ),
             ],
         ),
@@ -175,7 +174,6 @@ Use this only on operations that require authentication, or place it in `FirstAv
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\UserIdentityResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -186,7 +184,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 new RateLimit(
                     limit: 500,
                     interval: '1 minute',
-                    identity: new Identity(UserIdentityResolver::class),
+                    identity: UserIdentityResolver::class,
                 ),
             ],
         ),
@@ -271,7 +269,6 @@ Use it on the operation:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\ApiKeyIdentityResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -281,7 +278,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                 new RateLimit(
                     limit: 100,
                     interval: '1 minute',
-                    identity: new Identity(ApiKeyIdentityResolver::class),
+                    identity: ApiKeyIdentityResolver::class,
                 ),
             ],
         ),
@@ -308,7 +305,6 @@ use App\RateLimit\ApiKeyIdentityResolver;
 use App\RateLimit\IpIdentityResolver;
 use App\RateLimit\UserIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -319,9 +315,9 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     limit: 100,
                     interval: '1 minute',
                     identity: new FirstAvailableIdentity([
-                        new Identity(ApiKeyIdentityResolver::class),
-                        new Identity(UserIdentityResolver::class),
-                        new Identity(IpIdentityResolver::class),
+                        ApiKeyIdentityResolver::class,
+                        UserIdentityResolver::class,
+                        IpIdentityResolver::class,
                     ]),
                 ),
             ],
@@ -411,7 +407,6 @@ use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\TenantIdentityResolver;
 use App\RateLimit\UserIdentityResolver;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -422,8 +417,8 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     limit: 1000,
                     interval: '1 minute',
                     identity: new CompositeIdentity([
-                        new Identity(TenantIdentityResolver::class),
-                        new Identity(UserIdentityResolver::class),
+                        TenantIdentityResolver::class,
+                        UserIdentityResolver::class,
                     ]),
                 ),
             ],

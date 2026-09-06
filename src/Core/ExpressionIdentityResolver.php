@@ -12,7 +12,7 @@ final readonly class ExpressionIdentityResolver implements IdentityResolverInter
 {
     public function __construct(
         private IdentityExpressionEvaluator $evaluator,
-        private IdentityExpression $expression,
+        private string|IdentityExpression $expression,
     ) {
     }
 

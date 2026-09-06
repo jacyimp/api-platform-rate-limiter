@@ -7,26 +7,17 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCondition;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(AllOf::class)]
 #[CoversClass(AnyOf::class)]
-#[CoversClass(Condition::class)]
 #[CoversClass(Not::class)]
 final class ConditionTest extends TestCase
 {
-    #[Test]
-    public function itRejectsAnEmptyServiceId(): void
-    {
-        $this->expectException(InvalidRateLimitException::class);
-
-        new Condition(' ');
-    }
-
     #[Test]
     public function itRejectsAnEmptyAllOf(): void
     {
@@ -44,29 +35,15 @@ final class ConditionTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsMixedAllOfChildren(): void
+    public function itAcceptsClassStringChildrenAndNegation(): void
     {
-        $this->expectException(InvalidRateLimitException::class);
-
-        new AllOf(['condition']);
-    }
-
-    #[Test]
-    public function itAcceptsAnyOfChildrenAndNegation(): void
-    {
-        $condition = new Condition('app.condition');
+        $condition = MetadataCondition::class;
         $not = new Not($condition);
+        $allOf = new AllOf([$condition]);
         $anyOf = new AnyOf([$condition, $not]);
 
+        self::assertSame([$condition], $allOf->conditions);
         self::assertSame([$condition, $not], $anyOf->conditions);
         self::assertSame($condition, $not->condition);
-    }
-
-    #[Test]
-    public function itRejectsMixedAnyOfChildren(): void
-    {
-        $this->expectException(InvalidRateLimitException::class);
-
-        new AnyOf(['condition']);
     }
 }

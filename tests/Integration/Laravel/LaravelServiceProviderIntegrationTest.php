@@ -240,6 +240,33 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
     }
 
     #[Test]
+    public function itCreatesResolverBackedConfigurationWithClassNames(): void
+    {
+        $this->application()->make(Repository::class)->set(
+            'api-platform-rate-limiter.buckets',
+            [
+                'dynamic' => [
+                    'limit' => ['resolver' => FixedLimit::class],
+                    'interval' => '1 minute',
+                    'cost' => ['resolver' => FixedCost::class],
+                    'identity' => PrimaryIdentity::class,
+                    'when' => Applies::class,
+                ],
+            ],
+        );
+        $this->application()->forgetInstance(SharedRateLimitRegistry::class);
+
+        $rateLimit = $this->application()
+            ->make(SharedRateLimitRegistry::class)
+            ->get('dynamic');
+
+        self::assertSame(FixedLimit::class, $rateLimit->limit);
+        self::assertSame(FixedCost::class, $rateLimit->cost);
+        self::assertSame(PrimaryIdentity::class, $rateLimit->identity);
+        self::assertSame(Applies::class, $rateLimit->when);
+    }
+
+    #[Test]
     public function itRejectsAConfiguredStorageServiceWithTheWrongType(): void
     {
         $this->application()->instance('invalid.storage', new \stdClass());

@@ -24,11 +24,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -162,7 +158,7 @@ final class RateLimitResolverTest extends TestCase
         )->resolve(
             operation: new Get(extraProperties: [
                 new RateLimit(
-                    limit: new DynamicLimit($limitResolver::class),
+                    limit: $limitResolver::class,
                     interval: '1 minute',
                     bucket: new DynamicBucket($bucketResolver::class),
                 ),
@@ -190,7 +186,7 @@ final class RateLimitResolverTest extends TestCase
                     new RateLimit(
                         limit: 20,
                         interval: '1 minute',
-                        cost: new DynamicCost($costResolver::class),
+                        cost: $costResolver::class,
                     ),
             ]),
             operationKey: 'product_get',
@@ -220,7 +216,7 @@ final class RateLimitResolverTest extends TestCase
                 new RateLimit(
                     limit: 10,
                     interval: '1 minute',
-                    cost: new DynamicCost($costResolver::class),
+                    cost: $costResolver::class,
                 ),
             ]),
             operationKey: 'product_get',
@@ -277,7 +273,7 @@ final class RateLimitResolverTest extends TestCase
                     new RateLimit(
                         10,
                         '1 minute',
-                        when: new Condition($disabled::class),
+                        when: $disabled::class,
                     ),
                     new RateLimit(20, '1 minute'),
             ]),
@@ -347,8 +343,8 @@ final class RateLimitResolverTest extends TestCase
                 new RateLimit(
                     limit: 5,
                     interval: '1 minute',
-                    identity: new Identity($identityResolver::class),
-                    when: new Condition($condition::class),
+                    identity: $identityResolver::class,
+                    when: $condition::class,
                 ),
             ]),
             operationKey: 'otp_post',
@@ -374,8 +370,8 @@ final class RateLimitResolverTest extends TestCase
             limit: 5,
             interval: '1 minute',
             policy: RateLimitPolicy::SLIDING_WINDOW,
-            identity: new Identity($identityResolver::class),
-            when: new Condition($condition::class),
+            identity: $identityResolver::class,
+            when: $condition::class,
         );
 
         $resolver = $this->resolver(
@@ -404,6 +400,9 @@ final class RateLimitResolverTest extends TestCase
         $identityResolver = self::createStub(
             IdentityResolverInterface::class,
         );
+        $configuredIdentityResolver = self::createStub(
+            IdentityResolverInterface::class,
+        );
         $condition = self::createStub(RateLimitConditionInterface::class);
         $condition->method('matches')->willReturn(true);
 
@@ -413,11 +412,11 @@ final class RateLimitResolverTest extends TestCase
                     limit: 5,
                     interval: '1 minute',
                     policy: RateLimitPolicy::SLIDING_WINDOW,
-                    identity: new Identity('default.identity'),
-                    when: new Condition($condition::class),
+                    identity: $configuredIdentityResolver::class,
+                    when: $condition::class,
                 ),
             ],
-            identityResolvers: [$identityResolver],
+            identityResolvers: [$identityResolver, $configuredIdentityResolver],
             conditions: [$condition],
         );
 
@@ -425,8 +424,8 @@ final class RateLimitResolverTest extends TestCase
             operation: new Get(extraProperties: [
                 new RateLimit(
                     bucket: 'otp',
-                    identity: new Identity($identityResolver::class),
-                    when: new Condition($condition::class),
+                    identity: $identityResolver::class,
+                    when: $condition::class,
                 ),
             ]),
             operationKey: 'otp_post',
@@ -567,12 +566,12 @@ final class RateLimitResolverTest extends TestCase
                 'disabled' => new RateLimit(
                     10,
                     '1 minute',
-                    when: new Condition($disabled::class),
+                    when: $disabled::class,
                 ),
                 'enabled' => new RateLimit(
                     20,
                     '1 minute',
-                    when: new Condition($enabled::class),
+                    when: $enabled::class,
                 ),
             ],
         )->resolve(new Get(), 'product_get');
@@ -614,14 +613,14 @@ final class RateLimitResolverTest extends TestCase
                 'burst' => new RateLimit(
                     100,
                     '1 minute',
-                    identity: new Identity($burstIdentity::class),
-                    when: new Condition($burstCondition::class),
+                    identity: $burstIdentity::class,
+                    when: $burstCondition::class,
                 ),
                 'daily' => new RateLimit(
                     10_000,
                     '1 day',
-                    identity: new Identity($dailyIdentity::class),
-                    when: new Condition($dailyCondition::class),
+                    identity: $dailyIdentity::class,
+                    when: $dailyCondition::class,
                 ),
             ],
             identityResolvers: [$burstIdentity, $dailyIdentity],
@@ -671,15 +670,15 @@ final class RateLimitResolverTest extends TestCase
 
         $resolved = $this->resolver(
             globals: ['api' => new RateLimit(
-                limit: new DynamicLimit($limitResolver::class),
+                limit: $limitResolver::class,
                 interval: '1 minute',
-                identity: new Identity($identityResolver::class),
+                identity: $identityResolver::class,
                 when: new AllOf([
-                    new Condition($condition::class),
-                    new Condition($condition::class),
+                    $condition::class,
+                    $condition::class,
                 ]),
                 bucket: new DynamicBucket($bucketResolver::class),
-                cost: new DynamicCost($costResolver::class),
+                cost: $costResolver::class,
             )],
             identityResolvers: [$identityResolver],
             conditions: [$condition],
@@ -753,7 +752,7 @@ final class RateLimitResolverTest extends TestCase
         )->resolve(new Get(extraProperties: [
             new RateLimit(
                 bucket: 'catalog',
-                when: new Condition($condition::class),
+                when: $condition::class,
             ),
         ]), 'product_get');
 
@@ -775,7 +774,7 @@ final class RateLimitResolverTest extends TestCase
             globals: ['api' => new RateLimit(
                 10,
                 '1 minute',
-                when: new Condition($condition::class),
+                when: $condition::class,
             )],
             conditionEvaluator: new RateLimitConditionEvaluator($customRegistry),
         )->resolve(new Get(), 'product_get');
@@ -798,7 +797,7 @@ final class RateLimitResolverTest extends TestCase
             globals: ['api' => new RateLimit(
                 10,
                 '1 minute',
-                identity: new Identity($identityResolver::class),
+                identity: $identityResolver::class,
             )],
             identityExpressionEvaluator: new IdentityExpressionEvaluator($customRegistry),
         )->resolve(new Get(), 'product_get');
@@ -833,7 +832,7 @@ final class RateLimitResolverTest extends TestCase
             shared: ['catalog' => new RateLimit(
                 10,
                 '1 minute',
-                when: new Condition($configuredCondition::class),
+                when: $configuredCondition::class,
             )],
             conditions: [$configuredCondition, $referenceCondition],
         );
@@ -841,7 +840,7 @@ final class RateLimitResolverTest extends TestCase
         $resolved = $resolver->resolve(new Get(extraProperties: [
             new RateLimit(
                 bucket: 'catalog',
-                when: new Condition($referenceCondition::class),
+                when: $referenceCondition::class,
             ),
         ]), 'product_get');
 
@@ -878,7 +877,7 @@ final class RateLimitResolverTest extends TestCase
             operation: new Get(extraProperties: [
                 new RateLimit(limit: 10, interval: '1 minute'),
                 new BypassRateLimit(
-                    when: new Condition($condition::class),
+                    when: $condition::class,
                 ),
             ]),
             operationKey: 'product_get',
@@ -897,7 +896,7 @@ final class RateLimitResolverTest extends TestCase
             operation: new Get(extraProperties: [
                 new RateLimit(limit: 10, interval: '1 minute'),
                 new BypassRateLimit(
-                    when: new Condition($condition::class),
+                    when: $condition::class,
                 ),
             ]),
             operationKey: 'product_get',
@@ -1028,31 +1027,6 @@ final class RateLimitResolverTest extends TestCase
         $this->resolver()->resolve(new Get(extraProperties: [
             new RateLimit(100, '1 minute'),
         ]), ' ');
-    }
-
-    #[Test]
-    public function itRejectsEmptyLegacyIdentityServiceId(): void
-    {
-        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveIdentity');
-
-        $this->expectException(InvalidRateLimitException::class);
-        $this->expectExceptionMessage('Identity resolver service ID cannot be empty.');
-
-        $method->invoke($this->resolver(), ' ');
-    }
-
-    #[Test]
-    public function itSupportsLegacyIdentityServiceId(): void
-    {
-        $identityResolver = self::createStub(IdentityResolverInterface::class);
-        $method = new \ReflectionMethod(RateLimitResolver::class, 'resolveIdentity');
-
-        self::assertInstanceOf(
-            IdentityResolverInterface::class,
-            $method->invoke($this->resolver(
-                identityResolvers: ['app.identity' => $identityResolver],
-            ), 'app.identity'),
-        );
     }
 
     #[Test]

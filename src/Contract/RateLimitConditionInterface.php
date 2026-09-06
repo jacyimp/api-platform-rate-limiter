@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 /**
  * Evaluates whether a conditional rate limit or bypass applies.
  *
- * Reference an implementation with `new Condition(AuthenticatedCondition::class)`.
+ * Reference an implementation with `AuthenticatedCondition::class`.
  */
 interface RateLimitConditionInterface
 {

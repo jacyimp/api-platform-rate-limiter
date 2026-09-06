@@ -9,13 +9,9 @@ use Closure;
 use Illuminate\Http\Request;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,7 +28,7 @@ final class ApiPlatformOperationMiddleware
             'plain' => [],
             'configured' => [new RateLimit(bucket: 'configured')],
             'dynamic-limit' => [new RateLimit(
-                limit: new DynamicLimit(FixedLimit::class),
+                limit: FixedLimit::class,
                 interval: '1 minute',
             )],
             'dynamic-bucket' => [new RateLimit(
@@ -41,30 +37,30 @@ final class ApiPlatformOperationMiddleware
             'dynamic-cost' => [new RateLimit(
                 limit: 2,
                 interval: '1 minute',
-                cost: new DynamicCost(FixedCost::class),
+                cost: FixedCost::class,
             )],
             'composite' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 identity: new CompositeIdentity([
-                    new Identity(PrimaryIdentity::class),
-                    new Identity(SecondaryIdentity::class),
+                    PrimaryIdentity::class,
+                    SecondaryIdentity::class,
                 ]),
             )],
             'fallback' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 identity: new FirstAvailableIdentity([
-                    new Identity(MissingIdentity::class),
-                    new Identity(SecondaryIdentity::class),
+                    MissingIdentity::class,
+                    SecondaryIdentity::class,
                 ]),
             )],
             'condition' => [new RateLimit(
                 limit: 1,
                 interval: '1 minute',
                 when: new AllOf([
-                    new Condition(Applies::class),
-                    new Condition(DoesNotApply::class),
+                    Applies::class,
+                    DoesNotApply::class,
                 ]),
             )],
             'declarative-bypass' => [

@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 /**
  * Resolves how many tokens the current request consumes.
  *
- * Reference an implementation with `new DynamicCost(SearchCostResolver::class)`.
+ * Reference an implementation with `SearchCostResolver::class`.
  */
 interface CostResolverInterface
 {

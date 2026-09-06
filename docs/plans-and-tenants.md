@@ -74,7 +74,7 @@ final readonly class PlanLimitResolver implements LimitResolverInterface
 }
 ```
 
-Reference it with `DynamicLimit`:
+Reference it with its class name:
 
 ```php
 <?php
@@ -82,7 +82,6 @@ Reference it with `DynamicLimit`:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\PlanLimitResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -90,7 +89,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
         new GetCollection(
             extraProperties: [
                 new RateLimit(
-                    limit: new DynamicLimit(PlanLimitResolver::class),
+                    limit: PlanLimitResolver::class,
                     interval: '1 minute',
                 ),
             ],
@@ -381,7 +380,7 @@ final class Product
 }
 ```
 
-Use this approach when plan definitions should live in configuration. Use `DynamicLimit` when the calculation belongs in application code or does not map cleanly to named plans.
+Use this approach when plan definitions should live in configuration. Use a limit resolver class name when the calculation belongs in application code or does not map cleanly to named plans.
 
 ## Dynamic request cost
 
@@ -437,7 +436,7 @@ final readonly class SearchCostResolver implements CostResolverInterface
 }
 ```
 
-Use `DynamicCost` in the API Platform operation:
+Use the cost resolver class name in the API Platform operation:
 
 ```php
 <?php
@@ -445,7 +444,6 @@ Use `DynamicCost` in the API Platform operation:
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\RateLimit\SearchCostResolver;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 #[ApiResource(
@@ -457,7 +455,7 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
                     bucket: 'catalog-search',
                     limit: 1000,
                     interval: '1 minute',
-                    cost: new DynamicCost(SearchCostResolver::class),
+                    cost: SearchCostResolver::class,
                 ),
             ],
         ),

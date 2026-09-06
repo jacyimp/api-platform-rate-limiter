@@ -7,7 +7,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Contract;
 /**
  * Resolves the request allowance for a dynamic rate limit.
  *
- * Reference an implementation with `new DynamicLimit(PlanLimitResolver::class)`.
+ * Reference an implementation with `PlanLimitResolver::class`.
  */
 interface LimitResolverInterface
 {

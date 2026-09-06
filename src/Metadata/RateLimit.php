@@ -14,16 +14,25 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
  *
  * Omit limit and interval only when referencing a configured bucket.
  * Example: `new RateLimit(limit: 100, interval: '1 minute')`.
+ *
+ * @phpstan-type IdentityResolverClass class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>
+ * @phpstan-type ConditionClass class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>
  */
 final readonly class RateLimit
 {
+    /**
+     * @param int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface>|null $limit
+     * @param int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> $cost
+     * @param IdentityResolverClass|IdentityExpression|null $identity
+     * @param ConditionClass|RateLimitCondition|null $when
+     */
     public function __construct(
-        public int|DynamicLimit|null $limit = null,
+        public int|string|null $limit = null,
         public string|DateInterval|Interval|null $interval = null,
         public string|DynamicBucket|null $bucket = null,
-        public int|DynamicCost $cost = 1,
-        public ?IdentityExpression $identity = null,
-        public ?RateLimitCondition $when = null,
+        public int|string $cost = 1,
+        public string|IdentityExpression|null $identity = null,
+        public string|RateLimitCondition|null $when = null,
         public RateLimitPolicy $policy = RateLimitPolicy::SLIDING_WINDOW,
     ) {
         if (is_int($limit) && $limit < 1) {

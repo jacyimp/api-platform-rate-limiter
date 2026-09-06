@@ -7,15 +7,11 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -101,10 +97,12 @@ final class RateLimitConfigurationFactory
         return $resolver;
     }
 
-    private function limit(mixed $value): int|DynamicLimit|null
+    /** @return int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface>|null */
+    private function limit(mixed $value): int|string|null
     {
         if (is_array($value)) {
-            return new DynamicLimit($this->resolver($value));
+            /** @var class-string<\JacyImp\ApiPlatformRateLimiter\Contract\LimitResolverInterface> */
+            return $this->resolver($value);
         }
 
         if (!is_int($value) && $value !== null) {
@@ -127,10 +125,12 @@ final class RateLimitConfigurationFactory
         return $value;
     }
 
-    private function cost(mixed $value): int|DynamicCost
+    /** @return int|class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> */
+    private function cost(mixed $value): int|string
     {
         if (is_array($value)) {
-            return new DynamicCost($this->resolver($value));
+            /** @var class-string<\JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface> */
+            return $this->resolver($value);
         }
 
         if (!is_int($value)) {
@@ -153,10 +153,12 @@ final class RateLimitConfigurationFactory
         return RateLimitPolicy::from($value);
     }
 
-    private function identity(mixed $value): IdentityExpression
+    /** @return class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface>|IdentityExpression */
+    private function identity(mixed $value): string|IdentityExpression
     {
         if (is_string($value)) {
-            return new Identity($value);
+            /** @var class-string<\JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface> $value */
+            return $value;
         }
 
         if (!is_array($value) || count($value) !== 1) {
@@ -170,7 +172,7 @@ final class RateLimitConfigurationFactory
         }
 
         $expressions = array_map(
-            fn (mixed $child): IdentityExpression => $this->identity($child),
+            fn (mixed $child): string|IdentityExpression => $this->identity($child),
             array_values($children),
         );
 
@@ -184,10 +186,12 @@ final class RateLimitConfigurationFactory
         };
     }
 
-    private function condition(mixed $value): RateLimitCondition
+    /** @return class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>|RateLimitCondition */
+    private function condition(mixed $value): string|RateLimitCondition
     {
         if (is_string($value)) {
-            return new Condition($value);
+            /** @var class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface> $value */
+            return $value;
         }
 
         if (!is_array($value) || count($value) !== 1) {

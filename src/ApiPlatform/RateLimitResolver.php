@@ -19,14 +19,13 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\IdentityExpression;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 
 /**
  * @internal
+ *
+ * @phpstan-type ConditionClass class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>
  */
 final readonly class RateLimitResolver
 {
@@ -157,10 +156,16 @@ final readonly class RateLimitResolver
         );
     }
 
+    /**
+     * @param ConditionClass|RateLimitCondition|null $configured
+     * @param ConditionClass|RateLimitCondition|null $reference
+     *
+     * @return ConditionClass|RateLimitCondition|null
+     */
     private function composeConditions(
-        ?RateLimitCondition $configured,
-        ?RateLimitCondition $reference,
-    ): ?RateLimitCondition {
+        string|RateLimitCondition|null $configured,
+        string|RateLimitCondition|null $reference,
+    ): string|RateLimitCondition|null {
         if ($configured === null) {
             return $reference;
         }
@@ -172,7 +177,7 @@ final readonly class RateLimitResolver
         return new AllOf([$configured, $reference]);
     }
 
-    private function conditionMatches(?RateLimitCondition $condition): bool
+    private function conditionMatches(string|RateLimitCondition|null $condition): bool
     {
         if ($condition === null) {
             return true;
@@ -207,10 +212,6 @@ final readonly class RateLimitResolver
             return null;
         }
 
-        if (is_string($identity)) {
-            $identity = new Identity($identity);
-        }
-
         $evaluator = $this->identityExpressionEvaluator
             ?? new IdentityExpressionEvaluator($this->strategyRegistry);
 
@@ -219,12 +220,12 @@ final readonly class RateLimitResolver
 
     private function resolveCost(RateLimit $rateLimit): int
     {
-        if (!$rateLimit->cost instanceof DynamicCost) {
+        if (is_int($rateLimit->cost)) {
             return $rateLimit->cost;
         }
 
         return $this->strategyRegistry
-            ->costResolver($rateLimit->cost->resolver)
+            ->costResolver($rateLimit->cost)
             ->resolve();
     }
 
@@ -249,9 +250,9 @@ final readonly class RateLimitResolver
 
     private function resolveDefinition(RateLimit $rateLimit): RateLimitDefinition
     {
-        $limit = $rateLimit->limit instanceof DynamicLimit
+        $limit = is_string($rateLimit->limit)
             ? $this->strategyRegistry
-                ->limitResolver($rateLimit->limit->resolver)
+                ->limitResolver($rateLimit->limit)
                 ->resolve()
             : $rateLimit->limit;
         if ($limit === null) {

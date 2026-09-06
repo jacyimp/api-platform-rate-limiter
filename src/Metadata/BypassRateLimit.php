@@ -15,9 +15,10 @@ use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
  */
 final readonly class BypassRateLimit
 {
+    /** @param class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>|RateLimitCondition|null $when */
     public function __construct(
         public ?string $bucket = null,
-        public ?RateLimitCondition $when = null,
+        public string|RateLimitCondition|null $when = null,
     ) {
         if ($bucket !== null && trim($bucket) === '') {
             throw new InvalidRateLimitException(

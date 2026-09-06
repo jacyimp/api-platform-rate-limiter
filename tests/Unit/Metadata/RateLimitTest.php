@@ -6,14 +6,14 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata;
 
 use DateInterval;
 use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicCost;
-use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicLimit;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Interval;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimitPolicy;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCondition;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataCostResolver;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataIdentityResolver;
+use JacyImp\ApiPlatformRateLimiter\Tests\Unit\Metadata\Fixture\MetadataLimitResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -79,25 +79,23 @@ final class RateLimitTest extends TestCase
     }
 
     #[Test]
-    public function itAcceptsPerLimitServiceIds(): void
+    public function itAcceptsResolverClassNames(): void
     {
-        $condition = new Condition('app.condition');
         $rateLimit = new RateLimit(
             limit: 100,
             interval: '1 minute',
-            identity: new Identity('app.identity_resolver'),
-            when: $condition,
+            identity: MetadataIdentityResolver::class,
+            when: MetadataCondition::class,
         );
 
-        self::assertInstanceOf(Identity::class, $rateLimit->identity);
-        self::assertSame('app.identity_resolver', $rateLimit->identity->resolver);
-        self::assertSame($condition, $rateLimit->when);
+        self::assertSame(MetadataIdentityResolver::class, $rateLimit->identity);
+        self::assertSame(MetadataCondition::class, $rateLimit->when);
     }
 
     #[Test]
     public function itAcceptsDynamicValues(): void
     {
-        $limit = new DynamicLimit('app.limit_resolver');
+        $limit = MetadataLimitResolver::class;
         $bucket = new DynamicBucket('app.bucket_resolver');
         $rateLimit = new RateLimit(limit: $limit, interval: '1 minute', bucket: $bucket,);
         self::assertSame($limit, $rateLimit->limit);
@@ -107,7 +105,7 @@ final class RateLimitTest extends TestCase
     #[Test]
     public function itAcceptsStaticAndDynamicCosts(): void
     {
-        $dynamicCost = new DynamicCost('app.cost_resolver');
+        $dynamicCost = MetadataCostResolver::class;
 
         self::assertSame(3, (new RateLimit(limit: 10, interval: '1 minute', cost: 3,))->cost);
         self::assertSame(
@@ -139,36 +137,6 @@ final class RateLimitTest extends TestCase
         self::assertNull($rateLimit->interval);
         self::assertSame('catalog', $rateLimit->bucket);
     }
-    #[Test]
-    public function itRejectsEmptyIdentityResolverServiceId(): void
-    {
-        $this->expectException(InvalidRateLimitException::class);
-        $this->expectExceptionMessage(
-            'Identity resolver service ID cannot be empty.',
-        );
-
-        new RateLimit(
-            limit: 100,
-            interval: '1 minute',
-            identity: new Identity(' '),
-        );
-    }
-
-    #[Test]
-    public function itRejectsEmptyConditionServiceId(): void
-    {
-        $this->expectException(InvalidRateLimitException::class);
-        $this->expectExceptionMessage(
-            'Rate limit condition service ID cannot be empty.',
-        );
-
-        new RateLimit(
-            limit: 100,
-            interval: '1 minute',
-            when: new Condition(''),
-        );
-    }
-
     #[Test]
     public function itRejectsZeroLimit(): void
     {

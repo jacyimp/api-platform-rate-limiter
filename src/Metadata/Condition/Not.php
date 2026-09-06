@@ -7,11 +7,12 @@ namespace JacyImp\ApiPlatformRateLimiter\Metadata\Condition;
 /**
  * Matches when its child condition does not match.
  *
- * Example: `new Not(new Condition(AuthenticatedCondition::class))`.
+ * Example: `new Not(AuthenticatedCondition::class)`.
  */
 final readonly class Not implements RateLimitCondition
 {
-    public function __construct(public RateLimitCondition $condition)
+    /** @param class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>|RateLimitCondition $condition */
+    public function __construct(public string|RateLimitCondition $condition)
     {
     }
 }

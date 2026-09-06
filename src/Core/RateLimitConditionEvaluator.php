@@ -6,7 +6,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\RateLimitCondition;
 
@@ -17,10 +16,10 @@ final readonly class RateLimitConditionEvaluator
     {
     }
 
-    public function matches(RateLimitCondition $condition): bool
+    public function matches(string|RateLimitCondition $condition): bool
     {
-        if ($condition instanceof Condition) {
-            return $this->strategyRegistry->condition($condition->service)->matches();
+        if (is_string($condition)) {
+            return $this->strategyRegistry->condition($condition)->matches();
         }
 
         if ($condition instanceof Not) {

@@ -9,14 +9,14 @@ use JacyImp\ApiPlatformRateLimiter\Exception\InvalidRateLimitException;
 /**
  * Matches when every child condition matches.
  *
- * Example: `new AllOf([new Condition(IsUser::class), new Condition(IsPaid::class)])`.
+ * Example: `new AllOf([IsUser::class, IsPaid::class])`.
  */
 final readonly class AllOf implements RateLimitCondition
 {
-    /** @var list<RateLimitCondition> */
+    /** @var non-empty-list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>|RateLimitCondition> */
     public array $conditions;
 
-    /** @param list<mixed> $conditions */
+    /** @param list<class-string<\JacyImp\ApiPlatformRateLimiter\Contract\RateLimitConditionInterface>|RateLimitCondition> $conditions */
     public function __construct(array $conditions)
     {
         if ($conditions === []) {
@@ -25,17 +25,6 @@ final readonly class AllOf implements RateLimitCondition
             );
         }
 
-        $validated = [];
-        foreach ($conditions as $condition) {
-            if (!$condition instanceof RateLimitCondition) {
-                throw new InvalidRateLimitException(
-                    'AllOf children must be rate limit condition expressions.',
-                );
-            }
-
-            $validated[] = $condition;
-        }
-
-        $this->conditions = $validated;
+        $this->conditions = $conditions;
     }
 }

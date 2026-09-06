@@ -24,12 +24,10 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AllOf;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\AnyOf;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Condition;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Condition\Not;
 use JacyImp\ApiPlatformRateLimiter\Metadata\DynamicBucket;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\CompositeIdentity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\FirstAvailableIdentity;
-use JacyImp\ApiPlatformRateLimiter\Metadata\Identity\Identity;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
 use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
 use JacyImp\ApiPlatformRateLimiter\Symfony\EventListener\ApiPlatformRateLimitListener;
@@ -192,6 +190,10 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
 
         self::assertIsArray($definitions);
         self::assertArrayHasKey('api', $definitions);
+        $definition = $definitions['api'];
+        self::assertInstanceOf(Definition::class, $definition);
+        self::assertSame('app.limit_resolver', $definition->getArgument(0));
+        self::assertSame('app.cost_resolver', $definition->getArgument(3));
     }
 
     #[Test]
@@ -249,12 +251,8 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         $fallbackChildren = $fallback->getArgument(0);
         self::assertIsArray($fallbackChildren);
         self::assertSame([0, 1], array_keys($fallbackChildren));
-        self::assertInstanceOf(Definition::class, $fallbackChildren[0]);
-        self::assertSame(Identity::class, $fallbackChildren[0]->getClass());
-        self::assertSame('app.user', $fallbackChildren[0]->getArgument(0));
-        self::assertInstanceOf(Definition::class, $fallbackChildren[1]);
-        self::assertSame(Identity::class, $fallbackChildren[1]->getClass());
-        self::assertSame('app.ip', $fallbackChildren[1]->getArgument(0));
+        self::assertSame('app.user', $fallbackChildren[0]);
+        self::assertSame('app.ip', $fallbackChildren[1]);
 
         $condition = $global->getArgument(5);
         self::assertInstanceOf(Definition::class, $condition);
@@ -266,15 +264,11 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
         self::assertSame(AllOf::class, $anyChildren[0]->getClass());
         $allChildren = $anyChildren[0]->getArgument(0);
         self::assertIsArray($allChildren);
-        self::assertInstanceOf(Definition::class, $allChildren[0]);
-        self::assertSame(Condition::class, $allChildren[0]->getClass());
-        self::assertSame('app.enabled', $allChildren[0]->getArgument(0));
+        self::assertSame('app.enabled', $allChildren[0]);
         self::assertInstanceOf(Definition::class, $anyChildren[1]);
         self::assertSame(Not::class, $anyChildren[1]->getClass());
         $negated = $anyChildren[1]->getArgument(0);
-        self::assertInstanceOf(Definition::class, $negated);
-        self::assertSame(Condition::class, $negated->getClass());
-        self::assertSame('app.blocked', $negated->getArgument(0));
+        self::assertSame('app.blocked', $negated);
     }
 
     /** @param array<string, mixed> $expression */
