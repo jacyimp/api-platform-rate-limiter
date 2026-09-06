@@ -431,12 +431,18 @@ final class RateLimitResolverTest extends TestCase
     #[Test]
     public function itOverridesSharedLimitStrategiesFromMetadata(): void
     {
-        $identityResolver = self::createStub(
-            IdentityResolverInterface::class,
-        );
-        $configuredIdentityResolver = self::createStub(
-            IdentityResolverInterface::class,
-        );
+        $identityResolver = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'operation-identity';
+            }
+        };
+        $configuredIdentityResolver = new class implements IdentityResolverInterface {
+            public function resolve(): string
+            {
+                return 'configured-identity';
+            }
+        };
         $condition = self::createStub(RateLimitConditionInterface::class);
         $condition->method('matches')->willReturn(true);
 
@@ -1061,6 +1067,31 @@ final class RateLimitResolverTest extends TestCase
         $this->resolver()->resolve(new Get(extraProperties: [
             new RateLimit(100, '1 minute'),
         ]), ' ');
+    }
+
+    #[Test]
+    public function itRejectsBlankDynamicallyResolvedBucket(): void
+    {
+        $bucketResolver = new class implements BucketResolverInterface {
+            public function resolve(): string
+            {
+                return ' ';
+            }
+        };
+
+        $this->expectException(InvalidRateLimitException::class);
+        $this->expectExceptionMessage('Resolved rate limit bucket cannot be empty.');
+
+        $this->resolver(bucketResolvers: [$bucketResolver])->resolve(
+            new Get(extraProperties: [
+                new RateLimit(
+                    limit: 100,
+                    interval: '1 minute',
+                    bucketResolver: $bucketResolver::class,
+                ),
+            ]),
+            'product_get',
+        );
     }
 
     #[Test]
