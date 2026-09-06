@@ -7,7 +7,7 @@
 
 Rate limiting for API Platform applications on Symfony and Laravel.
 
-Define quotas next to API Platform operations, share a quota across endpoints, or apply limits to the whole API. Requests are limited by authenticated user and then by client IP by default.
+Define quotas next to API Platform operations, share a quota across endpoints, or apply limits to the whole API. With Symfony Security or Laravel authentication available, requests are limited by authenticated user and then by client IP by default.
 
 > This package is pre-1.0. Its public API may still change between releases.
 
@@ -90,10 +90,12 @@ The item `GET` now allows 100 requests per minute for each resolved identity. Th
 
 ## Who is counted
 
-The default identity is:
+With Symfony Security installed, the Symfony default identity is:
 
 1. the authenticated user identifier;
 2. otherwise the client IP.
+
+Without Symfony Security, Symfony transparently uses the client IP. Installing Security is only needed for automatic authenticated-user identity resolution. Laravel uses the authenticated user identifier with the same client-IP fallback.
 
 Symfony uses its trusted-proxy-aware `Request::getClientIp()` result and Laravel uses `Request::ip()`. Configure trusted proxies in the host framework and never parse forwarded IP headers yourself. See [Choosing who gets rate limited](docs/identities.md) for explicit IP, user, API key, tenant, fallback, and composite identities.
 

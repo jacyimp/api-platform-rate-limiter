@@ -22,7 +22,7 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitStrategyRegistry;
 use JacyImp\ApiPlatformRateLimiter\Core\SharedRateLimitRegistry;
-use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
+use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelCacheStorage;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelEventDispatcher;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelIdentityResolver;
@@ -351,7 +351,7 @@ final class LaravelServiceProviderIntegrationTest extends TestCase
     {
         $events = 0;
         $this->application()->make(Dispatcher::class)->listen(
-            RateLimitChecking::class,
+            RateLimitConsumed::class,
             static function () use (&$events): void {
                 ++$events;
             },

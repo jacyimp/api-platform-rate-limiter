@@ -89,7 +89,6 @@ Bypass services are checked before each limit is consumed. Keep them side-effect
 
 The package dispatches immutable PSR-14 event objects:
 
-- `RateLimitChecking` immediately before consumption;
 - `RateLimitConsumed` after accepted consumption;
 - `RateLimitRejected` after rejected consumption.
 

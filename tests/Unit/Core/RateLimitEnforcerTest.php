@@ -12,7 +12,6 @@ use JacyImp\ApiPlatformRateLimiter\Core\RateLimitEnforcer;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimiterInterface;
 use JacyImp\ApiPlatformRateLimiter\Core\RateLimitResult;
 use JacyImp\ApiPlatformRateLimiter\Core\ResolvedRateLimit;
-use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
 use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
@@ -23,7 +22,6 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 #[CoversClass(RateLimitEnforcer::class)]
-#[CoversClass(RateLimitChecking::class)]
 #[CoversClass(RateLimitConsumed::class)]
 #[CoversClass(RateLimitRejected::class)]
 final class RateLimitEnforcerTest extends TestCase
@@ -415,12 +413,6 @@ final class RateLimitEnforcerTest extends TestCase
         $events = [];
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addListener(
-            RateLimitChecking::class,
-            static function (RateLimitChecking $event) use (&$events): void {
-                $events[] = $event;
-            },
-        );
-        $eventDispatcher->addListener(
             RateLimitConsumed::class,
             static function (RateLimitConsumed $event) use (&$events): void {
                 $events[] = $event;
@@ -442,24 +434,15 @@ final class RateLimitEnforcerTest extends TestCase
 
         $enforcer->enforce([$first, $second]);
 
-        self::assertCount(4, $events);
-        self::assertInstanceOf(RateLimitChecking::class, $events[0]);
-        self::assertInstanceOf(RateLimitConsumed::class, $events[1]);
-        self::assertInstanceOf(RateLimitChecking::class, $events[2]);
-        self::assertInstanceOf(RateLimitRejected::class, $events[3]);
+        self::assertCount(2, $events);
+        self::assertInstanceOf(RateLimitConsumed::class, $events[0]);
+        self::assertInstanceOf(RateLimitRejected::class, $events[1]);
 
-        $checking = $events[0];
-        self::assertSame('operation:product_get', $checking->bucket);
-        self::assertSame('user:123', $checking->identity);
-        self::assertSame(10, $checking->limit);
-        self::assertSame(60, $checking->intervalSeconds);
-        self::assertSame(RateLimitPolicy::SLIDING_WINDOW, $checking->policy);
-
-        $consumed = $events[1];
+        $consumed = $events[0];
         self::assertSame(9, $consumed->remaining);
         self::assertSame($retryAfter, $consumed->retryAfter);
 
-        $rejected = $events[3];
+        $rejected = $events[1];
         self::assertSame('shared:catalog', $rejected->bucket);
         self::assertSame(0, $rejected->remaining);
         self::assertSame($retryAfter, $rejected->retryAfter);

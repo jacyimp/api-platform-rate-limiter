@@ -10,6 +10,8 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ### Changed
 
+- Removed the observational `RateLimitChecking` lifecycle event. Successful and rejected consumption continue to dispatch `RateLimitConsumed` and `RateLimitRejected`.
+- Made `symfony/security-core` optional. Symfony uses authenticated user identifiers automatically when Security is installed and falls back to client IPs when it is absent or no user is authenticated.
 - Declared `RateLimit` and `BypassRateLimit` directly as numeric `extraProperties` entries. Resource and operation declarations now compose in order; the previous class-keyed syntax is no longer supported.
 - Replaced resolver-backed metadata wrappers with statically checked resolver class names. Dynamic buckets now use the explicit `RateLimit::bucketResolver` parameter, while `bucket` accepts only literal bucket names. Removed `DynamicBucket` without a compatibility shim.
 - Removed the package-specific `Interval` metadata value object. `RateLimit` intervals now accept human-readable strings or native `DateInterval` instances.
@@ -39,7 +41,7 @@ First public release.
 - Added declarative resource- and operation-level exemptions through `BypassRateLimit`, plus request-wide infrastructure bypasses through `RateLimitBypassInterface`.
 - Added runtime rate-limit declarations through `RateLimitProviderInterface` and custom rejection handling through `RateLimitRejectionHandlerInterface`.
 - Added default `429 Too Many Requests` rejection responses with `Retry-After`, `RateLimit-Limit`, and `RateLimit-Remaining` headers.
-- Added immutable PSR-14 lifecycle events for rate-limit checking, successful consumption, and rejection.
+- Added immutable PSR-14 lifecycle events for successful consumption and rejection.
 - Added Symfony bundle integration with dependency-injection autoconfiguration, inline limits that require no package configuration, configurable buckets and globals, and isolated cache-backed storage.
 - Added Laravel 11–13 integration with API Platform for Laravel, including package discovery, operation middleware, framework-native identity and rejection handling, isolated cache storage, and publishable configuration.
 - Added custom storage support and shared cache-backed counters for multi-instance deployments.

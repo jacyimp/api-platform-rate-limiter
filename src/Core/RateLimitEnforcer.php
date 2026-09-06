@@ -6,7 +6,6 @@ namespace JacyImp\ApiPlatformRateLimiter\Core;
 
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\RateLimitBypassInterface;
-use JacyImp\ApiPlatformRateLimiter\Event\RateLimitChecking;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitConsumed;
 use JacyImp\ApiPlatformRateLimiter\Event\RateLimitRejected;
 use JacyImp\ApiPlatformRateLimiter\Exception\IdentityResolutionException;
@@ -48,14 +47,6 @@ final readonly class RateLimitEnforcer
                 );
             }
             $definition = $rateLimit->definition;
-
-            $this->eventDispatcher->dispatch(new RateLimitChecking(
-                bucket: $rateLimit->bucket,
-                identity: $identity,
-                limit: $definition->limit,
-                intervalSeconds: $definition->intervalSeconds,
-                policy: $definition->policy,
-            ));
 
             $result = $this->rateLimiter->consume(
                 rateLimit: $rateLimit,

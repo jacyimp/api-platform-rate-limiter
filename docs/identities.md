@@ -1,6 +1,6 @@
 # Choosing who gets rate limited
 
-Every counter belongs to an identity. By default the package uses the authenticated user identifier, then falls back to the client IP.
+Every counter belongs to an identity. With Symfony Security installed, Symfony uses the authenticated user identifier and falls back to the client IP. Without Symfony Security, it uses the client IP. Laravel uses its authenticated user identifier with the same client-IP fallback.
 
 Symfony uses `Request::getClientIp()` and Laravel uses `Request::ip()`. Configure each framework's trusted proxies; do not parse `X-Forwarded-For` in a resolver.
 

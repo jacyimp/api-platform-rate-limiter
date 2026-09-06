@@ -32,6 +32,7 @@
         "analyse": "phpstan analyse",
         "test": "phpunit",
         "test:behaviour": "behat",
+        "test:no-security": "@php tools/test-no-security.php",
         "coverage": [
             "@php -d xdebug.mode=coverage vendor/bin/phpunit --coverage-clover=coverage.xml",
             "@php tools/check-coverage.php coverage.xml"
@@ -59,7 +60,6 @@
         "psr/event-dispatcher": "^1.0",
         "symfony/rate-limiter": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
-        "symfony/security-core": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/config": "^6.4 || ^7.0 || ^8.0"
@@ -81,10 +81,12 @@
         "behat/behat": "^3.32",
         "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
         "paragonie/random_compat": "^9.99",
-        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0"
+        "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
+        "symfony/security-core": "^6.4 || ^7.0 || ^8.0"
     },
     "suggest": {
-        "api-platform/laravel": "Required when using the Laravel integration (^4.2 or ^4.3)."
+        "api-platform/laravel": "Required when using the Laravel integration (^4.2 or ^4.3).",
+        "symfony/security-core": "Required to rate limit authenticated Symfony users by user identity."
     },
     "extra": {
         "bamarni-bin": {
