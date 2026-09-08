@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Laravel;
 
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitDescription;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
@@ -49,6 +52,22 @@ final class LaravelServiceProvider extends ServiceProvider
         $this->app->singleton(RateLimitConfigurationFactory::class);
         $this->app->singleton(RateLimitMetadataExtractor::class);
         $this->app->singleton(IntervalNormalizer::class);
+        $this->app->extend(
+            ResourceMetadataCollectionFactoryInterface::class,
+            function (
+                ResourceMetadataCollectionFactoryInterface $factory,
+                Application $app,
+            ): ResourceMetadataCollectionFactoryInterface {
+                $configuration = $app->make(RateLimitConfigurationFactory::class);
+
+                return new RateLimitResourceMetadataCollectionFactory($factory, new RateLimitDescription(
+                    $app->make(RateLimitMetadataExtractor::class),
+                    $app->make(SharedRateLimitRegistry::class),
+                    $app->make(IntervalNormalizer::class),
+                    $configuration->globals($this->rateLimitConfiguration($app, 'globals')),
+                ));
+            },
+        );
 
         $this->app->bind(
             RateLimitProviderCollection::class,

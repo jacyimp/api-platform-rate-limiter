@@ -402,6 +402,7 @@ RateLimit-Remaining
 
 ## Guides
 
+- [Swagger / OpenAPI](docs/openapi.md) — automatic rate-limit descriptions.
 - [Quotas and shared limits](docs/quotas.md) — endpoint, resource, global, and shared quotas.
 - [Choosing who gets rate limited](docs/identities.md) — users, IPs, API keys, tenants, fallback, and composite identities.
 - [Plans, tenants, and dynamic quotas](docs/plans-and-tenants.md) — subscription tiers, tenant identities, dynamic bucket selection, and request costs.

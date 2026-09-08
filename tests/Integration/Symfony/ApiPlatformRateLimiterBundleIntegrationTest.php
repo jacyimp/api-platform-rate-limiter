@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony;
 
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use JacyImp\ApiPlatformRateLimiter\Exception\RateLimitExceededException;
 use JacyImp\ApiPlatformRateLimiter\Metadata\BypassRateLimit;
 use JacyImp\ApiPlatformRateLimiter\Metadata\RateLimit;
@@ -24,6 +27,23 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 final class ApiPlatformRateLimiterBundleIntegrationTest extends TestCase
 {
     private ?TestKernel $kernel = null;
+
+    #[Test]
+    public function itAddsRateLimitsToDocumentationThroughSymfonyWiring(): void
+    {
+        $this->kernel = new TestKernel('documentation_' . uniqid(), true, [
+            'api' => ['limit' => 1000, 'interval' => '1 day'],
+        ]);
+        $this->kernel->boot();
+        $factory = $this->kernel->getContainer()->get('api_platform.metadata.resource.metadata_collection_factory');
+        self::assertInstanceOf(ResourceMetadataCollectionFactoryInterface::class, $factory);
+        $operation = $factory->create(self::class)->getOperation('documented');
+        self::assertInstanceOf(HttpOperation::class, $operation);
+        $openapi = $operation->getOpenapi();
+        self::assertInstanceOf(OpenApiOperation::class, $openapi);
+        self::assertStringContainsString('100 tokens per 1 minute', $openapi->getDescription() ?? '');
+        self::assertStringContainsString('Global quota: 1000 tokens per 1 day', $openapi->getDescription() ?? '');
+    }
 
     protected function tearDown(): void
     {

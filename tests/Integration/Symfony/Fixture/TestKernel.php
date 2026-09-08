@@ -6,6 +6,7 @@ namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Symfony\Fixture;
 
 use JacyImp\ApiPlatformRateLimiter\Symfony\ApiPlatformRateLimiterBundle;
 use JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection\ApiPlatformRateLimiterExtension;
+use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Fixture\DocumentationMetadataFactory;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -79,6 +80,12 @@ final class TestKernel extends Kernel
         );
 
         $services = $container->services();
+
+        $services->set(
+            'api_platform.metadata.resource.metadata_collection_factory',
+            DocumentationMetadataFactory::class,
+        )
+            ->public();
 
         $services
             ->set(LimitedController::class)

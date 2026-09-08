@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel;
 
+use ApiPlatform\Metadata\HttpOperation;
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use Generator;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -30,6 +33,7 @@ use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelRateLimitRejectionHandler;
 use JacyImp\ApiPlatformRateLimiter\Laravel\LaravelServiceProvider;
 use JacyImp\ApiPlatformRateLimiter\Laravel\Middleware\ApiPlatformRateLimitMiddleware;
 use JacyImp\ApiPlatformRateLimiter\Symfony\SymfonyRateLimiter;
+use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Fixture\DocumentationMetadataFactory;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\AlwaysBypass;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\ApiPlatformOperationMiddleware;
 use JacyImp\ApiPlatformRateLimiter\Tests\Integration\Laravel\Fixture\Applies;
@@ -48,6 +52,24 @@ use Symfony\Component\RateLimiter\Storage\StorageInterface;
 
 final class LaravelServiceProviderIntegrationTest extends TestCase
 {
+    #[Test]
+    public function itAddsRateLimitsToDocumentationThroughLaravelWiring(): void
+    {
+        $app = $this->app;
+        self::assertNotNull($app);
+        $app->make(Repository::class)->set('api-platform-rate-limiter.globals', [
+            'api' => ['limit' => 1000, 'interval' => '1 day'],
+        ]);
+        $app->bind(ResourceMetadataCollectionFactoryInterface::class, DocumentationMetadataFactory::class);
+        $factory = $app->make(ResourceMetadataCollectionFactoryInterface::class);
+        $operation = $factory->create(self::class)->getOperation('documented');
+        self::assertInstanceOf(HttpOperation::class, $operation);
+        $openapi = $operation->getOpenapi();
+        self::assertInstanceOf(OpenApiOperation::class, $openapi);
+        self::assertStringContainsString('100 tokens per 1 minute', $openapi->getDescription() ?? '');
+        self::assertStringContainsString('Global quota: 1000 tokens per 1 day', $openapi->getDescription() ?? '');
+    }
+
     /** @return list<class-string> */
     protected function getPackageProviders(mixed $app): array
     {

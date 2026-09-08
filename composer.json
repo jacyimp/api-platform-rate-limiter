@@ -82,7 +82,8 @@
         "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
         "paragonie/random_compat": "^9.99",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
-        "symfony/security-core": "^6.4 || ^7.0 || ^8.0"
+        "symfony/security-core": "^6.4 || ^7.0 || ^8.0",
+        "api-platform/openapi": "^3.4 || ^4.0"
     },
     "suggest": {
         "api-platform/laravel": "Required when using the Laravel integration (^4.2 or ^4.3).",
