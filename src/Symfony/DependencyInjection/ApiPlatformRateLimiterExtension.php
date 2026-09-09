@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Symfony\DependencyInjection;
 
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitDescription;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
@@ -129,23 +130,25 @@ final class ApiPlatformRateLimiterExtension extends Extension
 
         $container->register(IntervalNormalizer::class);
 
-        $container->register(RateLimitDescription::class)->setArguments([
-            new Reference(RateLimitMetadataExtractor::class),
-            new Reference(SharedRateLimitRegistry::class),
-            new Reference(IntervalNormalizer::class),
-            $this->globalRateLimits($config['globals']),
-        ]);
-        $container->register(RateLimitResourceMetadataCollectionFactory::class)
-            ->setDecoratedService(
-                'api_platform.metadata.resource.metadata_collection_factory',
-                null,
-                -100,
-                ContainerInterface::IGNORE_ON_INVALID_REFERENCE,
-            )
-            ->setArguments([
-                new Reference(RateLimitResourceMetadataCollectionFactory::class . '.inner'),
-                new Reference(RateLimitDescription::class),
+        if (class_exists(OpenApiOperation::class)) {
+            $container->register(RateLimitDescription::class)->setArguments([
+                new Reference(RateLimitMetadataExtractor::class),
+                new Reference(SharedRateLimitRegistry::class),
+                new Reference(IntervalNormalizer::class),
+                $this->globalRateLimits($config['globals']),
             ]);
+            $container->register(RateLimitResourceMetadataCollectionFactory::class)
+                ->setDecoratedService(
+                    'api_platform.metadata.resource.metadata_collection_factory',
+                    null,
+                    -100,
+                    ContainerInterface::IGNORE_ON_INVALID_REFERENCE,
+                )
+                ->setArguments([
+                    new Reference(RateLimitResourceMetadataCollectionFactory::class . '.inner'),
+                    new Reference(RateLimitDescription::class),
+                ]);
+        }
 
         $container
             ->register(RateLimitStrategyRegistry::class)

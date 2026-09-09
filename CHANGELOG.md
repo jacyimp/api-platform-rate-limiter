@@ -10,6 +10,10 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 - Automatically append rate-limit details to Swagger/OpenAPI operation descriptions on Symfony and Laravel, including configured and global quotas, request costs, and conditional/dynamic declarations while preserving custom descriptions.
 
+### Fixed
+
+- Avoid registering OpenAPI metadata decoration when `api-platform/openapi` is not installed.
+
 ## [0.2.0] - 2026-09-06
 
 ### Changed

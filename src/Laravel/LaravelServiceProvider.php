@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Laravel;
 
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
@@ -52,22 +53,24 @@ final class LaravelServiceProvider extends ServiceProvider
         $this->app->singleton(RateLimitConfigurationFactory::class);
         $this->app->singleton(RateLimitMetadataExtractor::class);
         $this->app->singleton(IntervalNormalizer::class);
-        $this->app->extend(
-            ResourceMetadataCollectionFactoryInterface::class,
-            function (
-                ResourceMetadataCollectionFactoryInterface $factory,
-                Application $app,
-            ): ResourceMetadataCollectionFactoryInterface {
-                $configuration = $app->make(RateLimitConfigurationFactory::class);
+        if (class_exists(OpenApiOperation::class)) {
+            $this->app->extend(
+                ResourceMetadataCollectionFactoryInterface::class,
+                function (
+                    ResourceMetadataCollectionFactoryInterface $factory,
+                    Application $app,
+                ): ResourceMetadataCollectionFactoryInterface {
+                    $configuration = $app->make(RateLimitConfigurationFactory::class);
 
-                return new RateLimitResourceMetadataCollectionFactory($factory, new RateLimitDescription(
-                    $app->make(RateLimitMetadataExtractor::class),
-                    $app->make(SharedRateLimitRegistry::class),
-                    $app->make(IntervalNormalizer::class),
-                    $configuration->globals($this->rateLimitConfiguration($app, 'globals')),
-                ));
-            },
-        );
+                    return new RateLimitResourceMetadataCollectionFactory($factory, new RateLimitDescription(
+                        $app->make(RateLimitMetadataExtractor::class),
+                        $app->make(SharedRateLimitRegistry::class),
+                        $app->make(IntervalNormalizer::class),
+                        $configuration->globals($this->rateLimitConfiguration($app, 'globals')),
+                    ));
+                },
+            );
+        }
 
         $this->app->bind(
             RateLimitProviderCollection::class,
