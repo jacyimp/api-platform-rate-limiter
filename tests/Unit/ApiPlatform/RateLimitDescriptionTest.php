@@ -36,11 +36,15 @@ final class RateLimitDescriptionTest extends TestCase
             new RateLimit(bucket: 'shared', cost: 3),
         ]), 'get');
 
-        self::assertStringContainsString('100 tokens per 1 minute (sliding_window)', $text);
-        self::assertStringContainsString('50 tokens per 3600 seconds', $text);
-        self::assertStringContainsString('Cost: 6 token(s) per request. Shared bucket.', $text);
-        self::assertStringContainsString('Global quota: 1000 tokens per 1 day', $text);
-        self::assertStringContainsString('HTTP 429', $text);
+        self::assertSame(
+            "### Rate limits\n\n"
+            . "- 100 tokens per 1 minute (sliding_window). Cost: 1 token(s) per request.\n"
+            . "- 50 tokens per 3600 seconds (sliding_window). Cost: 6 token(s) per request. Shared bucket.\n"
+            . "- Global quota: 1000 tokens per 1 day (sliding_window). Cost: 1 token(s) per request.\n\n"
+            . 'Quotas apply per resolved identity. Exceeding a quota returns HTTP 429.'
+            . ' Runtime bypass rules may exempt requests.',
+            $text,
+        );
     }
 
     #[Test]
@@ -80,6 +84,74 @@ final class RateLimitDescriptionTest extends TestCase
         self::assertStringNotContainsString('10 tokens', $text);
         self::assertStringContainsString('20 tokens', $text);
         self::assertStringContainsString('Applies conditionally.', $text);
+    }
+
+    #[Test]
+    public function itMatchesBypassesAgainstResolvedGlobalBucketNames(): void
+    {
+        $description = new RateLimitDescription(
+            new RateLimitMetadataExtractor(),
+            new SharedRateLimitRegistry([]),
+            new IntervalNormalizer(),
+            ['api' => new RateLimit(1000, '1 day', bucket: 'shared')],
+        );
+        $operation = new Get(extraProperties: [
+            new BypassRateLimit(bucket: 'global:api:shared'),
+        ]);
+
+        self::assertSame('', $description->describe($operation, 'get'));
+    }
+
+    #[Test]
+    public function itContinuesAfterABypassedGlobalQuota(): void
+    {
+        $description = new RateLimitDescription(
+            new RateLimitMetadataExtractor(),
+            new SharedRateLimitRegistry([]),
+            new IntervalNormalizer(),
+            [
+                'bypassed' => new RateLimit(10, '1 minute'),
+                'active' => new RateLimit(20, '1 minute'),
+            ],
+        );
+        $text = $description->describe(new Get(extraProperties: [
+            new BypassRateLimit(bucket: 'global:bypassed'),
+        ]), 'get');
+
+        self::assertStringNotContainsString('10 tokens', $text);
+        self::assertStringContainsString('Global quota: 20 tokens', $text);
+    }
+
+    #[Test]
+    public function itMarksConfiguredAndResolvedBucketsConditional(): void
+    {
+        $description = new RateLimitDescription(
+            new RateLimitMetadataExtractor(),
+            new SharedRateLimitRegistry([
+                'shared' => new RateLimit(50, '1 hour', when: DoesNotApply::class),
+            ]),
+            new IntervalNormalizer(),
+        );
+        $text = $description->describe(new Get(extraProperties: [
+            new RateLimit(bucket: 'shared'),
+            new RateLimit(bucketResolver: FixedBucket::class),
+            new BypassRateLimit(bucket: 'resolved', when: DoesNotApply::class),
+        ]), 'get');
+
+        self::assertSame(2, substr_count($text, 'Applies conditionally.'));
+        self::assertSame(2, substr_count($text, 'Shared bucket.'));
+    }
+
+    #[Test]
+    public function itAppliesEveryBypassToResolvedBuckets(): void
+    {
+        $operation = new Get(extraProperties: [
+            new RateLimit(bucketResolver: FixedBucket::class),
+            new BypassRateLimit(bucket: 'resolved', when: DoesNotApply::class),
+            new BypassRateLimit(),
+        ]);
+
+        self::assertSame('', $this->description()->describe($operation, 'get'));
     }
 
     private function description(): RateLimitDescription

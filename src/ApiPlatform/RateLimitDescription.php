@@ -88,7 +88,7 @@ final readonly class RateLimitDescription
         $period = is_string($interval)
             ? $interval
             : ($interval === null ? null : $this->intervalNormalizer->normalize($interval) . ' seconds');
-        $quota = is_int($declaration->limit) ? (string) $declaration->limit : 'Dynamic';
+        $quota = is_int($declaration->limit) ? $declaration->limit : 'Dynamic';
         $cost = $declaration->limit !== null && is_int($limit->cost) && is_int($declaration->cost)
             ? ($declaration === $limit ? $limit->cost : $limit->cost * $declaration->cost)
             : null;

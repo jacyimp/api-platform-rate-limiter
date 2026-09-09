@@ -39,7 +39,7 @@
         ],
         "mutation": [
             "@composer bin infection install --ansi",
-            "@php -d xdebug.mode=coverage vendor-bin/infection/vendor/bin/infection --threads=max --only-covering-test-cases"
+            "@php -d xdebug.mode=coverage vendor-bin/infection/vendor/bin/infection --threads=8 --only-covering-test-cases"
         ],
         "check": [
             "@composer validate --strict",

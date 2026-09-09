@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace JacyImp\ApiPlatformRateLimiter\Tests\Unit\Symfony\DependencyInjection;
 
 use Generator;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitDescription;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitMetadataExtractor;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitProviderCollection;
 use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResolver;
+use JacyImp\ApiPlatformRateLimiter\ApiPlatform\RateLimitResourceMetadataCollectionFactory;
 use JacyImp\ApiPlatformRateLimiter\Contract\BucketResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\CostResolverInterface;
 use JacyImp\ApiPlatformRateLimiter\Contract\IdentityResolverInterface;
@@ -40,6 +42,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
@@ -483,6 +486,28 @@ final class ApiPlatformRateLimiterExtensionTest extends TestCase
             ],
             $tags,
         );
+    }
+
+    #[Test]
+    public function itDecoratesApiPlatformMetadataForRateLimitDocumentation(): void
+    {
+        $definition = $this->container()->getDefinition(RateLimitResourceMetadataCollectionFactory::class);
+
+        self::assertSame(
+            [
+                'api_platform.metadata.resource.metadata_collection_factory',
+                null,
+                -100,
+                ContainerInterface::IGNORE_ON_INVALID_REFERENCE,
+            ],
+            $definition->getDecoratedService(),
+        );
+        $decorated = $definition->getArgument(0);
+        $description = $definition->getArgument(1);
+        self::assertInstanceOf(Reference::class, $decorated);
+        self::assertInstanceOf(Reference::class, $description);
+        self::assertSame(RateLimitResourceMetadataCollectionFactory::class . '.inner', (string) $decorated);
+        self::assertSame(RateLimitDescription::class, (string) $description);
     }
 
     #[Test]

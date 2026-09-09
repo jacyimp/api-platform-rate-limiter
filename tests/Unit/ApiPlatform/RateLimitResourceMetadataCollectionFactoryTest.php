@@ -30,12 +30,16 @@ use ReflectionClass;
 #[CoversClass(RateLimitResourceMetadataCollectionFactory::class)]
 final class RateLimitResourceMetadataCollectionFactoryTest extends TestCase
 {
+    private ResourceMetadataCollection $innerCollection;
+
     #[Test]
     public function itAppendsToCustomOpenApiDescriptionsWithoutMutatingCachedMetadata(): void
     {
-        $operation = new Get(openapi: new Operation(summary: 'Summary', description: 'Existing.'), extraProperties: [
-            new RateLimit(100, '1 minute'),
-        ]);
+        $operation = new Get(
+            description: 'Operation fallback.',
+            openapi: new Operation(summary: 'Summary', description: 'Existing.'),
+            extraProperties: [new RateLimit(100, '1 minute')],
+        );
         $factory = $this->factory($operation);
         $firstOperation = $factory->create(self::class)->getOperation('get');
         $secondOperation = $factory->create(self::class)->getOperation('get');
@@ -51,6 +55,9 @@ final class RateLimitResourceMetadataCollectionFactoryTest extends TestCase
         self::assertSame($first->getDescription(), $second->getDescription());
         self::assertInstanceOf(Operation::class, $operation->getOpenapi());
         self::assertSame('Existing.', $operation->getOpenapi()->getDescription());
+        $innerOperation = $this->innerCollection->getOperation('get');
+        self::assertInstanceOf(Get::class, $innerOperation);
+        self::assertSame($operation, $innerOperation);
     }
 
     #[Test]
@@ -95,10 +102,45 @@ final class RateLimitResourceMetadataCollectionFactoryTest extends TestCase
         self::assertStringContainsString('100 tokens per 1 minute', $description);
     }
 
-    private function factory(Get $operation): RateLimitResourceMetadataCollectionFactory
+    #[Test]
+    public function itContinuesDecoratingAfterSkippedOperations(): void
     {
         $inner = self::createStub(ResourceMetadataCollectionFactoryInterface::class);
         $collection = new ResourceMetadataCollection(self::class, [
+            new ApiResource(shortName: 'Example', operations: [
+                'disabled' => new Get(openapi: false, extraProperties: [new RateLimit(1, '1 minute')]),
+                'unlimited' => new Get(),
+                'unsupported' => new Get(
+                    openapi: new \ApiPlatform\OpenApi\Attributes\Webhook('event'),
+                    extraProperties: [new RateLimit(2, '1 minute')],
+                ),
+                'limited' => new Get(extraProperties: [new RateLimit(3, '1 minute')]),
+            ]),
+        ]);
+        $inner->method('create')->willReturn($collection);
+        $factory = new RateLimitResourceMetadataCollectionFactory($inner, new RateLimitDescription(
+            new RateLimitMetadataExtractor(),
+            new SharedRateLimitRegistry([]),
+            new IntervalNormalizer(),
+        ));
+
+        $result = $factory->create(self::class);
+        $unsupported = $result->getOperation('unsupported');
+        self::assertInstanceOf(Get::class, $unsupported);
+        self::assertInstanceOf(\ApiPlatform\OpenApi\Attributes\Webhook::class, $unsupported->getOpenapi());
+        $limited = $result->getOperation('limited');
+        self::assertInstanceOf(Get::class, $limited);
+        self::assertInstanceOf(Operation::class, $limited->getOpenapi());
+        self::assertStringContainsString('3 tokens per 1 minute', $limited->getOpenapi()->getDescription() ?? '');
+        $innerLimited = $collection->getOperation('limited');
+        self::assertInstanceOf(Get::class, $innerLimited);
+        self::assertNull($innerLimited->getOpenapi());
+    }
+
+    private function factory(Get $operation): RateLimitResourceMetadataCollectionFactory
+    {
+        $inner = self::createStub(ResourceMetadataCollectionFactoryInterface::class);
+        $collection = $this->innerCollection = new ResourceMetadataCollection(self::class, [
             new ApiResource(shortName: 'Example', operations: ['get' => $operation]),
         ]);
         $inner->method('create')->willReturnCallback(
